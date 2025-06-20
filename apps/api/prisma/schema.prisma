@@ -1,0 +1,154 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER
+  STORE_ADMIN
+  SUPER_ADMIN
+}
+
+enum DiscountType {
+  PERCENTAGE
+  FIXED
+}
+
+model User {
+  id          String   @id @default(uuid())
+  firstName   String
+  lastName    String
+  email       String   @unique
+  username    String   @unique
+  password    String
+  phoneNumber String?  @unique
+  role        Role     @default(USER)
+  createdAt   DateTime @default(now())
+
+  addresses     Address[] // Relasi satu ke banyak dengan Address
+  Store         Store[]
+  DiscountUsage DiscountUsage[]
+}
+
+model Address {
+  id         String @id @default(uuid())
+  street     String
+  city       String
+  state      String
+  postalCode String
+  country    String
+  userId     String // Foreign key ke User
+
+  user      User     @relation(fields: [userId], references: [id]) // Relasi ke User
+  createdAt DateTime @default(now())
+}
+
+model Store {
+  id        String    @id @default(uuid())
+  name      String    @unique
+  adminId   String
+  address   String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  User     User       @relation(fields: [adminId], references: [id])
+  Discount Discount[]
+}
+
+model Product {
+  id          String    @id @default(uuid())
+  name        String    @unique
+  description String
+  stock       Int
+  price       Float
+  weight      Float
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+
+  ProductCategory ProductCategory[]
+  ProductImage    ProductImage[]
+  Discount        Discount[]
+}
+
+model Category {
+  id          String    @id @default(uuid())
+  name        String    @unique
+  description String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+
+  ProductCategory ProductCategory[]
+}
+
+model Image {
+  id        String    @id @default(uuid())
+  imageUrl  String
+  createdAt DateTime  @default(now())
+  deletedAt DateTime?
+
+  ProductImage ProductImage[]
+}
+
+model ProductCategory {
+  id         String    @id @default(uuid())
+  productId  String
+  categoryId String
+  deletedAt  DateTime?
+
+  Product  Product  @relation(fields: [productId], references: [id])
+  Category Category @relation(fields: [categoryId], references: [id])
+}
+
+model ProductImage {
+  id        String    @id @default(uuid())
+  productId String
+  imageId   String
+  deletedAt DateTime?
+
+  Product Product @relation(fields: [productId], references: [id])
+  Image   Image   @relation(fields: [imageId], references: [id])
+}
+
+model Discount {
+  id           String       @id @default(uuid())
+  storeId      String
+  productId    String
+  value        Decimal
+  discountType DiscountType
+  minPurchase  Decimal
+  maxDiscount  Decimal
+  startDate    DateTime
+  endDate      DateTime
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  deletedAt    DateTime?
+
+  Store         Store           @relation(fields: [storeId], references: [id])
+  Product       Product         @relation(fields: [productId], references: [id])
+  DiscountUsage DiscountUsage[]
+}
+
+model DiscountUsage {
+  id          String   @id @default(uuid())
+  userId      String
+  discountId  String
+  totalAmount Decimal
+  createdAt   DateTime @default(now())
+
+  User     User     @relation(fields: [userId], references: [id])
+  Discount Discount @relation(fields: [discountId], references: [id])
+}
