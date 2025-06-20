@@ -1,7 +1,7 @@
 import express from "express";
 import {
   getCurrentUser,
-  updateUserImage,
+  // updateUserImage,
 } from "../controllers/user-controller";
 import { verifyToken } from "../middleware/auth-middleware";
 

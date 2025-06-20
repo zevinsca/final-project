@@ -3,6 +3,7 @@ import { PrismaClient } from "../../generated/prisma/index.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { ZodError } from "zod";
+
 // import { Resend } from "resend";
 import fs from "fs/promises";
 // import handlebars from "handlebars";
@@ -49,6 +50,9 @@ export async function register(req: Request, res: Response) {
   }
 }
 
+/* -------------------------------------------------------------------------- */
+/*                         Login With Web Market Snap                         */
+/* -------------------------------------------------------------------------- */
 export async function login(req: Request, res: Response) {
   try {
     const { username, password, email } = req.body;
@@ -82,11 +86,11 @@ export async function login(req: Request, res: Response) {
         email: existingUser.email,
         role: existingUser.role,
       },
-      "superdupersecret"
+      process.env.JWT_SECRET as string
     );
 
     res
-      .cookie("accessToken", JWTToken)
+      .cookie("accessToken", JWTToken, { httpOnly: true })
       .status(200)
       .json({ message: "Login success" });
   } catch (error) {
@@ -95,7 +99,21 @@ export async function login(req: Request, res: Response) {
   }
 }
 
-export async function logout(req: Request, res: Response) {
+/* -------------------------------------------------------------------------- */
+/*                                Login Google                                */
+/* -------------------------------------------------------------------------- */
+export function loginSuccess(req: Request, res: Response) {
+  if (req.user) {
+    res.json({
+      message: "Login berhasil",
+      user: req.user,
+    });
+  } else {
+    res.status(401).json({ message: "Belum login" });
+  }
+}
+
+export async function signOut(req: Request, res: Response) {
   try {
     res
       .clearCookie("accessToken")
@@ -104,5 +122,21 @@ export async function logout(req: Request, res: Response) {
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Failed to logout" });
+  }
+}
+
+export async function logout(req: Request, res: Response) {
+  try {
+    await new Promise<void>((resolve, reject) => {
+      req.logout((error: Error | null) => {
+        if (error) return reject(error);
+        resolve();
+      });
+    });
+
+    res.status(200).json({ message: "Logout success" });
+  } catch (error) {
+    console.error("Logout Error:", error);
+    res.status(500).json({ message: "Logout failed" });
   }
 }
