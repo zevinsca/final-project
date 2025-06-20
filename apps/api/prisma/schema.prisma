@@ -1,0 +1,124 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER
+  STORE_ADMIN
+  SUPER_ADMIN
+}
+
+model User {
+  id          String    @id @default(uuid())
+  firstName   String
+  lastName    String
+  email       String    @unique
+  username    String    @unique
+  password    String
+  phoneNumber String?   @unique
+  role        Role      @default(USER)
+  createdAt   DateTime  @default(now())
+  addresses   Address[] // Relasi satu ke banyak dengan Address
+  Cart        Cart[]
+  Order       Order[]
+}
+
+model Address {
+  id         String   @id @default(uuid())
+  street     String
+  city       String
+  state      String
+  postalCode String
+  country    String
+  userId     String // Foreign key ke User
+  user       User     @relation(fields: [userId], references: [id]) // Relasi ke User
+  createdAt  DateTime @default(now())
+  Order      Order[]
+}
+
+model Product {
+  id          String   @id @default(uuid())
+  name        String
+  description String
+  price       Float
+  stock       Int
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  CartItem  CartItem[]
+  OrderItem OrderItem[]
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
+model Cart {
+  id        String   @id @default(uuid())
+  userId    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  User     User       @relation(fields: [userId], references: [id])
+  CartItem CartItem[]
+}
+
+model CartItem {
+  id        String   @id @default(uuid())
+  cartId    String
+  productId String
+  quantity  Int      @default(1)
+  unitPrice Float
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  Cart    Cart    @relation(fields: [cartId], references: [id])
+  Product Product @relation(fields: [productId], references: [id])
+}
+
+model Order {
+  id            String      @id @default(uuid())
+  userId        String
+  orderNumber   String      @unique
+  status        OrderStatus @default(PENDING)
+  subTotal      Float
+  shippingTotal Float
+  totalPrice    Float
+  addressId     String
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  Address   Address     @relation(fields: [addressId], references: [id])
+  User      User        @relation(fields: [userId], references: [id])
+  OrderItem OrderItem[]
+}
+
+model OrderItem {
+  id        String   @id @default(uuid())
+  orderId   String
+  productId String
+  unitPrice Float
+  quantity  Int
+  total     Float
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  Order   Order   @relation(fields: [orderId], references: [id])
+  Product Product @relation(fields: [productId], references: [id])
+}
