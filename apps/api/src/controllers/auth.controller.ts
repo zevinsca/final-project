@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { PrismaClient } from "../../generated/prisma/index.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import prisma from "../config/prisma-client";
 import { ZodError } from "zod";
 
 // import { Resend } from "resend";
@@ -11,8 +12,6 @@ import fs from "fs/promises";
 import { registerSchema } from "../validations/auth-validation.js";
 
 // const resend = new Resend(process.env.RESEND_API_KEY);
-
-const prisma = new PrismaClient();
 
 export async function register(req: Request, res: Response) {
   try {
@@ -98,21 +97,6 @@ export async function login(req: Request, res: Response) {
     res.status(500).json({ message: "Login failed" });
   }
 }
-
-/* -------------------------------------------------------------------------- */
-/*                                Login Google                                */
-/* -------------------------------------------------------------------------- */
-export function loginSuccess(req: Request, res: Response) {
-  if (req.user) {
-    res.json({
-      message: "Login berhasil",
-      user: req.user,
-    });
-  } else {
-    res.status(401).json({ message: "Belum login" });
-  }
-}
-
 export async function signOut(req: Request, res: Response) {
   try {
     res
@@ -125,18 +109,28 @@ export async function signOut(req: Request, res: Response) {
   }
 }
 
-export async function logout(req: Request, res: Response) {
-  try {
-    await new Promise<void>((resolve, reject) => {
-      req.logout((error: Error | null) => {
-        if (error) return reject(error);
-        resolve();
-      });
-    });
-
-    res.status(200).json({ message: "Logout success" });
-  } catch (error) {
-    console.error("Logout Error:", error);
-    res.status(500).json({ message: "Logout failed" });
+/* -------------------------------------------------------------------------- */
+/*                                Login Google                                */
+/* -------------------------------------------------------------------------- */
+export async function loginSuccess(req: Request, res: Response) {
+  if (!req.user) {
+    res.status(401).json({ message: "Not authenticated" });
+    return;
   }
+
+  res.json({
+    message: "Login with Google successful",
+    user: req.user,
+  });
+}
+export async function loginFailed(_req: Request, res: Response) {
+  res.status(401).json({ message: "Login with Google failed" });
+}
+
+export async function logout(req: Request, res: Response) {
+  req.logout((err) => {
+    if (err)
+      return res.status(500).json({ message: "Logout failed", error: err });
+    res.redirect("/");
+  });
 }

@@ -5,43 +5,17 @@ import Image from "next/image";
 import { FiSearch, FiHeart, FiShoppingBag, FiMenu } from "react-icons/fi";
 
 import LoginPageSection from "@/components/login/login";
+import HeaderSection from "@/components/header";
 
 export default function HomePage() {
   return (
     <div className="bg-[#f7f8fa] min-h-screen text-black">
       {/* Top Welcome Bar */}
-      <div className="bg-green-800 text-white text-center text-sm py-1">
-        Welcome to Organic Shop
-      </div>
 
       {/* Navbar */}
-      <div className="flex justify-between items-center p-4 bg-green-900 text-white relative">
-        <div className="flex items-center gap-2">
-          <Image src="/logo.png" alt="Organic Food" width={40} height={40} />
-          <span className="text-xl font-bold">ORGANIC FOOD</span>
-        </div>
+      <HeaderSection />
 
-        <div className="flex-1 mx-6">
-          <div className="flex bg-white rounded-md overflow-hidden">
-            <input
-              type="text"
-              placeholder="Search..."
-              className="flex-grow px-4 py-2 text-black outline-none"
-            />
-            <button className="bg-black px-4">
-              <FiSearch className="text-white" />
-            </button>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-4">
-          <FiHeart size={20} />
-          <LoginPageSection />
-          <FiShoppingBag size={20} />
-        </div>
-
-        {/* Login Dropdown */}
-      </div>
+      {/* Login Dropdown */}
 
       {/* Secondary Menu */}
       <div className="bg-white text-green-900 px-6 py-2 flex justify-between items-center shadow-md">

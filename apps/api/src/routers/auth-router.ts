@@ -6,6 +6,7 @@ import {
   register,
   signOut,
   loginSuccess,
+  loginFailed,
 } from "../controllers/auth.controller.js";
 
 const router = express.Router();
@@ -15,22 +16,21 @@ const router = express.Router();
 /* -------------------------------------------------------------------------- */
 
 // Redirect ke Google login
+router.get("/login/success", loginSuccess);
+router.get("/login/failed", loginFailed);
+
 router.get(
   "/google",
   passport.authenticate("google", { scope: ["profile", "email"] })
 );
 
-// Callback dari Google
 router.get(
   "/google/callback",
   passport.authenticate("google", {
-    successRedirect: "http://localhost:3000/dashboard", // atau /login-success (frontend)
-    failureRedirect: "http://localhost:3000/login",
+    failureRedirect: "/api/v1/auth/login/failed",
+    successRedirect: "http://localhost:3000",
   })
 );
-
-// Cek login Google sukses (ambil req.user)
-router.get("/login-success", loginSuccess);
 
 // Logout untuk user yang login lewat Google
 router.get("/logout", logout);

@@ -9,17 +9,22 @@ const client = new OAuth2Client(CLIENT_ID);
 // 1. Check token ada atau tidak
 // 2. Validasi token yang ada
 
-export function verifyToken(req: Request, res: Response, next: NextFunction) {
+export async function verifyToken(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
   const accessToken = req.cookies.accessToken;
 
   if (!accessToken) {
-    return res.status(401).json({ message: "Token is required" });
+    res.status(401).json({ message: "Token is required" });
+    return;
   }
 
   try {
     const payload = jwt.verify(
       accessToken,
-      process.env.JWT_SECRET!
+      process.env.JWT_SECRET || "superdupersecret"
     ) as CustomJwtPayload;
     if (!payload) {
       res.status(401).json({ message: "Token verification failed" });
@@ -28,21 +33,14 @@ export function verifyToken(req: Request, res: Response, next: NextFunction) {
 
     req.user = payload;
     next();
-  } catch (err) {
+  } catch (error) {
     res.status(401).json({ message: "Token verification failed" });
   }
 }
 /* -------------------------------------------------------------------------- */
 /*                             verify google token                            */
 /* -------------------------------------------------------------------------- */
-export const isAuthenticated = (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  if (req.isAuthenticated()) return next();
-  res.status(401).json({ message: "Unauthorized" });
-};
+
 /* ------------------------------------ 2 ----------------------------------- */
 export function roleGuard(...roles: string[]) {
   return async function (req: Request, res: Response, next: NextFunction) {

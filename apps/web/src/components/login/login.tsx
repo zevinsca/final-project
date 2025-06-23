@@ -48,7 +48,7 @@ export default function LoginPageSection() {
       if (!res.ok) throw new Error("Login failed");
       const data = await res.json();
       console.log("Login success:", data);
-      window.location.href = "/dashboard";
+      window.location.href = "/";
     } catch (error) {
       console.error(error);
       alert("Login gagal!");
@@ -63,7 +63,7 @@ export default function LoginPageSection() {
         className="cursor-pointer flex items-center gap-2"
       >
         <FiUser size={20} />
-        <span className="text-sm">Login</span>
+        <p className="text-sm">Login</p>
       </div>
 
       {/* Login Popup */}

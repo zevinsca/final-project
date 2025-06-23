@@ -1,4 +1,5 @@
 import { JwtPayload } from "jsonwebtoken";
+import { Profile } from "passport";
 
 export interface CustomJwtPayload extends JwtPayload {
   id: string;
@@ -8,12 +9,6 @@ export interface CustomJwtPayload extends JwtPayload {
   lastName: string;
   username: string;
 }
-export interface CustomGooglePayload extends GooglePayload {
-  id: string;
-  email: string;
-  name: string;
-  photo?: string;
-}
 
 declare global {
   namespace Express {
@@ -22,7 +17,7 @@ declare global {
        * Akan terisi user dari JWT atau dari Passport (Google)
        * Kamu bisa pakai union untuk menampung keduanya
        */
-      user?: CustomJwtPayload | CustomGooglePayload;
+      user?: CustomJwtPayload;
 
       /**
        * Tambahkan logout() agar tidak error saat pakai Passport

@@ -2,16 +2,34 @@ import { Request, Response } from "express";
 import { PrismaClient } from "../../generated/prisma/index.js";
 import fs from "fs/promises";
 import bcrypt from "bcryptjs";
-
-const prisma = new PrismaClient();
+import prisma from "../config/prisma-client";
+// export async function getCurrentUser(req: Request, res: Response) {
+//   try {
+//     const body = req.body;
+//     const user = req.user;
+//     res.status(200).json({ data: user });
+//   } catch (error) {
+//     console.error(error);
+//     res.status(500).json({ message: "Failed To Get User" });
+//   }
+// }
 
 export async function getCurrentUser(req: Request, res: Response) {
   try {
     const body = req.body;
     const user = req.user;
-    res.status(200).json({ data: user });
+    if (!req.user) {
+      res.status(401).json({ message: "User not logged in" });
+      return;
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "User retrieved successfully",
+      data: user,
+    });
   } catch (error) {
-    console.error(error);
+    console.error("Gagal mengambil user:", error);
     res.status(500).json({ message: "Failed To Get User" });
   }
 }
