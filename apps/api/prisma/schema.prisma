@@ -25,6 +25,12 @@ enum DiscountType {
   FIXED
 }
 
+enum InventoryAction {
+  RESTOCK
+  SALE
+  ADD
+}
+
 model User {
   id          String   @id @default(uuid())
   firstName   String
@@ -36,9 +42,10 @@ model User {
   role        Role     @default(USER)
   createdAt   DateTime @default(now())
 
-  addresses     Address[] // Relasi satu ke banyak dengan Address
-  Store         Store[]
-  DiscountUsage DiscountUsage[]
+  addresses        Address[] // Relasi satu ke banyak dengan Address
+  Store            Store[]
+  DiscountUsage    DiscountUsage[]
+  InventoryJournal InventoryJournal[]
 }
 
 model Address {
@@ -63,8 +70,9 @@ model Store {
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
-  User     User       @relation(fields: [adminId], references: [id])
-  Discount Discount[]
+  User             User               @relation(fields: [adminId], references: [id])
+  Discount         Discount[]
+  InventoryJournal InventoryJournal[]
 }
 
 model Product {
@@ -78,9 +86,10 @@ model Product {
   updatedAt   DateTime  @updatedAt
   deletedAt   DateTime?
 
-  ProductCategory ProductCategory[]
-  ProductImage    ProductImage[]
-  Discount        Discount[]
+  ProductCategory  ProductCategory[]
+  ProductImage     ProductImage[]
+  Discount         Discount[]
+  InventoryJournal InventoryJournal[]
 }
 
 model Category {
@@ -151,4 +160,29 @@ model DiscountUsage {
 
   User     User     @relation(fields: [userId], references: [id])
   Discount Discount @relation(fields: [discountId], references: [id])
+}
+
+model ProductInventory {
+  id        String    @id @default(uuid())
+  productId String    @unique
+  storeId   String
+  stock     Int
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+}
+
+model InventoryJournal {
+  id        String          @id @default(uuid())
+  storeId   String
+  productId String
+  quantity  String
+  weight    Float
+  action    InventoryAction
+  userId    String
+  createdAt DateTime        @default(now())
+
+  Store   Store   @relation(fields: [storeId], references: [id])
+  Product Product @relation(fields: [productId], references: [id])
+  User    User    @relation(fields: [userId], references: [id])
 }
