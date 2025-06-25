@@ -1,147 +1,109 @@
-"use client";
+import Link from "next/link";
+import { FaRegUser, FaUser } from "react-icons/fa";
+import { AiOutlineClose } from "react-icons/ai";
+import { useEffect, useState } from "react";
+import SignOut from "./logout";
 
-import React, { useState, useEffect, useRef } from "react";
-import { FiUser, FiEye, FiEyeOff } from "react-icons/fi";
-import { FaTwitter } from "react-icons/fa";
+interface CurrentUser {
+  userId: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  username: string;
+  name: string;
+  photo: string;
+  provider: "google";
+}
+export default function ProfileHeaderPopUp() {
+  const [showProfilePopup, setShowProfilePopup] = useState(false);
+  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
 
-export default function LoginPageSection() {
-  const [showLogin, setShowLogin] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const popupRef = useRef<HTMLDivElement>(null);
-
-  // ✅ Tutup popup jika klik di luar
   useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (
-        popupRef.current &&
-        !popupRef.current.contains(event.target as Node)
-      ) {
-        setShowLogin(false);
+    async function getCurrentUser() {
+      try {
+        const res = await fetch(
+          "http://localhost:8000/api/v1/user/current-user",
+          {
+            credentials: "include",
+          }
+        );
+        const data = await res.json();
+        setCurrentUser(data.data);
+      } catch (error) {
+        console.error("Error fetching user:", error);
       }
     }
-
-    if (showLogin) {
-      document.addEventListener("mousedown", handleClickOutside);
-    } else {
-      document.removeEventListener("mousedown", handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [showLogin]);
-
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      const res = await fetch("http://localhost:8000/api/v1/auth/login", {
-        method: "POST",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email, password }),
-      });
-
-      if (!res.ok) throw new Error("Login failed");
-      const data = await res.json();
-      console.log("Login success:", data);
-      window.location.href = "/";
-    } catch (error) {
-      console.error(error);
-      alert("Login gagal!");
-    }
-  };
+    getCurrentUser();
+  }, []);
 
   return (
-    <main className="relative">
-      {/* Ganti button luar dengan div */}
-      <div
-        onClick={() => setShowLogin(!showLogin)}
-        className="cursor-pointer flex items-center gap-2"
+    <section className="relative z-50">
+      {/* {currentUser ? (
+        <div></div>>
+      ) : ( */}
+      <button
+        onClick={() => setShowProfilePopup(!showProfilePopup)}
+        className="p-2 hover:bg-gray-800 rounded-full transition"
       >
-        <FiUser size={20} />
-        <p className="text-sm">Login</p>
-      </div>
+        <FaRegUser className="text-lg text-white" />
+      </button>
+      {/* )} */}
 
-      {/* Login Popup */}
-      {showLogin && (
-        <div
-          ref={popupRef}
-          className="absolute top-12 right-0 w-72 bg-white text-black shadow-xl rounded-md z-50"
-        >
-          <div className="flex bg-gray-100 rounded-t-md">
-            <button className="flex-1 py-2 text-green-700 font-bold bg-white rounded-tl-md">
-              Login
+      {showProfilePopup && (
+        <div className="fixed top-0 right-0 h-screen w-full md:w-[350px] bg-[#1f1f1f]/90 backdrop-blur-md text-white shadow-2xl transition-all duration-300 ease-in-out p-6 z-[100] rounded-l-xl">
+          <div className="flex justify-end mb-4">
+            <button
+              onClick={() => setShowProfilePopup(false)}
+              className="hover:text-red-400 transition"
+            >
+              <AiOutlineClose size={24} />
             </button>
-            <button className="flex-1 py-2 text-gray-400">Sign Up</button>
           </div>
 
-          <form className="p-4" onSubmit={handleLogin}>
-            <label className="text-sm font-semibold">Email</label>
-            <input
-              type="email"
-              placeholder="Email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full border rounded-md px-3 py-2 mt-1 mb-4"
-              required
-            />
+          {currentUser ? (
+            <div className="flex flex-col items-center space-y-6">
+              <div className="bg-gradient-to-tr from-pink-500 to-purple-600 rounded-full p-4 shadow-lg">
+                <FaUser size={64} />
+              </div>
+              <div className="text-center">
+                <h2 className="text-xl font-semibold">{currentUser.name}</h2>
+                <p className="text-sm text-gray-400">{currentUser.email}</p>
+              </div>
 
-            <label className="text-sm font-semibold">Password</label>
-            <div className="relative mb-4">
-              <input
-                type={showPassword ? "text" : "password"}
-                placeholder="Password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full border rounded-md px-3 py-2 pr-10"
-                required
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute top-2.5 right-3 text-gray-600"
+              <div className="w-full flex flex-col space-y-4">
+                <Link
+                  href="/profile"
+                  className="px-4 py-2 hover:bg-gray-100 hover:text-black cursor-pointer block rounded-md text-center"
+                >
+                  Profile
+                </Link>
+                <Link
+                  href="/settings"
+                  className="px-4 py-2 hover:bg-gray-100 hover:text-black cursor-pointer block rounded-md text-center"
+                >
+                  Settings
+                </Link>
+                <SignOut />
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-col space-y-4 items-center">
+              <Link
+                href="/auth/login"
+                className="w-full text-center bg-gradient-to-r from-blue-500 to-blue-700 py-2 rounded-xl hover:opacity-90 transition"
               >
-                {showPassword ? <FiEyeOff /> : <FiEye />}
-              </button>
+                Sign In
+              </Link>
+              <Link
+                href="/auth/register"
+                className="w-full text-center bg-gradient-to-r from-green-500 to-green-700 py-2 rounded-xl hover:opacity-90 transition"
+              >
+                Sign Up
+              </Link>
             </div>
-
-            <div className="flex items-center gap-2 mb-4">
-              <input type="checkbox" id="remember" />
-              <label htmlFor="remember" className="text-sm">
-                Remember me
-              </label>
-            </div>
-
-            <button
-              type="submit"
-              className="w-full bg-green-700 text-white py-2 rounded"
-            >
-              Log in
-            </button>
-          </form>
-
-          <div className="social-icons flex flex-col gap-3 px-4 pb-4">
-            <a
-              href="http://localhost:8000/api/v1/auth/google"
-              className="w-full text-center bg-white border py-2 rounded hover:shadow-md"
-            >
-              Log in with Google
-            </a>
-
-            <button
-              aria-label="Log in with Twitter"
-              className="w-full text-center bg-white border py-2 rounded text-blue-500 hover:shadow-md flex justify-center items-center gap-2"
-            >
-              <FaTwitter size={18} />
-              Twitter
-            </button>
-          </div>
+          )}
         </div>
       )}
-    </main>
+    </section>
   );
 }

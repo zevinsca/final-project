@@ -128,9 +128,14 @@ export async function loginFailed(_req: Request, res: Response) {
 }
 
 export async function logout(req: Request, res: Response) {
-  req.logout((err) => {
-    if (err)
-      return res.status(500).json({ message: "Logout failed", error: err });
+  try {
+    res
+      .clearCookie("accessToken")
+      .status(200)
+      .json({ message: "Logout success" });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Failed to logout" });
     res.redirect("/");
-  });
+  }
 }

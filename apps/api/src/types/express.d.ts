@@ -10,6 +10,13 @@ export interface CustomJwtPayload extends JwtPayload {
   username: string;
 }
 
+export interface GoogleJwtPayload extends JwtPayload {
+  id: string;
+  email: string;
+  name: string;
+  photo?: string;
+  provider: "google";
+}
 declare global {
   namespace Express {
     interface Request {

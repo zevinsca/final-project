@@ -8,6 +8,8 @@ import {
   loginSuccess,
   loginFailed,
 } from "../controllers/auth.controller.js";
+import { Profile } from "passport";
+import jwt from "jsonwebtoken";
 
 const router = express.Router();
 
@@ -26,21 +28,32 @@ router.get(
 
 router.get(
   "/google/callback",
-  passport.authenticate("google", {
-    failureRedirect: "/api/v1/auth/login/failed",
-    successRedirect: "http://localhost:3000",
-  })
-);
+  passport.authenticate("google", { session: false }),
+  (req, res) => {
+    const googleUser = req.user as Profile;
+    const accesstoken = jwt.sign(
+      {
+        id: googleUser.id,
+        email: googleUser.emails?.[0].value,
+        name: googleUser.displayName,
+        photo: googleUser.photos?.[0].value,
+        provider: "google",
+      },
+      process.env.JWT_SECRET!,
+      { expiresIn: "1d" }
+    );
 
+    res.cookie("accessToken", accesstoken, { httpOnly: true });
+    res.redirect("http://localhost:3000");
+  }
+);
 // Logout untuk user yang login lewat Google
-router.get("/logout", logout);
+router.route("/logout").delete(logout).delete(signOut);
 
 /* -------------------------------------------------------------------------- */
 /*                                LOGIN MANUAL                                */
 /* -------------------------------------------------------------------------- */
 
 router.post("/register", register);
-router.post("/login", login);
-router.delete("/logout/jwt", signOut); // Logout khusus JWT
-
+router.post("/login", login); // Logout khusus JWT
 export default router;
