@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { FiSearch, FiHeart, FiShoppingBag, FiMenu } from "react-icons/fi";
+import { FiMenu } from "react-icons/fi";
 
-import LoginPageSection from "@/components/login/login";
+import HeaderSection from "@/components/header";
 import HeaderSection from "@/components/header";
 
 export default function HomePage() {
@@ -14,7 +14,9 @@ export default function HomePage() {
 
       {/* Navbar */}
       <HeaderSection />
+      <HeaderSection />
 
+      {/* Login Dropdown */}
       {/* Login Dropdown */}
 
       {/* Secondary Menu */}
