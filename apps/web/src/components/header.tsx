@@ -14,7 +14,7 @@ export default function HeaderSection() {
       <div className="flex justify-between items-center p-4 bg-green-900 text-white relative">
         <div className="flex items-center gap-2">
           <Image src="/logo.png" alt="Organic Food" width={40} height={40} />
-          <span className="text-xl font-bold">ORGANIC FOOD</span>
+          <span className="text-xl font-bold">ORGANIC FOODS</span>
         </div>
 
         <div className="flex-1 mx-6">
