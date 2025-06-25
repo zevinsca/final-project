@@ -5,7 +5,6 @@ import Image from "next/image";
 import { FiMenu } from "react-icons/fi";
 
 import HeaderSection from "@/components/header";
-import HeaderSection from "@/components/header";
 
 export default function HomePage() {
   return (
