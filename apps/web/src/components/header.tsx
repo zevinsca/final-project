@@ -1,69 +1,43 @@
-"use client";
+import Image from "next/image";
+import { FiSearch, FiHeart, FiShoppingBag } from "react-icons/fi";
 
-import { useState } from "react";
+import LoginPageSection from "@/components/login/login";
 
-export default function Header() {
-  const [user, setUser] = useState(null);
-
-  // Fungsi ini akan dijalankan saat login berhasil menggunakan Google
-  function onSignIn(googleUser) {
-    const id_token = googleUser.getAuthResponse().id_token;
-
-    // Kirim token ke backend untuk verifikasi
-    fetch("http://localhost:8000/api/v1/auth/login/google", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ token: id_token }),
-    })
-      .then((response) => response.json())
-      .then((data) => {
-        console.log("User info:", data);
-        setUser(data.user); // Menyimpan informasi user ke state
-      })
-      .catch((error) => {
-        console.error("Error:", error);
-      });
-  }
-
-  // Fungsi untuk menangani logout
-  const handleLogout = () => {
-    fetch("http://localhost:8000/api/v1/auth/logout", {
-      method: "DELETE",
-    })
-      .then((response) => response.json())
-      .then((data) => {
-        console.log("Logged out", data);
-        setUser(null); // Clear user state
-      })
-      .catch((error) => {
-        console.error("Error during logout:", error);
-      });
-  };
-
+export default function HeaderSection() {
   return (
-    <header
-      style={{
-        padding: "10px",
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-      }}
-    >
-      <div>
-        <h1>My App</h1>
+    <section>
+      <div className="bg-green-800 text-white text-center text-sm py-1">
+        Welcome to Organic Shop
       </div>
-      <div>
-        {user ? (
-          <div>
-            <span>Welcome, {user.name}</span>
-            <button onClick={handleLogout}>Logout</button>
+
+      {/* Navbar */}
+      <div className="flex justify-between items-center p-4 bg-green-900 text-white relative">
+        <div className="flex items-center gap-2">
+          <Image src="/logo.png" alt="Organic Food" width={40} height={40} />
+          <span className="text-xl font-bold">ORGANIC FOOD</span>
+        </div>
+
+        <div className="flex-1 mx-6">
+          <div className="flex bg-white rounded-md overflow-hidden">
+            <input
+              type="text"
+              placeholder="Search..."
+              className="flex-grow px-4 py-2 text-black outline-none"
+            />
+            <button className="bg-black px-4">
+              <FiSearch className="text-white" />
+            </button>
           </div>
-        ) : (
-          <div className="g-signin2" data-onsuccess="onSignIn"></div>
-        )}
+        </div>
+
+        <div className="flex items-center gap-4">
+          <FiHeart size={20} />
+          <LoginPageSection />
+          <FiShoppingBag size={20} />
+        </div>
+
+        {/* Login Dropdown */}
       </div>
-    </header>
+    </section>
   );
 }
