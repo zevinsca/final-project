@@ -2,98 +2,50 @@ import { Request, Response } from "express";
 import { PrismaClient } from "../../generated/prisma/index.js";
 import fs from "fs/promises";
 import bcrypt from "bcryptjs";
+import prisma from "../config/prisma-client";
+import { CustomJwtPayload, GoogleJwtPayload } from "../types/express.js";
 
-const prisma = new PrismaClient();
-
-export async function getCurrentUser(req: Request, res: Response) {
+export async function getCurrentUser(
+  req: Request,
+  res: Response
+): Promise<void> {
   try {
-    const body = req.body;
-    const user = req.user;
-
-    res.status(200).json({ data: user });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Failed To Get User" });
-  }
-}
-export async function updateUserImage(req: Request, res: Response) {
-  try {
-    const userId = req.user.id;
-    const { firstName, lastName, email, username, password, phoneNumber } =
-      req.body;
-
-    const dataToUpdate: any = {
-      firstName,
-      lastName,
-      email,
-      username,
-      phoneNumber,
-    };
-
-    if (password && password.trim() !== "") {
-      const hashed = await bcrypt.hash(password, 10);
-      dataToUpdate.password = hashed;
+    if (!req.user) {
+      res.status(401).json({ message: "Unauthorized" });
+      return;
+    }
+    // Login biasa (manual)
+    if ("role" in req.user) {
+      const user = req.user as CustomJwtPayload;
+      res.status(200).json({
+        id: user.id,
+        name: `${user.firstName} ${user.lastName}`,
+        email: user.email,
+        role: user.role,
+        loginType: "manual",
+      });
+      return;
     }
 
-    // Update user data
-    await prisma.user.update({
-      where: { id: userId },
-      data: dataToUpdate,
-    });
+    // Login Google
+    if ("provider" in req.user && req.user.provider === "google") {
+      const user = req.user as GoogleJwtPayload;
+      const userData = {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        photo: user.photo,
+        loginType: "google",
+      };
+      res.status(200).json({ data: userData });
 
-    // Upload image to Cloudinary if file exists
+      return;
+    }
 
-    // Save image URL to UserImage
-
-    // Fetch updated user data + latest image
-    const updatedUser = await prisma.user.findUnique({
-      where: { id: userId },
-      select: {
-        id: true,
-        firstName: true,
-        lastName: true,
-        email: true,
-        username: true,
-        phoneNumber: true,
-        role: true,
-      },
-    });
-
-    res.json({
-      message: "Profile updated successfully",
-      data: updatedUser,
-    });
+    // Fallback
+    res.status(400).json({ message: "Unknown user type" });
   } catch (error) {
-    console.error("Error updating user profile:", error);
-    res.status(500).json({ message: "Failed to update profile" });
+    console.error("get Address Error:", error);
+    res.status(500).json({ message: "Failed to get address" });
   }
 }
-
-// export async function updateUserImage(req: Request, res: Response) {
-//   try {
-//     const body = req.body;
-//     const file = req.file;
-
-//     if (!req.file) {
-//       res.status(400).json({ message: "Image not found" });
-//       return;
-//     }
-
-//     const result = await cloudinary.uploader.upload(req.file.path, {
-//       folder: "Events-mini-project",
-//     });
-
-//     if (!result) {
-//       res.status(400).json({ message: "Failed to upload image to Cloudinary" });
-//       return;
-//     }
-
-//     await prisma.image.create({ data: { url: result.secure_url } });
-//     await fs.unlink(req.file.path);
-
-//     res.status(200).json({ data: { body: body, file: file } });
-//   } catch (error) {
-//     console.error(error);
-//     res.status(500).json({ message: "Failed to upload single image" });
-//   }
-// }

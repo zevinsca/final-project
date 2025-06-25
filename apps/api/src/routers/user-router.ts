@@ -1,7 +1,11 @@
 import express from "express";
 import {
   getCurrentUser,
+<<<<<<< HEAD
   updateUserImage,
+=======
+  // updateUserImage,
+>>>>>>> development
 } from "../controllers/user-controller";
 import { verifyToken } from "../middleware/auth-middleware";
 
