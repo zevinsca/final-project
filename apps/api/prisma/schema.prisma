@@ -46,6 +46,8 @@ model User {
   Store            Store[]
   DiscountUsage    DiscountUsage[]
   InventoryJournal InventoryJournal[]
+  Cart             Cart[]
+  Order            Order[]
 }
 
 model Address {
@@ -59,6 +61,7 @@ model Address {
 
   user      User     @relation(fields: [userId], references: [id]) // Relasi ke User
   createdAt DateTime @default(now())
+  Order     Order[]
 }
 
 model Store {
@@ -90,6 +93,8 @@ model Product {
   ProductImage     ProductImage[]
   Discount         Discount[]
   InventoryJournal InventoryJournal[]
+  CartItem         CartItem[]
+  OrderItem        OrderItem[]
 }
 
 model Category {
@@ -185,4 +190,69 @@ model InventoryJournal {
   Store   Store   @relation(fields: [storeId], references: [id])
   Product Product @relation(fields: [productId], references: [id])
   User    User    @relation(fields: [userId], references: [id])
+  Order   Order[]
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
+model Cart {
+  id        String   @id @default(uuid())
+  userId    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  User     User       @relation(fields: [userId], references: [id])
+  CartItem CartItem[]
+}
+
+model CartItem {
+  id        String   @id @default(uuid())
+  cartId    String
+  productId String
+  quantity  Int      @default(1)
+  unitPrice Float
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  Cart    Cart    @relation(fields: [cartId], references: [id])
+  Product Product @relation(fields: [productId], references: [id])
+}
+
+model Order {
+  id            String      @id @default(uuid())
+  userId        String
+  orderNumber   String      @unique
+  status        OrderStatus @default(PENDING)
+  subTotal      Float
+  shippingTotal Float
+  totalPrice    Float
+  addressId     String
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  Address            Address           @relation(fields: [addressId], references: [id])
+  User               User              @relation(fields: [userId], references: [id])
+  OrderItem          OrderItem[]
+  InventoryJournal   InventoryJournal? @relation(fields: [inventoryJournalId], references: [id])
+  inventoryJournalId String?
+}
+
+model OrderItem {
+  id        String   @id @default(uuid())
+  orderId   String
+  productId String
+  unitPrice Float
+  quantity  Int
+  total     Float
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  Order   Order   @relation(fields: [orderId], references: [id])
+  Product Product @relation(fields: [productId], references: [id])
 }

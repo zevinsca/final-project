@@ -1,15 +1,4 @@
 import express from "express";
-<<<<<<< HEAD
-
-import { login, logout, register } from "../controllers/auth.controller.js";
-
-const router = express.Router();
-
-router.route("/register").post(register);
-router.route("/login").post(login);
-router.route("/logout").delete(logout);
-
-=======
 import passport from "passport";
 import {
   login,
@@ -67,5 +56,4 @@ router.route("/logout").delete(logout).delete(signOut);
 
 router.post("/register", register);
 router.post("/login", login); // Logout khusus JWT
->>>>>>> development
 export default router;
