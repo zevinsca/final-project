@@ -5,6 +5,7 @@ import Image from "next/image";
 import { FiMenu } from "react-icons/fi";
 
 import HeaderSection from "@/components/header";
+import HeaderSection from "@/components/header";
 
 export default function HomePage() {
   return (
@@ -13,7 +14,9 @@ export default function HomePage() {
 
       {/* Navbar */}
       <HeaderSection />
+      <HeaderSection />
 
+      {/* Login Dropdown */}
       {/* Login Dropdown */}
 
       {/* Secondary Menu */}
