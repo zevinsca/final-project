@@ -7,6 +7,7 @@ import passport from "passport";
 
 import authRouter from "./routers/auth-router.js";
 import userRouter from "./routers/user-router.js";
+import addressRouter from "./routers/address-router.js";
 import "./config/passport.js"; // konfigurasi strategi Passport (GoogleStrategy)
 
 const app: Application = express();
@@ -29,7 +30,7 @@ app.use(
   session({
     secret: process.env.SESSION_SECRET || "rahasia_super_aman",
     resave: false,
-    saveUninitialized: false,
+    saveUninitialized: true,
     cookie: {
       secure: false, // true jika HTTPS
       httpOnly: true,
@@ -45,6 +46,7 @@ app.use(passport.session());
 // Routing
 app.use("/api/v1/auth", authRouter);
 
+app.use("/api/addresses", addressRouter);
 // 🛡️ Endpoint dilindungi, bisa pakai verifyToken (JWT) atau verifyGoogleToken (session)
 app.use("/api/v1/user", userRouter);
 
