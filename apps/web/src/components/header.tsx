@@ -7,7 +7,7 @@ export default function HeaderSection() {
   return (
     <section>
       <div className="bg-green-800 text-white text-center text-sm py-1">
-        Welcome to Organic Shop
+        Welcome to Organic Shop drag
       </div>
 
       {/* Navbar */}
