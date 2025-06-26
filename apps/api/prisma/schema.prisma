@@ -32,16 +32,18 @@ enum InventoryAction {
 }
 
 model User {
-  id          String   @id @default(uuid())
-  firstName   String
-  lastName    String
-  email       String   @unique
-  username    String?  @unique
-  password    String?
-  phoneNumber String?  @unique
-  role        Role     @default(USER)
-  createdAt   DateTime @default(now())
-  provider    String?
+  id                String   @id @default(uuid())
+  firstName         String
+  lastName          String
+  email             String   @unique
+  username          String?  @unique
+  password          String?
+  phoneNumber       String?  @unique
+  role              Role     @default(USER)
+  createdAt         DateTime @default(now())
+  provider          String?
+  isVerified        Boolean? @default(false) // Status verifikasi, default false
+  verificationToken String? // Token verifikasi
 
   addresses        Address[] // Relasi satu ke banyak dengan Address
   Store            Store[]

@@ -1,149 +1,189 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 
-type FormData = {
-  email: string;
-  firstName: string;
-  lastName: string;
-  username: string;
-  password: string;
-  phoneNumber: string;
-};
+export default function RegisterPage() {
+  const [email, setEmail] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-export default function RegisterForm() {
-  const router = useRouter();
-
-  const [form, setForm] = useState<FormData>({
-    email: "",
-    firstName: "",
-    lastName: "",
-    username: "",
-    password: "",
-    phoneNumber: "",
-  });
-  const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState("");
-  const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>(
-    {}
-  );
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) =>
-    setForm({ ...form, [e.target.name]: e.target.value });
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-    setMessage("");
-    setErrors({});
+
+    // Reset error/success message
+    setError(null);
+    setSuccessMessage(null);
+
+    const formData = {
+      email,
+      firstName,
+      lastName,
+      username,
+      password,
+      phoneNumber,
+    };
 
     try {
-      const res = await fetch("http://localhost:8000/api/v1/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
-      });
-      const data = await res.json();
+      const response = await fetch(
+        "http://localhost:8000/api/v1/auth/register",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(formData),
+        }
+      );
 
-      if (!res.ok) {
-        setErrors(data.error || {});
-        setMessage(data.message || "Registration failed");
-      } else {
-        setMessage("");
-        setShowSuccessModal(true);
-        setForm({
-          email: "",
-          firstName: "",
-          lastName: "",
-          username: "",
-          password: "",
-          phoneNumber: "",
-        });
+      if (!response.ok) {
+        const data = await response.json();
+        setError(data.message || "Registration failed");
+        return;
       }
-    } catch {
-      setMessage("Something went wrong.");
-    }
-    setLoading(false);
-  };
 
-  const handleCloseModal = () => {
-    setShowSuccessModal(false);
-    router.push("/");
+      const data = await response.json();
+      setSuccessMessage(
+        data.message ||
+          "Registration successful! Please check your email to verify."
+      );
+    } catch (error) {
+      console.error(error);
+      setError("An error occurred. Please try again.");
+    }
   };
 
   return (
-    <>
-      <div className="max-w-md mx-auto p-6 mt-16 bg-white rounded-xl shadow-lg">
-        <h2 className="text-2xl font-bold mb-6 text-center">Register</h2>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {(
-            [
-              "email",
-              "firstName",
-              "lastName",
-              "username",
-              "password",
-              "phoneNumber",
-            ] as (keyof FormData)[]
-          ).map((field) => (
-            <div key={field}>
-              <label
-                htmlFor={field}
-                className="block mb-1 font-medium capitalize text-gray-700"
-              >
-                {field}
-              </label>
-              <input
-                id={field}
-                type={field === "password" ? "password" : "text"}
-                name={field}
-                value={form[field]}
-                onChange={handleChange}
-                required
-                placeholder={`Enter your ${field}`}
-                className="w-full px-4 py-2 border border-gray-300 rounded-md
-                focus:outline-none focus:ring-2 focus:ring-indigo-500
-                hover:scale-105 hover:shadow-md transition transform duration-300"
-              />
-              {errors[field] && (
-                <p className="text-sm text-red-500 mt-1">{errors[field]}</p>
-              )}
-            </div>
-          ))}
+    <div className="flex justify-center items-center min-h-screen bg-gray-50 py-10">
+      <div className="w-full max-w-md p-8 bg-white shadow-lg rounded-lg border">
+        <h2 className="text-2xl font-semibold text-center text-green-500 mb-6">
+          Register
+        </h2>
+
+        {error && (
+          <div className="bg-red-500 text-white p-2 mb-4 rounded">{error}</div>
+        )}
+        {successMessage && (
+          <div className="bg-green-500 text-white p-2 mb-4 rounded">
+            {successMessage}
+          </div>
+        )}
+
+        <form onSubmit={handleRegister}>
+          <div className="mb-4">
+            <label
+              htmlFor="firstName"
+              className="block text-sm font-medium text-green-500"
+            >
+              First Name
+            </label>
+            <input
+              type="text"
+              id="firstName"
+              value={firstName}
+              onChange={(e) => setFirstName(e.target.value)}
+              required
+              className="w-full mt-2 p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-customGreen"
+            />
+          </div>
+
+          <div className="mb-4">
+            <label
+              htmlFor="lastName"
+              className="block text-sm font-medium text-green-500"
+            >
+              Last Name
+            </label>
+            <input
+              type="text"
+              id="lastName"
+              value={lastName}
+              onChange={(e) => setLastName(e.target.value)}
+              required
+              className="w-full mt-2 p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-customGreen"
+            />
+          </div>
+
+          <div className="mb-4">
+            <label
+              htmlFor="email"
+              className="block text-sm font-medium text-green-500"
+            >
+              Email
+            </label>
+            <input
+              type="email"
+              id="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              className="w-full mt-2 p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-customGreen"
+            />
+          </div>
+
+          <div className="mb-4">
+            <label
+              htmlFor="username"
+              className="block text-sm font-medium text-green-500"
+            >
+              Username
+            </label>
+            <input
+              type="text"
+              id="username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              required
+              className="w-full mt-2 p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-customGreen"
+            />
+          </div>
+
+          <div className="mb-4">
+            <label
+              htmlFor="password"
+              className="block text-sm font-medium text-green-500"
+            >
+              Password
+            </label>
+            <input
+              type="password"
+              id="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              className="w-full mt-2 p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-customGreen"
+            />
+          </div>
+
+          <div className="mb-4">
+            <label
+              htmlFor="phoneNumber"
+              className="block text-sm font-medium text-green-500"
+            >
+              Phone Number
+            </label>
+            <input
+              type="text"
+              id="phoneNumber"
+              value={phoneNumber}
+              onChange={(e) => setPhoneNumber(e.target.value)}
+              required
+              className="w-full mt-2 p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-customGreen"
+            />
+          </div>
+
           <button
             type="submit"
-            disabled={loading}
-            className="w-full py-3 mt-4 bg-indigo-600 text-white font-semibold rounded-md
-            hover:bg-indigo-700 hover:scale-105 hover:shadow-lg transition transform duration-300
-            disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full py-2 px-4 bg-customGreen text-white rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-customGreen"
           >
-            {loading ? "Registering..." : "Register"}
+            Register
           </button>
         </form>
-        {message && (
-          <p className="mt-4 text-center text-sm text-red-600">{message}</p>
-        )}
       </div>
-
-      {/* Modal sukses */}
-      {showSuccessModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-8 rounded-xl shadow-lg max-w-sm text-center">
-            <h3 className="text-xl font-semibold mb-4 text-green-600">
-              Registration Successful!
-            </h3>
-            <p className="mb-6">Thank you for registering.</p>
-            <button
-              onClick={handleCloseModal}
-              className="px-6 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition"
-            >
-              Close
-            </button>
-          </div>
-        </div>
-      )}
-    </>
+    </div>
   );
 }

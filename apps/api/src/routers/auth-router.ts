@@ -7,6 +7,8 @@ import {
   signOut,
   loginSuccess,
   loginFailed,
+  verifyEmail,
+  VerifySuccess,
 } from "../controllers/auth.controller.js";
 import { Profile } from "passport";
 import jwt from "jsonwebtoken";
@@ -53,6 +55,7 @@ router.route("/logout").delete(logout).delete(signOut);
 /* -------------------------------------------------------------------------- */
 /*                                LOGIN MANUAL                                */
 /* -------------------------------------------------------------------------- */
+router.route("/verify-email").get(verifyEmail).get(VerifySuccess);
 
 router.post("/register", register);
 router.post("/login", login); // Logout khusus JWT
