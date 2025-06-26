@@ -36,11 +36,12 @@ model User {
   firstName   String
   lastName    String
   email       String   @unique
-  username    String   @unique
-  password    String
+  username    String?  @unique
+  password    String?
   phoneNumber String?  @unique
   role        Role     @default(USER)
   createdAt   DateTime @default(now())
+  provider    String?
 
   addresses        Address[] // Relasi satu ke banyak dengan Address
   Store            Store[]

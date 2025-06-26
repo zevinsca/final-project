@@ -5,6 +5,15 @@ import bcrypt from "bcryptjs";
 import prisma from "../config/prisma-client";
 import { CustomJwtPayload, GoogleJwtPayload } from "../types/express.js";
 
+export async function getAllUser(req: Request, res: Response) {
+  try {
+    const user = await prisma.user.findMany();
+    res.status(200).json({ message: "Get All user success", data: user });
+  } catch (error) {
+    console.error("get All User Error:", error);
+    res.status(500).json({ message: "Failed to get address" });
+  }
+}
 export async function getCurrentUser(
   req: Request,
   res: Response
@@ -45,7 +54,7 @@ export async function getCurrentUser(
     // Fallback
     res.status(400).json({ message: "Unknown user type" });
   } catch (error) {
-    console.error("get Address Error:", error);
-    res.status(500).json({ message: "Failed to get address" });
+    console.error("get User Error:", error);
+    res.status(500).json({ message: "Failed to get User" });
   }
 }

@@ -64,7 +64,10 @@ export async function login(req: Request, res: Response) {
       res.status(404).json({ message: "User not found" });
       return;
     }
-
+    if (!existingUser.password) {
+      res.status(400).json({ message: "User has no password set" });
+      return;
+    }
     const isValidPassword = await bcrypt.compare(
       password,
       existingUser.password

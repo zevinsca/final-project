@@ -9,13 +9,10 @@
     "lint": "npx turbo run lint",
     "start": "npx turbo run start"
   },
-<<<<<<< HEAD
   "repository": {
     "type": "git",
     "url": "git+https://github.com/FarhanZulkarnainHarahap/final-project.git"
   },
-=======
->>>>>>> jodie/ft3
   "keywords": [],
   "author": "",
   "license": "ISC",
@@ -24,16 +21,11 @@
     "apps/*"
   ],
   "packageManager": "npm@11.3.0",
-<<<<<<< HEAD
   "bugs": {
     "url": "https://github.com/FarhanZulkarnainHarahap/final-project/issues"
   },
   "homepage": "https://github.com/FarhanZulkarnainHarahap/final-project#readme",
   "dependencies": {
     "turbo": "^2.5.4"
-=======
-  "dependencies": {
-    "turbo": "^2.5.3"
->>>>>>> jodie/ft3
   }
 }
