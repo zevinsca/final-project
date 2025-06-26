@@ -1,3 +1,4 @@
+"use client";
 import Link from "next/link";
 import { FaRegUser, FaUser } from "react-icons/fa";
 import { AiOutlineClose } from "react-icons/ai";

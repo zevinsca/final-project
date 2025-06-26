@@ -12,7 +12,7 @@ export default function HomePage() {
       {/* Top Welcome Bar */}
 
       {/* Navbar */}
-      <HeaderSection />
+
       <HeaderSection />
 
       {/* Login Dropdown */}

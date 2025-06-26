@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 import { CustomJwtPayload, GoogleJwtPayload } from "../types/express.js";
 import { GoogleProfileWithToken } from "../types/GoogleProfileWithToken .js";
 import axios from "axios";
+import prisma from "./prisma-client.js";
 dotenv.config(); // ⛳ WAJIB agar .env bisa digunakan
 
 console.log("GOOGLE_CLIENT_ID", process.env.GOOGLE_CLIENT_ID);
@@ -18,7 +19,7 @@ passport.use(
     },
     async (accessToken, _refreshToken, _profile, done) => {
       try {
-        // 🔍 Ambil data user langsung dari Google API
+        // 1. Ambil info user dari Google
         const { data } = await axios.get(
           "https://www.googleapis.com/oauth2/v3/userinfo",
           {
@@ -28,17 +29,37 @@ passport.use(
           }
         );
 
-        // 📦 Bentuk profile lengkap sesuai tipe yang kamu buat
+        // 2. Cek apakah user sudah ada di database
+        let user = await prisma.user.findUnique({
+          where: { email: data.email },
+        });
+
+        // 3. Kalau belum ada, buat user baru
+        if (!user) {
+          user = await prisma.user.create({
+            data: {
+              id: data.sub,
+              email: data.email,
+              firstName: data.given_name || "",
+              lastName: data.family_name || "",
+              username: data.name.replace(/\s+/g, "").toLowerCase(), // default username// karena login pakai Google
+              role: "USER",
+              provider: data.provider,
+            },
+          });
+        }
+
+        // 4. Bentuk payload untuk session
         const profileWithToken: GoogleProfileWithToken = {
-          id: data.sub,
-          displayName: data.name,
-          emails: [{ value: data.email }],
+          id: user.id,
+          displayName: user.firstName + " " + user.lastName,
+          emails: [{ value: user.email }],
           photos: [{ value: data.picture }],
           provider: "google",
           accessToken,
           name: {
-            givenName: data.given_name,
-            familyName: data.family_name,
+            givenName: user.firstName,
+            familyName: user.lastName,
           },
           _json: data,
           _raw: JSON.stringify(data),
