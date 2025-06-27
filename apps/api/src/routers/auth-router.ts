@@ -4,7 +4,6 @@ import {
   login,
   logout,
   register,
-  signOut,
   loginSuccess,
   loginFailed,
   verifyEmail,
@@ -50,7 +49,7 @@ router.get(
   }
 );
 // Logout untuk user yang login lewat Google
-router.route("/logout").delete(logout).delete(signOut);
+router.route("/logout").delete(logout);
 
 /* -------------------------------------------------------------------------- */
 /*                                LOGIN MANUAL                                */

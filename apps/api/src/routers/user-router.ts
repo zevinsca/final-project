@@ -7,8 +7,11 @@ import {
 import { verifyToken } from "../middleware/auth-middleware";
 
 const router = express.Router();
-
+router.use(verifyToken);
+router.route("/current-user").get(getCurrentUser);
+/* -------------------------------------------------------------------------- */
+/*                       GET ALL USER HANYA SUPER ADMIN                       */
+/* -------------------------------------------------------------------------- */
 router.route("/").get(getAllUser);
-router.route("/current-user").get(verifyToken, getCurrentUser);
 
 export default router;

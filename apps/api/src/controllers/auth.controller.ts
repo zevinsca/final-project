@@ -9,6 +9,10 @@ import handlebars from "handlebars";
 import { registerSchema } from "../validations/auth-validation.js";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
+
+/* -------------------------------------------------------------------------- */
+/*                         Login With Web Market Snap                         */
+/* -------------------------------------------------------------------------- */
 export async function register(req: Request, res: Response) {
   try {
     const { email, firstName, lastName, username, password, phoneNumber } =
@@ -87,10 +91,6 @@ export async function register(req: Request, res: Response) {
     res.status(500).json({ message: "Failed to register new user", error });
   }
 }
-
-/* -------------------------------------------------------------------------- */
-/*                         Login With Web Market Snap                         */
-/* -------------------------------------------------------------------------- */
 export async function login(req: Request, res: Response) {
   try {
     const { username, password, email } = req.body;
@@ -139,36 +139,6 @@ export async function login(req: Request, res: Response) {
     res.status(500).json({ message: "Login failed" });
   }
 }
-export async function signOut(req: Request, res: Response) {
-  try {
-    res
-      .clearCookie("accessToken")
-      .status(200)
-      .json({ message: "Logout success" });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Failed to logout" });
-  }
-}
-
-/* -------------------------------------------------------------------------- */
-/*                                Login Google                                */
-/* -------------------------------------------------------------------------- */
-export async function loginSuccess(req: Request, res: Response) {
-  if (!req.user) {
-    res.status(401).json({ message: "Not authenticated" });
-    return;
-  }
-
-  res.json({
-    message: "Login with Google successful",
-    user: req.user,
-  });
-}
-export async function loginFailed(_req: Request, res: Response) {
-  res.status(401).json({ message: "Login with Google failed" });
-}
-
 export async function logout(req: Request, res: Response) {
   try {
     res
@@ -250,4 +220,21 @@ export async function VerifySuccess(req: Request, res: Response) {
     console.error(error);
     res.status(400).send("Invalid token");
   }
+}
+/* -------------------------------------------------------------------------- */
+/*                                Login Google                                */
+/* -------------------------------------------------------------------------- */
+export async function loginSuccess(req: Request, res: Response) {
+  if (!req.user) {
+    res.status(401).json({ message: "Not authenticated" });
+    return;
+  }
+
+  res.json({
+    message: "Login with Google successful",
+    user: req.user,
+  });
+}
+export async function loginFailed(_req: Request, res: Response) {
+  res.status(401).json({ message: "Login with Google failed" });
 }
