@@ -46,7 +46,7 @@ app.use(passport.session());
 // Routing
 app.use("/api/v1/auth", authRouter);
 
-app.use("/api/addresses", addressRouter);
+app.use("/api/v1/addresses", addressRouter);
 // 🛡️ Endpoint dilindungi, bisa pakai verifyToken (JWT) atau verifyGoogleToken (session)
 app.use("/api/v1/user", userRouter);
 

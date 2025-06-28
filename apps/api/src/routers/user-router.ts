@@ -1,16 +1,17 @@
 import express from "express";
 import {
+  getAllUser,
   getCurrentUser,
-<<<<<<< HEAD
-  updateUserImage,
-=======
   // updateUserImage,
->>>>>>> development
 } from "../controllers/user-controller";
 import { verifyToken } from "../middleware/auth-middleware";
 
 const router = express.Router();
-
-router.route("/current-user").get(verifyToken, getCurrentUser);
+router.use(verifyToken);
+router.route("/current-user").get(getCurrentUser);
+/* -------------------------------------------------------------------------- */
+/*                       GET ALL USER HANYA SUPER ADMIN                       */
+/* -------------------------------------------------------------------------- */
+router.route("/").get(getAllUser);
 
 export default router;

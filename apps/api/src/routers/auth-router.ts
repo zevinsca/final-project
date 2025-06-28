@@ -1,23 +1,13 @@
 import express from "express";
-<<<<<<< HEAD
-
-import { login, logout, register } from "../controllers/auth.controller.js";
-
-const router = express.Router();
-
-router.route("/register").post(register);
-router.route("/login").post(login);
-router.route("/logout").delete(logout);
-
-=======
 import passport from "passport";
 import {
   login,
   logout,
   register,
-  signOut,
   loginSuccess,
   loginFailed,
+  verifyEmail,
+  VerifySuccess,
 } from "../controllers/auth.controller.js";
 import { Profile } from "passport";
 import jwt from "jsonwebtoken";
@@ -59,13 +49,13 @@ router.get(
   }
 );
 // Logout untuk user yang login lewat Google
-router.route("/logout").delete(logout).delete(signOut);
+router.route("/logout").delete(logout);
 
 /* -------------------------------------------------------------------------- */
 /*                                LOGIN MANUAL                                */
 /* -------------------------------------------------------------------------- */
+router.route("/verify-email").get(verifyEmail).get(VerifySuccess);
 
 router.post("/register", register);
 router.post("/login", login); // Logout khusus JWT
->>>>>>> development
 export default router;
