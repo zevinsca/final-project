@@ -13,7 +13,6 @@ export default function HomePage() {
 
       {/* Navbar */}
       <HeaderSection />
-      <HeaderSection />
 
       {/* Login Dropdown */}
       {/* Login Dropdown */}
