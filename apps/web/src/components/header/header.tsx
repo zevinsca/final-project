@@ -7,14 +7,14 @@ export default function HeaderSection() {
   return (
     <section>
       <div className="bg-green-800 text-white text-center text-sm py-1">
-        Welcome to Organic Shop drag
+        Welcome to Market Snap drag
       </div>
 
       {/* Navbar */}
       <div className="flex justify-between items-center p-4 bg-green-900 text-white relative">
         <div className="flex items-center gap-2">
           <Image src="/logo.png" alt="Organic Food" width={40} height={40} />
-          <span className="text-xl font-bold">ORGANIC FOOD</span>
+          <span className="text-xl font-bold">Market Snap</span>
         </div>
 
         <div className="flex-1 mx-6">

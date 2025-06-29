@@ -1,23 +1,21 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
-import { OAuth2Client } from "google-auth-library";
-import { string } from "zod";
 import { CustomJwtPayload, GoogleJwtPayload } from "../types/express.js";
 const CLIENT_ID = process.env.AUTH_GOOGLE_ID; // Pastikan Anda menyimpan CLIENT_ID di .env
-const client = new OAuth2Client(CLIENT_ID);
+
 /* ------------------------------------ 1 ----------------------------------- */
 // 1. Check token ada atau tidak
 // 2. Validasi token yang ada
 
 export function verifyToken(req: Request, res: Response, next: NextFunction) {
-  const accesstoken = req.cookies.accessToken;
-  if (!accesstoken) {
+  const accessToken = req.cookies.accessToken;
+  if (!accessToken) {
     res.status(401).json({ message: "Unauthorized: Token not found" });
     return;
   }
 
   try {
-    const payload = jwt.verify(accesstoken, process.env.JWT_SECRET!) as
+    const payload = jwt.verify(accessToken, process.env.JWT_SECRET!) as
       | CustomJwtPayload
       | GoogleJwtPayload;
     if (!payload) {
@@ -34,16 +32,13 @@ export function verifyToken(req: Request, res: Response, next: NextFunction) {
 /* ------------------------------------ 2 ----------------------------------- */
 export function roleGuard(...roles: string[]) {
   return async function (req: Request, res: Response, next: NextFunction) {
-    const user = req.user;
+    const user = req.user as CustomJwtPayload;
 
-    if (user && isJwtUser(user) && roles.includes(user.role)) {
-      return next();
+    if (roles.includes(user.role)) {
+      next();
+      return;
     }
 
-    return res.status(403).json({ message: "Unauthorized access" });
+    res.status(403).json({ message: "Unauthorized access" });
   };
-}
-
-function isJwtUser(user: any): user is { role: string } {
-  return user && typeof user.role === "string";
 }
