@@ -16,6 +16,7 @@ export interface GoogleJwtPayload extends JwtPayload {
   name: string;
   photo?: string;
   provider: "google";
+  role: string;
 }
 declare global {
   namespace Express {
@@ -24,7 +25,7 @@ declare global {
        * Akan terisi user dari JWT atau dari Passport (Google)
        * Kamu bisa pakai union untuk menampung keduanya
        */
-      user?: CustomJwtPayload;
+      user?: CustomJwtPayload | GoogleJwtPayload;
 
       /**
        * Tambahkan logout() agar tidak error saat pakai Passport

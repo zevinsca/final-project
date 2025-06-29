@@ -4,11 +4,11 @@ import {
   getCurrentUser,
   // updateUserImage,
 } from "../controllers/user-controller";
-import { verifyToken } from "../middleware/auth-middleware";
+import { roleGuard, verifyToken } from "../middleware/auth-middleware";
 
 const router = express.Router();
-router.use(verifyToken);
-router.route("/current-user").get(getCurrentUser);
+
+router.route("/current-user").get(verifyToken, getCurrentUser);
 /* -------------------------------------------------------------------------- */
 /*                       GET ALL USER HANYA SUPER ADMIN                       */
 /* -------------------------------------------------------------------------- */

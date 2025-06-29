@@ -5,6 +5,7 @@ import { CustomJwtPayload, GoogleJwtPayload } from "../types/express.js";
 import { GoogleProfileWithToken } from "../types/GoogleProfileWithToken .js";
 import axios from "axios";
 import prisma from "./prisma-client.js";
+import { roleGuard } from "../middleware/auth-middleware.js";
 dotenv.config(); // ⛳ WAJIB agar .env bisa digunakan
 
 console.log("GOOGLE_CLIENT_ID", process.env.GOOGLE_CLIENT_ID);
@@ -86,5 +87,5 @@ passport.serializeUser((user, done) => {
 });
 
 passport.deserializeUser((user: unknown, done) => {
-  done(null, user as GoogleJwtPayload); // 👈 assert langsung
+  done(null, user as CustomJwtPayload); // 👈 assert langsung
 });

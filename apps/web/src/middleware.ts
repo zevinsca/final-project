@@ -6,20 +6,40 @@ export async function middleware(req: NextRequest) {
   const accessToken = req.cookies.get("accessToken")?.value;
   const pathname = req.nextUrl.pathname;
 
-  console.log("Running middleware at:", pathname);
+  if (!accessToken && pathname !== "/auth/login") {
+    return NextResponse.redirect(`${req.nextUrl.origin}/auth/login`);
+  } else if (!accessToken && pathname === "/auth/login") {
+    return NextResponse.next();
+  }
 
   if (!accessToken)
     return NextResponse.redirect(`${req.nextUrl.origin}/auth/login`);
+  const secret = process.env.NEXT_PUBLIC_JWT_SECRET;
+  if (!secret || secret.trim() === "") {
+    console.error("🚨 Secret Code is not defined or empty!");
+    return new NextResponse("Server misconfiguration: Secret Code missing", {
+      status: 500,
+    });
+  }
 
-  const { payload } = await jwtVerify(
-    accessToken,
-    new TextEncoder().encode(process.env.JWT_SECRET)
-  );
-  const role = payload.role;
+  let payload;
+  try {
+    const verified = await jwtVerify(
+      accessToken,
+      new TextEncoder().encode(secret)
+    );
+    payload = verified.payload;
+  } catch (err) {
+    console.error("Secret Code verification failed:", err);
+    return NextResponse.redirect(`${req.nextUrl.origin}/auth/login`);
+  }
+
+  const role = payload?.role;
 
   if (
     (role === "SUPER_ADMIN" && pathname.startsWith("/dashboard/admin")) ||
-    (role === "USER" && pathname.startsWith("/dashboard/user"))
+    (role === "USER" && pathname.startsWith("/dashboard/user")) ||
+    (role === "STORE_ADMIN" && pathname.startsWith("/dashboard/admin-store"))
   ) {
     return NextResponse.next();
   } else {

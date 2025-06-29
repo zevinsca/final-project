@@ -1,10 +1,10 @@
 import MenuNavbarAdmin from "@/components/header/header-admin";
-import Dashboard from "@/components/menu/menu-admin/dashboard";
+import User from "@/components/menu/menu-admin/user";
 
 export default function HomeAdmin() {
   return (
     <MenuNavbarAdmin>
-      <Dashboard />
+      <User />
     </MenuNavbarAdmin>
   );
 }
