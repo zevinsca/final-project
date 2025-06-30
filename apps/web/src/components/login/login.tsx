@@ -15,7 +15,7 @@ interface CurrentUser {
   photo: string;
   provider: "google";
 }
-export default function ProfileHeaderPopUp() {
+export default function LoginPageSection() {
   const [showProfilePopup, setShowProfilePopup] = useState(false);
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
 
