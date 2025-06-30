@@ -1,9 +1,13 @@
 import Image from "next/image";
+import { useState } from "react";
 import { FiSearch, FiHeart, FiShoppingBag } from "react-icons/fi";
+
+import CartSidebar from "./cart-sidebar";
 
 import LoginPageSection from "@/components/login/login";
 
 export default function HeaderSection() {
+  const [isCartOpen, setIsCartOpen] = useState(false);
   return (
     <section>
       <div className="bg-green-800 text-white text-center text-sm py-1">
@@ -33,11 +37,18 @@ export default function HeaderSection() {
         <div className="flex items-center gap-4">
           <FiHeart size={20} />
           <LoginPageSection />
-          <FiShoppingBag size={20} />
+          <FiShoppingBag
+            size={20}
+            className="cursor-pointer"
+            onClick={() => setIsCartOpen(true)}
+          />
         </div>
 
         {/* Login Dropdown */}
       </div>
+
+      {/* Cart Sidebar */}
+      <CartSidebar isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
     </section>
   );
 }
