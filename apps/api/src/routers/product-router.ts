@@ -1,15 +1,18 @@
 import express from "express";
-import { Router } from "express";
 import {
+  createProduct,
   getAllProduct,
   getProductById,
-  createProduct,
 } from "../controllers/product-controller";
+import { verifyToken, roleGuard } from "../middleware/auth-middleware";
 
 const router = express.Router();
 
-router.get("/", getAllProduct);
-router.get("/:id", getProductById);
-router.post("/", createProduct);
+router
+  .route("/")
+  .get(getAllProduct)
+  .post(verifyToken, roleGuard("STORE_ADMIN"), createProduct);
+
+router.route("/:id").get(getProductById);
 
 export default router;

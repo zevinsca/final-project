@@ -14,7 +14,10 @@ import { Request, Response } from "express";
 import prisma from "../config/prisma-client";
 
 // GET ALL PRODUCT
-export async function getAllProduct(req: Request, res: Response) {
+export async function getAllProduct(
+  req: Request,
+  res: Response
+): Promise<void> {
   try {
     const search = req.query.search as string | undefined;
 
@@ -39,20 +42,23 @@ export async function getAllProduct(req: Request, res: Response) {
       },
     });
 
-    return res.status(200).json({
+    res.status(200).json({
       message: "Products fetched successfully",
       data: products,
     });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({
+    res.status(500).json({
       message: "Internal server error",
     });
   }
 }
 
 //  GET /products/:id
-export async function getProductById(req: Request, res: Response) {
+export async function getProductById(
+  req: Request,
+  res: Response
+): Promise<void> {
   try {
     const { id } = req.params;
 
@@ -67,23 +73,26 @@ export async function getProductById(req: Request, res: Response) {
     });
 
     if (!product) {
-      return res.status(404).json({ message: "Product not found" });
+      res.status(404).json({ message: "Product not found" });
     }
 
-    return res.status(200).json({
+    res.status(200).json({
       message: "Product detail fetched successfully",
       data: product,
     });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({
+    res.status(500).json({
       message: "Internal server error",
     });
   }
 }
 
 // POST
-export async function createProduct(req: Request, res: Response) {
+export async function createProduct(
+  req: Request,
+  res: Response
+): Promise<void> {
   try {
     const {
       name,
@@ -98,7 +107,7 @@ export async function createProduct(req: Request, res: Response) {
 
     // Validasi sederhana
     if (!name || !storeId || !description || !price || !weight || !stock) {
-      return res.status(400).json({ message: "Missing required fields" });
+      res.status(400).json({ message: "Missing required fields" });
     }
 
     const newProduct = await prisma.product.create({
@@ -128,13 +137,13 @@ export async function createProduct(req: Request, res: Response) {
       },
     });
 
-    return res.status(201).json({
+    res.status(201).json({
       message: "Product created successfully",
       data: newProduct,
     });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({
+    res.status(500).json({
       message: "Internal server error",
     });
   }
