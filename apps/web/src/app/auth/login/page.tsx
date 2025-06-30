@@ -83,7 +83,15 @@ export default function LoginPage() {
             Sign in
           </button>
         </form>
-
+        <div className="grid grid-cols-[1fr_auto] pt-3">
+          <p>saya tidak memiliki akun</p>
+          <Link
+            href="/auth/register"
+            className="text-gray-400 hover:text-white text-right underline"
+          >
+            Daftar Sekarang
+          </Link>
+        </div>
         <div className="social-message flex items-center gap-2 my-6">
           <div className="line flex-1 h-px bg-gray-500" />
           <p className="message text-sm text-gray-400">
