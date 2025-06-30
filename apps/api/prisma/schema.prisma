@@ -79,11 +79,14 @@ model Store {
   User             User               @relation(fields: [adminId], references: [id])
   Discount         Discount[]
   InventoryJournal InventoryJournal[]
+  Product          Product[]
+  ProductInventory ProductInventory[]
 }
 
 model Product {
   id          String    @id @default(uuid())
   name        String    @unique
+  storeId     String
   description String
   stock       Int
   price       Float
@@ -92,12 +95,14 @@ model Product {
   updatedAt   DateTime  @updatedAt
   deletedAt   DateTime?
 
+  Store            Store              @relation(fields: [storeId], references: [id])
   ProductCategory  ProductCategory[]
   ProductImage     ProductImage[]
   Discount         Discount[]
   InventoryJournal InventoryJournal[]
   CartItem         CartItem[]
   OrderItem        OrderItem[]
+  ProductInventory ProductInventory[]
 }
 
 model Category {
@@ -171,13 +176,17 @@ model DiscountUsage {
 }
 
 model ProductInventory {
-  id        String    @id @default(uuid())
-  productId String    @unique
+  productId String
   storeId   String
   stock     Int
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
+
+  Product Product @relation(fields: [productId], references: [id])
+  Store   Store   @relation(fields: [storeId], references: [id])
+
+  @@id([productId, storeId])
 }
 
 model InventoryJournal {
