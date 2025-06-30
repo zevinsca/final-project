@@ -130,7 +130,7 @@ export default function ShopSection() {
 
             {/* Button */}
             <button className="bg-green-700 text-white px-4 py-1 rounded hover:bg-green-800 transition">
-              Add to cart
+              Add to Cart
             </button>
           </div>
         ))}
