@@ -5,6 +5,7 @@ import Image from "next/image";
 import { FiSearch, FiHeart, FiShoppingBag } from "react-icons/fi";
 import LoginPageSection from "@/components/login/login";
 import ShoppingBag from "@/components/menu/menu-user/shoppingbag";
+import Footer from "@/components/footer/footer";
 
 export default function MenuNavbarUser({
   children,
@@ -58,6 +59,7 @@ export default function MenuNavbarUser({
       </div>
 
       <main>{children}</main>
+      <Footer />
     </section>
   );
 }

@@ -58,8 +58,8 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="flex justify-center items-center min-h-screen bg-gray-50 py-10">
-      <div className="w-full max-w-md p-8 bg-white shadow-lg rounded-lg border">
+    <div className="flex justify-center items-center min-h-screen bg-[#111] py-10">
+      <div className="w-full max-w-md p-8 bg-[#191717] shadow-lg rounded-lg border">
         <h2 className="text-2xl font-semibold text-center text-green-500 mb-6">
           Register
         </h2>
@@ -178,7 +178,7 @@ export default function RegisterPage() {
 
           <button
             type="submit"
-            className="w-full py-2 px-4 bg-customGreen text-white rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-customGreen"
+            className="w-full py-2 px-4 bg-customGreen bg-green-700 text-white rounded-lg hover:bg-white hover:text-black focus:outline-none focus:ring-2 focus:ring-customGreen"
           >
             Register
           </button>
