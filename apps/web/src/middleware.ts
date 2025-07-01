@@ -6,14 +6,14 @@ export async function middleware(req: NextRequest) {
   const accessToken = req.cookies.get("accessToken")?.value;
   const pathname = req.nextUrl.pathname;
 
-  if (!accessToken && pathname !== "/auth/login") {
-    return NextResponse.redirect(`${req.nextUrl.origin}/auth/login`);
-  } else if (!accessToken && pathname === "/auth/login") {
+  if (!accessToken && pathname.startsWith("/auth")) {
     return NextResponse.next();
   }
 
-  if (!accessToken)
+  // Redirect ke login jika tidak ada token
+  if (!accessToken) {
     return NextResponse.redirect(`${req.nextUrl.origin}/auth/login`);
+  }
   const secret = process.env.NEXT_PUBLIC_JWT_SECRET;
   if (!secret || secret.trim() === "") {
     console.error("🚨 Secret Code is not defined or empty!");

@@ -1,20 +1,24 @@
 import Image from "next/image";
+import { useState } from "react";
 import { FiSearch, FiHeart, FiShoppingBag } from "react-icons/fi";
+
+import CartSidebar from "./cart-sidebar";
 
 import LoginPageSection from "@/components/login/login";
 
 export default function HeaderSection() {
+  const [isCartOpen, setIsCartOpen] = useState(false);
   return (
     <section>
       <div className="bg-green-800 text-white text-center text-sm py-1">
-        Welcome to Market Snap drag
+        Welcome to Organic Shop
       </div>
 
       {/* Navbar */}
       <div className="flex justify-between items-center p-4 bg-green-900 text-white relative">
         <div className="flex items-center gap-2">
           <Image src="/logo.png" alt="Organic Food" width={40} height={40} />
-          <span className="text-xl font-bold">Market Snap</span>
+          <span className="text-xl font-bold">ORGANIC FOOD</span>
         </div>
 
         <div className="flex-1 mx-6">
@@ -33,11 +37,18 @@ export default function HeaderSection() {
         <div className="flex items-center gap-4">
           <FiHeart size={20} />
           <LoginPageSection />
-          <FiShoppingBag size={20} />
+          <FiShoppingBag
+            size={20}
+            className="cursor-pointer"
+            onClick={() => setIsCartOpen(true)}
+          />
         </div>
 
         {/* Login Dropdown */}
       </div>
+
+      {/* Cart Sidebar */}
+      <CartSidebar isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
     </section>
   );
 }

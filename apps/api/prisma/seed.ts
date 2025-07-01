@@ -40,6 +40,8 @@ async function main() {
         email: "john@example.com",
         password: hashedPassword,
         isVerified: true,
+        username: "johndoe",
+
         role: "USER",
         Cart: {
           create: {},

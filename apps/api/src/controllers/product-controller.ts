@@ -11,7 +11,7 @@
 // src/controllers/product.controller.ts
 
 import { Request, Response } from "express";
-import prisma from "../config/prisma-client";
+import prisma from "../config/prisma-client.js";
 
 // GET ALL PRODUCT
 export async function getAllProduct(

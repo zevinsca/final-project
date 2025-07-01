@@ -1,48 +1,8 @@
-import HeaderSection from "@/components/header";
 import Image from "next/image";
-import Link from "next/link";
-import { FiMenu } from "react-icons/fi";
 
-export default function HomePage() {
+export default function HomePageUser() {
   return (
-    <div className="bg-[#f7f8fa] min-h-screen text-black">
-      {/* Top Welcome Bar */}
-
-      {/* Navbar */}
-
-      <HeaderSection />
-
-      {/* Login Dropdown */}
-
-      {/* Secondary Menu */}
-      <div className="bg-white text-green-900 px-6 py-2 flex justify-between items-center shadow-md">
-        <button className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded">
-          <FiMenu /> All Categories
-        </button>
-        <nav className="flex gap-6">
-          <Link href="#" className="hover:text-green-600">
-            Home
-          </Link>
-          <Link href="#" className="hover:text-green-600">
-            Best Deals
-          </Link>
-          <Link href="#" className="hover:text-green-600">
-            About
-          </Link>
-          <Link href="#" className="hover:text-green-600">
-            Contact Us
-          </Link>
-          <Link href="#" className="hover:text-green-600">
-            Shop
-          </Link>
-          <Link href="/product/catalog" className="hover:text-green-600">
-            Product
-          </Link>
-        </nav>
-        <div className="text-sm">📞 Call To +1800090098</div>
-      </div>
-
-      {/* Content Grid Section - Centered Layout */}
+    <div>
       <div className="grid grid-cols-[1fr_30%] px-40">
         <div className="justify-center p-6">
           <div className="grid grid-rows-2 gap-5">
@@ -230,6 +190,7 @@ export default function HomePage() {
               height={150}
               className="mb-4"
             />
+
             <p className="text-xl font-bold">Fresh Breads</p>
             <p className="text-yellow-600">-50%</p>
             <p className="text-xl font-semibold">$88.00 - $99.00</p>
@@ -239,11 +200,6 @@ export default function HomePage() {
           </div>
         </div>
       </div>
-
-      {/* Footer */}
-      <footer className="bg-green-600 text-white text-center py-4 mt-6">
-        <p>&copy; 2025 Your Company. All Rights Reserved.</p>
-      </footer>
     </div>
   );
 }

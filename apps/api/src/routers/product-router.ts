@@ -3,8 +3,8 @@ import {
   createProduct,
   getAllProduct,
   getProductById,
-} from "../controllers/product-controller";
-import { verifyToken, roleGuard } from "../middleware/auth-middleware";
+} from "../controllers/product-controller.js";
+import { verifyToken, roleGuard } from "../middleware/auth-middleware.js";
 
 const router = express.Router();
 
