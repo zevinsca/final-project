@@ -14,6 +14,7 @@ export default async function ProductCatalog() {
 
   const json = await res.json();
   const products = json.data;
+  console.log(json);
   //   const products = await res.json();
 
   return (

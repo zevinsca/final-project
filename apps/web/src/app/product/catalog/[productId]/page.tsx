@@ -1,4 +1,3 @@
-import MenuNavbarUser from "@/components/header/header";
 import Link from "next/link";
 type Product = {
   id: string;
@@ -21,7 +20,6 @@ export default async function ProductCatalog() {
 
   return (
     <div className="grid grid-cols-2 gap-4 p-4">
-      <MenuNavbarUser></MenuNavbarUser>
       {products.map((product: Product) => (
         <Link
           key={product.id}

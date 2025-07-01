@@ -38,6 +38,9 @@ export default function HomePage() {
           <Link href="#" className="hover:text-green-600">
             Shop
           </Link>
+          <Link href="/product/catalog" className="hover:text-green-600">
+            Product
+          </Link>
         </nav>
         <div className="text-sm">📞 Call To +1800090098</div>
       </div>
