@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { PrismaClient } from "../../generated/prisma/index.js";
+import { PrismaClient } from "../../generated/prisma";
 import fs from "fs/promises";
 import bcrypt from "bcryptjs";
 import prisma from "../config/prisma-client";

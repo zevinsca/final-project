@@ -38,8 +38,10 @@ async function main() {
         firstName: "John",
         lastName: "Doe",
         email: "john@example.com",
-        username: "johndoe",
         password: hashedPassword,
+        isVerified: true,
+        username: "johndoe",
+
         role: "USER",
         Cart: {
           create: {},
