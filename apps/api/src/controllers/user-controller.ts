@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
-import prisma from "../config/prisma-client";
-import { CustomJwtPayload, GoogleJwtPayload } from "../types/express.js";
+import prisma from "../config/prisma-client.js";
+import { CustomJwtPayload } from "../types/express.js";
 
 /* -------------------------------------------------------------------------- */
 /*                                GET ALL USER                                */

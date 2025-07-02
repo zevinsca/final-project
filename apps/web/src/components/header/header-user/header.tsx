@@ -17,14 +17,14 @@ export default function MenuNavbarUser({
     <section>
       <div className="w-full bg-green-900 text-white">
         <div className="bg-green-800 text-sm text-center py-1">
-          Welcome to Organic Shop
+          Welcome to Market Snap
         </div>
         {/* Main navbar */}
-        <div className="flex items-center justify-between gap-6 px-8 py-4 max-w-[1400px] mx-auto">
+        <div className="flex items-center justify-between gap-6 px-45 py-4 max-w-[1400px] mx-auto">
           {/* Logo */}
           <div className="flex items-center gap-2 shrink-0">
-            <Image src="/vercle.svg" alt="Logo" width={40} height={40} />
-            <span className="font-bold text-xl">ORGANIC FOOD</span>
+            <Image src="/market-snap.png" alt="Logo" width={40} height={40} />
+            <span className="font-bold text-xl">MARKET SNAP</span>
           </div>
 
           {/* Search */}
@@ -58,7 +58,7 @@ export default function MenuNavbarUser({
         <Submenu />
       </div>
 
-      <main>{children}</main>
+      <main className="min-h-screen">{children}</main>
       <Footer />
     </section>
   );
