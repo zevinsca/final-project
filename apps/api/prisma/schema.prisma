@@ -51,6 +51,7 @@ model User {
   InventoryJournal InventoryJournal[]
   Cart             Cart[]
   Order            Order[]
+  Product          Product[]
 }
 
 model Address {
@@ -87,6 +88,7 @@ model Product {
   id          String    @id @default(uuid())
   name        String    @unique
   storeId     String
+  userId      String
   description String
   stock       Int
   price       Float
@@ -95,6 +97,7 @@ model Product {
   updatedAt   DateTime  @updatedAt
   deletedAt   DateTime?
 
+  User             User               @relation(fields: [userId], references: [id])
   Store            Store              @relation(fields: [storeId], references: [id])
   ProductCategory  ProductCategory[]
   ProductImage     ProductImage[]

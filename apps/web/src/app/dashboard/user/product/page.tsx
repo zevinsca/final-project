@@ -1,13 +1,11 @@
-"use client";
-
 import MenuNavbarUser from "@/components/header/header-user/header";
-import HomePageUser from "@/components/menu/menu-user/home";
+import ProductCatalog from "@/components/menu/menu-user/product";
 
 export default function HomePage() {
   return (
     <main className="bg-[#f7f8fa] min-h-screen text-black">
       <MenuNavbarUser>
-        <HomePageUser />
+        <ProductCatalog />
       </MenuNavbarUser>
     </main>
   );

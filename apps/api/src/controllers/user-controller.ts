@@ -1,14 +1,12 @@
 import { Request, Response } from "express";
-import { PrismaClient } from "../../generated/prisma";
-import fs from "fs/promises";
-import bcrypt from "bcryptjs";
-import prisma from "../config/prisma-client";
-import { CustomJwtPayload, GoogleJwtPayload } from "../types/express.js";
+
+import prisma from "../config/prisma-client.js";
+import { CustomJwtPayload } from "../types/express.js";
 
 /* -------------------------------------------------------------------------- */
 /*                                GET ALL USER                                */
 /* -------------------------------------------------------------------------- */
-export async function getAllUser(req: Request, res: Response) {
+export async function getAllUser(_req: Request, res: Response) {
   try {
     const user = await prisma.user.findMany();
     res.status(200).json({ message: "Get All user success", data: user });

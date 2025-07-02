@@ -31,6 +31,9 @@ export default function Submenu() {
           <Link href="/dashboard/user/shop" className="hover:text-green-600">
             Shop
           </Link>
+          <Link href="/dashboard/user/product" className="hover:text-green-600">
+            Product
+          </Link>
         </nav>
         <div className="text-sm">📞 Call To +1800090098</div>
       </div>

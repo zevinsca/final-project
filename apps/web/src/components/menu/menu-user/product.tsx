@@ -22,7 +22,7 @@ export default async function ProductCatalog() {
       {products.map((product: Product) => (
         <Link
           key={product.id}
-          href={`/product/catalog/${product.id}`}
+          href={`/dashboard/user/product/${product.id}`}
           className="border p-4 rounded shadow hover:bg-gray-50"
         >
           <h2 className="font-bold">{product.name}</h2>

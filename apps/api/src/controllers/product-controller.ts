@@ -12,6 +12,7 @@
 
 import { Request, Response } from "express";
 import prisma from "../config/prisma-client.js";
+import { CustomJwtPayload } from "../types/express.js";
 
 // GET ALL PRODUCT
 export async function getAllProduct(
@@ -105,6 +106,8 @@ export async function createProduct(
       imageUrls,
     } = req.body;
 
+    const user = req.user as CustomJwtPayload;
+    const userId = user.id;
     // Validasi sederhana
     if (!name || !storeId || !description || !price || !weight || !stock) {
       res.status(400).json({ message: "Missing required fields" });
@@ -114,6 +117,7 @@ export async function createProduct(
       data: {
         name,
         storeId,
+        userId,
         description,
         price,
         weight,
