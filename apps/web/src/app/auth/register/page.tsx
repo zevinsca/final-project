@@ -58,7 +58,7 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="flex justify-center items-center min-h-screen bg-[#111] py-10">
+    <div className="flex justify-center items-center min-h-screen bg-white py-10">
       <div className="w-full max-w-md p-8 bg-[#191717] shadow-lg rounded-lg border">
         <h2 className="text-2xl font-semibold text-center text-green-500 mb-6">
           Register
@@ -87,7 +87,7 @@ export default function RegisterPage() {
               value={firstName}
               onChange={(e) => setFirstName(e.target.value)}
               required
-              className="w-full mt-2 p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-customGreen"
+              className="w-full mt-2 p-2 border text-white border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-customGreen"
             />
           </div>
 
@@ -104,7 +104,7 @@ export default function RegisterPage() {
               value={lastName}
               onChange={(e) => setLastName(e.target.value)}
               required
-              className="w-full mt-2 p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-customGreen"
+              className="w-full mt-2 p-2 border text-white border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-customGreen"
             />
           </div>
 
@@ -121,7 +121,7 @@ export default function RegisterPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="w-full mt-2 p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-customGreen"
+              className="w-full mt-2 p-2 border text-white border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-customGreen"
             />
           </div>
 
@@ -138,7 +138,7 @@ export default function RegisterPage() {
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               required
-              className="w-full mt-2 p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-customGreen"
+              className="w-full mt-2 p-2 border text-white border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-customGreen"
             />
           </div>
 
@@ -155,7 +155,7 @@ export default function RegisterPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              className="w-full mt-2 p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-customGreen"
+              className="w-full mt-2 p-2 border text-white border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-customGreen"
             />
           </div>
 
@@ -172,7 +172,7 @@ export default function RegisterPage() {
               value={phoneNumber}
               onChange={(e) => setPhoneNumber(e.target.value)}
               required
-              className="w-full mt-2 p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-customGreen"
+              className="w-full mt-2 p-2 border text-white border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-customGreen"
             />
           </div>
 

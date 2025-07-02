@@ -37,6 +37,7 @@ export default function LoginPageSection() {
     getCurrentUser();
   }, []);
 
+  
   return (
     <section className="relative z-50">
       {/* {currentUser ? (
@@ -47,7 +48,11 @@ export default function LoginPageSection() {
         className="p-2 hover:bg-gray-800 rounded-full transition"
       >
         <FaRegUser className="text-lg text-white" />
-      </button>
+      </button> 
+
+        
+
+        
       {/* )} */}
 
       {showProfilePopup && (

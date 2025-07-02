@@ -1,14 +1,11 @@
 import { Request, Response } from "express";
-import { PrismaClient } from "../../generated/prisma/index.js";
-import fs from "fs/promises";
-import bcrypt from "bcryptjs";
 import prisma from "../config/prisma-client";
 import { CustomJwtPayload, GoogleJwtPayload } from "../types/express.js";
 
 /* -------------------------------------------------------------------------- */
 /*                                GET ALL USER                                */
 /* -------------------------------------------------------------------------- */
-export async function getAllUser(req: Request, res: Response) {
+export async function getAllUser(_req: Request, res: Response) {
   try {
     const user = await prisma.user.findMany();
     res.status(200).json({ message: "Get All user success", data: user });
@@ -97,7 +94,7 @@ export async function deleteUser(req: Request, res: Response) {
   try {
     // Get the authenticated user from req.user (you'll probably have a middleware for authentication)
     const user = req.user as CustomJwtPayload;
-    const userId = user.id;
+
     const userRole = user.role;
 
     // Check if the user is a super admin
