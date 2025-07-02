@@ -35,13 +35,13 @@ async function main() {
 
     const user = await prisma.user.create({
       data: {
+        id: "1",
         firstName: "John",
         lastName: "Doe",
         email: "john@example.com",
         password: hashedPassword,
         isVerified: true,
         username: "johndoe",
-
         role: "USER",
         Cart: {
           create: {},
@@ -113,6 +113,7 @@ async function main() {
         price: 30000,
         weight: 0.2,
         storeId: store.id,
+        userId: "1",
         categoryIds: [categories[0].id],
         imageIds: [images[0].id],
       },
@@ -123,6 +124,7 @@ async function main() {
         price: 25000,
         weight: 1,
         storeId: store.id,
+        userId: "1",
         categoryIds: [categories[1].id],
         imageIds: [images[1].id],
       },
@@ -133,6 +135,7 @@ async function main() {
         price: 15000,
         weight: 0.1,
         storeId: store.id,
+        userId: "1",
         categoryIds: [categories[2].id],
         imageIds: [images[2].id],
       },
@@ -148,6 +151,7 @@ async function main() {
             price: product.price,
             weight: product.weight,
             storeId: product.storeId,
+            userId: product.userId,
             ProductCategory: {
               create: product.categoryIds.map((categoryId) => ({ categoryId })),
             },

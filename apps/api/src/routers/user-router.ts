@@ -3,8 +3,8 @@ import {
   getAllUser,
   getCurrentUser,
   // updateUserImage,
-} from "../controllers/user-controller";
-import { roleGuard, verifyToken } from "../middleware/auth-middleware";
+} from "../controllers/user-controller.js";
+import { roleGuard, verifyToken } from "../middleware/auth-middleware.js";
 
 const router = express.Router();
 
