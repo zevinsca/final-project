@@ -8,6 +8,7 @@ export interface CustomJwtPayload extends JwtPayload {
   firstName: string;
   lastName: string;
   username: string;
+  provider: string;
 }
 
 export interface GoogleJwtPayload extends JwtPayload {

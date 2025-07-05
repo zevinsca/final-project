@@ -70,7 +70,10 @@ export default function LoginPage() {
               }
             />
             <div className="forgot text-right text-sm mt-1">
-              <a href="#" className="text-gray-400 hover:text-white underline">
+              <a
+                href="/auth/reset-password"
+                className="text-gray-400 hover:text-white underline"
+              >
                 Forgot Password?
               </a>
             </div>

@@ -10,8 +10,12 @@ import {
   VerifySuccess,
   loginGoogle,
 } from "../controllers/auth.controller.js";
-import { Profile } from "passport";
-import jwt from "jsonwebtoken";
+
+import {
+  changePassword,
+  resetPassword,
+} from "../controllers/user-controller.js";
+import { authMiddleware } from "../middleware/auth-middleware.js";
 
 const router = express.Router();
 
@@ -43,4 +47,13 @@ router.route("/verify-email").get(verifyEmail).get(VerifySuccess);
 
 router.post("/register", register);
 router.post("/login", login); // Logout khusus JWT
+
+/* -------------------------------------------------------------------------- */
+/*                          Reser and change Password                         */
+/* -------------------------------------------------------------------------- */
+
+router.post("/reset-password", resetPassword);
+
+// Change password harus login
+router.post("/change-password", authMiddleware, changePassword);
 export default router;
