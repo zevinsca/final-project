@@ -1,14 +1,13 @@
 import { Request, Response } from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import prisma from "../config/prisma-client";
+import prisma from "../config/prisma-client.js";
 import { ZodError } from "zod";
 import { Resend } from "resend";
 import fs from "fs/promises";
 import handlebars from "handlebars";
 import { registerSchema } from "../validations/auth-validation.js";
 import { Profile } from "passport";
-import { CustomJwtPayload } from "../types/express";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -135,14 +134,14 @@ export async function login(req: Request, res: Response) {
     res
       .cookie("accessToken", JWTToken, { httpOnly: true })
       .status(200)
-      .json({ message: "Login success" });
-    res.redirect("http://localhost:3000");
+      .json({ message: "Login success" })
+      .redirect("http://localhost:3000");
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Login failed" });
   }
 }
-export async function logout(req: Request, res: Response) {
+export async function logout(_req: Request, res: Response) {
   try {
     res
       .clearCookie("accessToken")
@@ -218,6 +217,9 @@ export async function VerifySuccess(req: Request, res: Response) {
 
     // Jika token valid, redirect ke halaman yang diinginkan
     res.redirect("http://localhost:3000");
+    res
+      .status(200)
+      .json({ message: "Email verified successfully", data: decoded });
   } catch (error) {
     // Jika token tidak valid, tampilkan pesan error
     console.error(error);

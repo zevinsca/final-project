@@ -32,18 +32,20 @@ enum InventoryAction {
 }
 
 model User {
-  id                String   @id @default(uuid())
-  firstName         String
-  lastName          String
-  email             String   @unique
-  username          String?  @unique
-  password          String?
-  phoneNumber       String?  @unique
-  role              Role     @default(USER)
-  createdAt         DateTime @default(now())
-  provider          String?
-  isVerified        Boolean? @default(false) // Status verifikasi, default false
-  verificationToken String? // Token verifikasi
+  id                  String    @id @default(uuid())
+  firstName           String
+  lastName            String
+  email               String    @unique
+  username            String?   @unique
+  password            String?
+  phoneNumber         String?   @unique
+  role                Role      @default(USER)
+  createdAt           DateTime  @default(now())
+  provider            String?
+  resetToken          String?
+  resetTokenExpiresAt DateTime?
+  isVerified          Boolean?  @default(false) // Status verifikasi, default false
+  verificationToken   String? // Token verifikasi
 
   addresses        Address[] // Relasi satu ke banyak dengan Address
   Store            Store[]
@@ -55,17 +57,17 @@ model User {
 }
 
 model Address {
-  id         String @id @default(uuid())
-  street     String
-  city       String
-  state      String
-  postalCode String
-  country    String
-  userId     String // Foreign key ke User
-
-  user      User     @relation(fields: [userId], references: [id]) // Relasi ke User
-  createdAt DateTime @default(now())
-  Order     Order[]
+  id          String   @id @default(uuid())
+  userId      String
+  recipient   String
+  addressLine String
+  city        String
+  province    String
+  postalCode  String
+  isPrimary   Boolean  @default(false) // <--- ini dia
+  user        User     @relation(fields: [userId], references: [id]) // Relasi ke User
+  createdAt   DateTime @default(now())
+  Order       Order[]
 }
 
 model Store {
