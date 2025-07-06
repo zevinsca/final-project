@@ -57,33 +57,41 @@ model User {
 }
 
 model Address {
-  id          String   @id @default(uuid())
-  userId      String
-  recipient   String
-  addressLine String
-  city        String
-  province    String
-  postalCode  String
-  isPrimary   Boolean  @default(false) // <--- ini dia
-  user        User     @relation(fields: [userId], references: [id]) // Relasi ke User
-  createdAt   DateTime @default(now())
-  Order       Order[]
+  id         String   @id @default(uuid())
+  userId     String?
+  recipient  String
+  address    String
+  city       String
+  province   String
+  postalCode String
+  storeId    String?
+  isPrimary  Boolean  @default(false) // <--- ini dia
+  createdAt  DateTime @default(now())
+
+  Order Order[]
+  user  User?   @relation(fields: [userId], references: [id]) // Relasi ke User
+  store Store?  @relation(fields: [storeId], references: [id]) // Relasi ke Store, opsional
 }
 
 model Store {
-  id        String    @id @default(uuid())
-  name      String    @unique
-  adminId   String
-  address   String
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  deletedAt DateTime?
+  id         String @id @default(uuid())
+  name       String @unique
+  userId     String
+  address    String
+  city       String
+  province   String
+  postalCode String
 
-  User             User               @relation(fields: [adminId], references: [id])
+  createdAt DateTime  @default(now())
+  updatedAt DateTime? @updatedAt
+
+  User User @relation(fields: [userId], references: [id])
+
   Discount         Discount[]
   InventoryJournal InventoryJournal[]
   Product          Product[]
   ProductInventory ProductInventory[]
+  Address          Address[]
 }
 
 model Product {
@@ -181,17 +189,17 @@ model DiscountUsage {
 }
 
 model ProductInventory {
-  productId String
+  id        String    @id @default(uuid())
+  userId    String
   storeId   String
+  productId String
   stock     Int
   createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
   deletedAt DateTime?
+  updatedAt DateTime  @updatedAt
 
   Product Product @relation(fields: [productId], references: [id])
   Store   Store   @relation(fields: [storeId], references: [id])
-
-  @@id([productId, storeId])
 }
 
 model InventoryJournal {

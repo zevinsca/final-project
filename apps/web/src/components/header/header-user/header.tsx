@@ -58,7 +58,7 @@ export default function MenuNavbarUser({
         <Submenu />
       </div>
 
-      <main className="min-h-screen">{children}</main>
+      <main className="h-fit">{children}</main>
       <Footer />
     </section>
   );
