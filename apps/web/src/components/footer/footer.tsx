@@ -89,15 +89,15 @@ export default function Footer() {
           <h3 className="text-base font-semibold">Contact Details</h3>
           <div className="space-y-1">
             <p>
-              Address: 3548 Columbia Mine Road,
+              Address: Jalan Raya No. 123,
               <br />
-              Wheeling, West Virginia, 26003
+              Indonesia, jakarta, 12345
             </p>
-            <p>Contact: 304-559-3023</p>
+            <p>Contact: +62-8195-8169-283</p>
             <p>
-              E-mail: shopnow@store.com
+              E-mail: marketsnap@gmail.com
               <br />
-              contact@top.com
+              farhanzulkarnaenhrp@gmail.com
             </p>
           </div>
         </div>

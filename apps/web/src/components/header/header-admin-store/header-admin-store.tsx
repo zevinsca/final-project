@@ -115,18 +115,18 @@ export default function MenuNavbarStoreAdmin({
           {/* Menu */}
           <nav className="p-4 space-y-2">
             <Link
-              href="/store/dashboard"
+              href="/dashboard/admin-store"
               className="flex items-center space-x-2 hover:bg-green-700 px-2 py-1 rounded"
             >
               <FiHome />
               <span>Dashboard</span>
             </Link>
             <Link
-              href="/store/products"
+              href="/dashboard/admin-store/store"
               className="flex items-center space-x-2 hover:bg-green-700 px-2 py-1 rounded"
             >
               <FiBox />
-              <span>Produk</span>
+              <span>Store</span>
             </Link>
             <Link
               href="/store/categories"

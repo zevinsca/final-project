@@ -13,6 +13,7 @@ async function main() {
     console.info("⚡ Cleaning old data...");
 
     await prisma.address.deleteMany();
+    await prisma.store.deleteMany();
     await prisma.user.deleteMany();
     await prisma.cartItem.deleteMany();
     await prisma.cart.deleteMany();
@@ -22,7 +23,6 @@ async function main() {
     await prisma.product.deleteMany();
     await prisma.image.deleteMany();
     await prisma.category.deleteMany();
-    await prisma.store.deleteMany();
 
     console.info("✅ Old data cleaned");
 
@@ -60,8 +60,11 @@ async function main() {
     const store = await prisma.store.create({
       data: {
         name: "SuperMart",
+        userId: user.id,
         address: "123 Main Street",
-        adminId: user.id,
+        city: "Jakarta",
+        province: "DKI Jakarta",
+        postalCode: "12345",
       },
     });
 
@@ -165,6 +168,7 @@ async function main() {
         // Create ProductInventory for store
         await prisma.productInventory.create({
           data: {
+            userId: product.userId,
             productId: createdProduct.id,
             storeId: store.id,
             stock: product.stock,

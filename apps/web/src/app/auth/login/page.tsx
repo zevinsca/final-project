@@ -38,7 +38,7 @@ export default function LoginPage() {
 
   return (
     <main className="min-h-screen flex items-center justify-center bg-white">
-      <div className="form-container bg-[#191717] p-8 rounded-xl shadow-lg w-full max-w-sm text-white">
+      <div className="form-container bg-gradient-to-r from-green-900 from-10% via-green-800 via-30% to-green-600 to-90% p-8 rounded-xl shadow-lg w-full max-w-sm text-white">
         <p className="title text-2xl font-bold mb-6 text-center">Login</p>
         <form className="form grid gap-4" onSubmit={handleSubmit}>
           <div className="input-group grid">
