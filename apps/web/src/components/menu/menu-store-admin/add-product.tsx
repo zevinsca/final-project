@@ -17,67 +17,35 @@ export default function AddProductPage({
   const [weight, setWeight] = useState("");
   const [stock, setStock] = useState("");
   const [categoryIds, setCategoryIds] = useState<string[]>([]);
-  const [imageUrls, setImageUrls] = useState<string[]>([]);
-  const [uploading, setUploading] = useState(false);
-
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files) return;
-
-    setUploading(true);
-    const files = Array.from(e.target.files);
-
-    const uploadedUrls: string[] = [];
-
-    for (const file of files) {
-      const formData = new FormData();
-      formData.append("file", file);
-
-      try {
-        const res = await fetch("http://localhost:8000/api/v1/upload", {
-          method: "POST",
-          body: formData,
-          credentials: "include",
-        });
-
-        if (!res.ok) {
-          console.error("Upload failed:", res.statusText);
-          continue;
-        }
-
-        const data = await res.json();
-        if (data.imageUrl) {
-          uploadedUrls.push(data.imageUrl);
-        }
-      } catch (error) {
-        console.error("Error uploading file:", error);
-      }
-    }
-
-    setImageUrls(uploadedUrls);
-    setUploading(false);
-  };
+  const [files, setFiles] = useState<FileList | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       const { storeId } = params;
 
+      const formData = new FormData();
+      formData.append("name", name);
+      formData.append("storeId", storeId);
+      formData.append("description", description);
+      formData.append("price", price);
+      formData.append("weight", weight);
+      formData.append("stock", stock);
+
+      categoryIds.forEach((id) => {
+        formData.append("categoryIds", id);
+      });
+
+      if (files) {
+        Array.from(files).forEach((file) => {
+          formData.append("images", file);
+        });
+      }
+
       const res = await fetch("http://localhost:8000/api/v1/products", {
         method: "POST",
         credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          name,
-          storeId,
-          description,
-          price: parseFloat(price),
-          weight: parseFloat(weight),
-          stock: parseInt(stock),
-          categoryIds,
-          imageUrls,
-        }),
+        body: formData,
       });
 
       if (!res.ok) {
@@ -88,7 +56,6 @@ export default function AddProductPage({
 
       alert("Product created successfully!");
       setShowModal(false);
-
       router.refresh();
     } catch (error) {
       console.error("Error creating product:", error);
@@ -173,20 +140,9 @@ export default function AddProductPage({
                 <input
                   type="file"
                   multiple
-                  onChange={handleFileChange}
+                  onChange={(e) => setFiles(e.target.files)}
                   className="w-full border border-gray-300 rounded px-3 py-2"
-                  accept="image/*"
                 />
-                {uploading && (
-                  <p className="text-sm text-gray-500">Uploading...</p>
-                )}
-                {imageUrls.length > 0 && (
-                  <ul className="mt-2 space-y-1 text-sm text-green-600">
-                    {imageUrls.map((url, idx) => (
-                      <li key={idx}>{url}</li>
-                    ))}
-                  </ul>
-                )}
               </div>
 
               <div className="flex justify-end space-x-2 pt-2">
@@ -199,10 +155,9 @@ export default function AddProductPage({
                 </button>
                 <button
                   type="submit"
-                  disabled={uploading}
                   className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
                 >
-                  {uploading ? "Uploading..." : "Create"}
+                  Create
                 </button>
               </div>
             </form>
