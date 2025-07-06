@@ -47,20 +47,27 @@ model User {
   isVerified          Boolean?  @default(false) // Status verifikasi, default false
   verificationToken   String? // Token verifikasi
 
-  addresses        Address[] // Relasi satu ke banyak dengan Address
-  Store            Store[]
+  addresses Address[] // Relasi satu ke banyak dengan Address
+
   DiscountUsage    DiscountUsage[]
   InventoryJournal InventoryJournal[]
   Cart             Cart[]
   Order            Order[]
   Product          Product[]
+
+  // Relasi: stores yang dibuat user ini sebagai SUPER_ADMIN
+  storesCreated Store[] @relation("StoreCreatedBy")
+
+  // Relasi: stores yang dimiliki user ini sebagai STORE_ADMIN
+  storesOwned Store[] @relation("StoreOwnedBy")
 }
 
 model Address {
-  id         String   @id @default(uuid())
-  userId     String?
-  recipient  String
-  address    String
+  id        String  @id @default(uuid())
+  userId    String?
+  recipient String
+  address   String
+
   city       String
   province   String
   postalCode String
@@ -74,9 +81,15 @@ model Address {
 }
 
 model Store {
-  id         String @id @default(uuid())
-  name       String @unique
-  userId     String
+  id   String @id @default(uuid())
+  name String @unique
+
+  // userId = siapa yang membuat (SUPER_ADMIN)
+  userId String
+
+  // owner = pemilik toko (STORE_ADMIN)
+  owner String
+
   address    String
   city       String
   province   String
@@ -85,13 +98,16 @@ model Store {
   createdAt DateTime  @default(now())
   updatedAt DateTime? @updatedAt
 
-  User User @relation(fields: [userId], references: [id])
+  // Relasi: siapa pemilik toko
 
   Discount         Discount[]
   InventoryJournal InventoryJournal[]
   Product          Product[]
   ProductInventory ProductInventory[]
   Address          Address[]
+
+  createdBy User @relation("StoreCreatedBy", fields: [userId], references: [id])
+  ownedBy   User @relation("StoreOwnedBy", fields: [owner], references: [id])
 }
 
 model Product {

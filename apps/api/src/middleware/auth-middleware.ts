@@ -31,7 +31,7 @@ export function verifyToken(req: Request, res: Response, next: NextFunction) {
 /* ------------------------------------ 2 ----------------------------------- */
 export function roleGuard(...roles: string[]) {
   return async function (req: Request, res: Response, next: NextFunction) {
-    const user = req.user as CustomJwtPayload;
+    const user = req.user as CustomJwtPayload | GoogleJwtPayload;
 
     if (roles.includes(user.role)) {
       next();

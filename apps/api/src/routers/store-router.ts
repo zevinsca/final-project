@@ -10,8 +10,8 @@ const router = express.Router();
 
 router
   .route("/")
-  .get(verifyToken, roleGuard("STORE_ADMIN"), getStores)
-  .post(verifyToken, roleGuard("STORE_ADMIN"), createStore);
+  .get(verifyToken, roleGuard("STORE_ADMIN", "SUPER_ADMIN"), getStores)
+  .post(verifyToken, roleGuard("SUPER_ADMIN", "STORE_ADMIN"), createStore);
 
 // GET satu store
 router

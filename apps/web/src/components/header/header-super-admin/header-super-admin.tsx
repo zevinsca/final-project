@@ -115,6 +115,12 @@ export default function MenuNavbarAdmin({
               Users
             </Link>
             <Link
+              href="/dashboard/admin/store"
+              className="block w-full text-left hover:bg-green-700 px-2 py-1 rounded"
+            >
+              Store
+            </Link>
+            <Link
               href="/dashboard/admin/settings"
               className="block w-full text-left hover:bg-green-700 px-2 py-1 rounded"
             >

@@ -45,17 +45,21 @@ export default function DashboardProducts() {
   }, []);
 
   return (
-    <div className="bg-white p-6 rounded shadow border border-gray-200 flex items-center space-x-4">
-      <div className="bg-green-100 text-green-600 rounded-full p-3">
-        <FiBox className="w-6 h-6" />
-      </div>
-      <div>
-        <h1 className="text-xl font-semibold">Produk yang Tersedia</h1>
-        {loading ? (
-          <p className="text-gray-500">Memuat data...</p>
-        ) : (
-          <p className="text-3xl font-bold text-green-600">{products.length}</p>
-        )}
+    <div>
+      <div className="w-fit p-6 rounded  flex items-center space-x-4 border border-gray-300 shadow-xl/20 hover:shadow-xl transition-shadow duration-300 cursor-pointer hover:bg-gray-50">
+        <div className="bg-green-100 text-green-600 rounded-full p-3">
+          <FiBox className="w-6 h-6" />
+        </div>
+        <div>
+          <h1 className="text-xl font-semibold">Produk yang Tersedia</h1>
+          {loading ? (
+            <p className="text-gray-500">Memuat data...</p>
+          ) : (
+            <p className="text-3xl font-bold text-green-600">
+              {products.length}
+            </p>
+          )}
+        </div>
       </div>
     </div>
   );

@@ -53,7 +53,7 @@ export default function StoreDetailPage({
   if (!store) return <p className="p-4 text-red-500">Store not found.</p>;
 
   return (
-    <section className="max-w-2xl mx-auto p-6">
+    <section className="max-w-2xl mx-auto p-6 border border-gray-300 shadow-xl/20 hover:shadow-xl transition-shadow duration-300 cursor-pointer hover:bg-gray-50">
       <h1 className="text-2xl font-bold mb-2">{store.name}</h1>
 
       <p className="text-gray-700 mb-4">
