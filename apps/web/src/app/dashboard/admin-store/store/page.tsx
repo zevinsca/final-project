@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { FaStore } from "react-icons/fa";
 import axios from "axios";
 import MenuNavbarStoreAdmin from "@/components/header/header-admin-store/header-admin-store";
 import Link from "next/link";
@@ -47,19 +48,23 @@ export default function StorePage() {
           {stores.map((store) => (
             <li
               key={store.id}
-              className="border border-gray-300 rounded-lg p-4"
+              className="border border-gray-300 grid grid-cols-[auto_1fr] items-center gap-x-5 rounded-lg p-4 shadow-xl/20 hover:shadow-xl transition-shadow duration-300 cursor-pointer hover:bg-gray-50"
             >
-              <h2 className="text-xl font-semibold">
-                <Link href={`/dashboard/admin-store/store/${store.id}`}>
-                  {store.name}
-                </Link>
-              </h2>
-              {store.address && (
-                <p className="mt-1 text-gray-700">
-                  <span className="font-medium">Address:</span> {store.address},{" "}
-                  {store.city}, {store.province}, {store.postalCode}
-                </p>
-              )}
+              <FaStore size="50" />
+              <div>
+                <h2 className="text-xl font-semibold grid grid-cols-2 items-center gap-2">
+                  <Link href={`/dashboard/admin-store/store/${store.id}`}>
+                    {store.name}
+                  </Link>
+                </h2>
+                {store.address && (
+                  <p className="mt-1 text-gray-700">
+                    <span className="font-medium">Address:</span>{" "}
+                    {store.address}, {store.city}, {store.province},{" "}
+                    {store.postalCode}
+                  </p>
+                )}
+              </div>
             </li>
           ))}
         </ul>
