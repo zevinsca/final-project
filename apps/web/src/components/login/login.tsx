@@ -38,7 +38,7 @@ export default function LoginPageSection() {
   }, []);
 
   return (
-    <section className="relative z-50">
+    <section className="relative">
       {/* {currentUser ? (
         <div></div>>
       ) : ( */}
@@ -48,11 +48,12 @@ export default function LoginPageSection() {
       >
         <FaRegUser className="text-lg text-white" />
       </button>
+
       {/* )} */}
 
       {showProfilePopup && (
-        <div className="fixed top-0 right-0 h-screen w-full md:w-[350px] bg-[#1f1f1f]/90 backdrop-blur-md text-white shadow-2xl transition-all duration-300 ease-in-out p-6 z-[100] rounded-l-xl">
-          <div className="flex justify-end mb-4">
+        <div className="fixed top-0 right-0 h-screen w-full md:w-[350px] bg-white/40 backdrop-blur-md text-white shadow-2xl transition-all duration-300 ease-in-out  z-[100] rounded-l-xl">
+          <div className="flex justify-start mb-4 bg-green-900 w-full p-6">
             <button
               onClick={() => setShowProfilePopup(false)}
               className="hover:text-red-400 transition"
@@ -62,33 +63,46 @@ export default function LoginPageSection() {
           </div>
 
           {currentUser ? (
-            <div className="flex flex-col items-center space-y-6">
-              <div className="bg-gradient-to-tr from-pink-500 to-purple-600 rounded-full p-4 shadow-lg">
-                <FaUser size={64} />
-              </div>
-              <div className="text-center">
-                <h2 className="text-xl font-semibold">{currentUser.name}</h2>
-                <p className="text-sm text-gray-400">{currentUser.email}</p>
+            <div className="flex flex-col h-[90vh] justify-between">
+              {/* Bagian Atas */}
+              <div className="flex flex-col items-center space-y-6 p-6">
+                {/* Avatar */}
+                <div className="bg-gradient-to-tr from-teal-500 to-green-900 rounded-full p-4 shadow-lg">
+                  <FaUser size={64} className="text-green" />
+                </div>
+                {/* Nama & Email */}
+                <div className="text-center">
+                  <h2 className="text-xl font-semibold text-black">
+                    {currentUser.name}
+                  </h2>
+                  <p className="text-sm text-black">{currentUser.email}</p>
+                </div>
+                {/* Link */}
+                <div className="w-full flex flex-col space-y-2 mt-4 text-black">
+                  <Link
+                    href="/dashboard/user/profile"
+                    className="px-4 py-2 hover:bg-gray-400 hover:text-green-900 cursor-pointer block rounded-md text-center transition"
+                  >
+                    Profile
+                  </Link>
+                  <Link
+                    href="/settings"
+                    className="px-4 py-2 hover:bg-gray-400 hover:text-green-900 cursor-pointer block rounded-md text-center transition"
+                  >
+                    Settings
+                  </Link>
+                </div>
               </div>
 
-              <div className="w-full flex flex-col space-y-4">
-                <Link
-                  href="/profile"
-                  className="px-4 py-2 hover:bg-gray-100 hover:text-black cursor-pointer block rounded-md text-center"
-                >
-                  Profile
-                </Link>
-                <Link
-                  href="/settings"
-                  className="px-4 py-2 hover:bg-gray-100 hover:text-black cursor-pointer block rounded-md text-center"
-                >
-                  Settings
-                </Link>
-                <SignOut />
+              {/* Bagian Bawah: Tombol Sign Out */}
+              <div className="p-6 bg-green-900 w-full">
+                <div>
+                  <SignOut />
+                </div>
               </div>
             </div>
           ) : (
-            <div className="flex flex-col space-y-4 items-center">
+            <div className="flex flex-col space-y-4 items-center p-6">
               <Link
                 href="/auth/login"
                 className="w-full text-center bg-gradient-to-r from-blue-500 to-blue-700 py-2 rounded-xl hover:opacity-90 transition"

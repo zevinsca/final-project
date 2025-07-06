@@ -1,3 +1,5 @@
+"use client";
+
 import MenuNavbarUser from "@/components/header/header-user/header";
 import HomePageUser from "@/components/menu/menu-user/home";
 

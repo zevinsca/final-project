@@ -1,11 +1,11 @@
 import passport from "passport";
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 import dotenv from "dotenv";
-import { CustomJwtPayload, GoogleJwtPayload } from "../types/express.js";
+import { CustomJwtPayload } from "../types/express.js";
 import { GoogleProfileWithToken } from "../types/GoogleProfileWithToken .js";
 import axios from "axios";
 import prisma from "./prisma-client.js";
-import { roleGuard } from "../middleware/auth-middleware.js";
+
 dotenv.config(); // ⛳ WAJIB agar .env bisa digunakan
 
 console.log("GOOGLE_CLIENT_ID", process.env.GOOGLE_CLIENT_ID);

@@ -1,171 +1,128 @@
 import { Request, Response } from "express";
-import prisma from "../config/prisma-client";
-import { CustomJwtPayload, GoogleJwtPayload } from "../types/express.js";
-import { Profile } from "passport";
+import prisma from "../config/prisma-client.js";
+import { CustomJwtPayload } from "../types/express.js";
+
 // GET semua alamat milik user saat ini
 
 // POST tambah alamat baru
 /* -------------------------------------------------------------------------- */
 /*                             CREATE USER ADDRESS                            */
 /* -------------------------------------------------------------------------- */
-export async function createAddress(req: Request, res: Response) {
+export async function getAddresses(req: Request, res: Response) {
   try {
     const user = req.user as CustomJwtPayload;
     const userId = user.id;
-    if (!userId) {
-      res.status(401).json({ message: "Unauthorized" });
-      return;
-    }
-    const { street, city, state, postalCode, country } = req.body;
-
-    const address = await prisma.address.create({
-      data: {
-        street,
-        city,
-        state,
-        postalCode,
-        country,
-        userId,
-      },
-    });
-
-    res.status(201).json({ message: "Address created", Address: address });
-  } catch (error) {
-    console.error("Create Address Error:", error);
-    res.status(500).json({ message: "Failed to create address" });
-  }
-}
-/* -------------------------------------------------------------------------- */
-/*                               GET ALL ADDRESS                              */
-/* -------------------------------------------------------------------------- */
-export async function getUserAddresses(
-  req: Request,
-  res: Response
-): Promise<void> {
-  try {
-    const user = req.user as CustomJwtPayload;
-    const userId = user.id;
-
     const addresses = await prisma.address.findMany({
       where: { userId },
-      orderBy: { createdAt: "desc" },
+      orderBy: { isPrimary: "desc" }, // alamat utama dulu
     });
 
-    res
-      .status(200)
-      .json({ message: "get Address Success", Address: addresses });
-  } catch (error) {
-    res.status(500).json({ message: "Failed to fetch addresses", error });
+    res.json(addresses);
+  } catch (err) {
+    console.error("Get addresses error:", err);
+    res.status(500).json({ message: "Failed to fetch addresses." });
   }
 }
-/* -------------------------------------------------------------------------- */
-/*                               GET ADDRESSBYID                              */
-/* -------------------------------------------------------------------------- */
-export async function getAddressById(req: Request, res: Response) {
-  try {
-    const user = req.user as CustomJwtPayload;
-    const userId = user.id;
-    if (!userId) {
-      res.status(401).json({ message: "Unauthorized" });
-      return;
-    }
-    const { id } = req.params;
 
-    const address = await prisma.address.findFirst({
-      where: {
-        id,
-        userId,
-      },
-    });
+// Add new address
+export async function addAddress(req: Request, res: Response) {
+  const user = req.user as CustomJwtPayload;
+  const userId = user.id;
+  const { recipient, address, city, province, postalCode, isPrimary } =
+    req.body;
 
-    if (!address) {
-      res.status(404).json({ message: "Address not found" });
-      return;
-    }
-
-    res
-      .status(200)
-      .json({ message: `get Address ${id}  Success`, Address: address });
-  } catch (error) {
-    res.status(500).json({ message: "Failed to fetch address", error });
+  if (!userId || !recipient || !address || !city || !province || !postalCode) {
+    return res.status(400).json({ message: "All fields are required" });
   }
-}
-/* -------------------------------------------------------------------------- */
-/*                               UPDATE ADDRESS                               */
-/* -------------------------------------------------------------------------- */
-export async function updateAddress(req: Request, res: Response) {
+
   try {
-    // Access the authenticated user data from req.user
-    const user = req.user as CustomJwtPayload;
-    const userId = user.id;
-
-    // Check if userId exists, meaning the user is authorized
-    if (!userId) {
-      res.status(401).json({ message: "Unauthorized" });
-      return;
-    }
-
-    // Get the address ID from the request parameters and new address data from the body
-    const { addressId } = req.params;
-    const { street, city, state, postalCode, country } = req.body;
-
-    // Validate if the data is present in the request body
-    if (!street || !city || !state || !postalCode || !country) {
-      res
-        .status(400)
-        .json({ message: "All fields are required to update address." });
-      return;
-    }
-
-    // Check if the address belongs to the authenticated user
-    const existingAddress = await prisma.address.findUnique({
-      where: { id: addressId },
-    });
-
-    if (!existingAddress) {
-      res.status(404).json({ message: "Address not found" });
-      return;
-    }
-
-    if (existingAddress.userId !== userId) {
-      res
-        .status(403)
-        .json({ message: "You do not have permission to update this address" });
-      return;
-    }
-
-    // Proceed to update the address in the database
-    const updatedAddress = await prisma.address.update({
-      where: { id: addressId },
+    const newAddress = await prisma.address.create({
       data: {
-        street,
+        userId: userId,
+        recipient,
+        address,
         city,
-        state,
+        province,
         postalCode,
-        country,
+        isPrimary,
       },
     });
 
-    // Return the updated address data
-    res.status(200).json({
-      message: "Address updated successfully",
-      address: updatedAddress,
-    });
+    res
+      .status(201)
+      .json({ message: "Address created successfully", data: newAddress });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "Error updating address", error });
+    res.status(500).json({ message: "Error creating address" });
   }
 }
-/* -------------------------------------------------------------------------- */
-/*                               DELETE ADDRESS                               */
-/* -------------------------------------------------------------------------- */
+
+// Update address
+export async function updateAddress(req: Request, res: Response) {
+  const { id } = req.params;
+  const { recipient, address, city, province, postalCode, isPrimary } =
+    req.body;
+
+  try {
+    const updatedAddress = await prisma.address.update({
+      where: { id },
+      data: {
+        recipient,
+        address,
+        city,
+        province,
+        postalCode,
+        isPrimary,
+      },
+    });
+
+    res
+      .status(200)
+      .json({ message: "Address updated successfully", data: updatedAddress });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Error updating address" });
+  }
+}
+
+// Delete address
 export async function deleteAddress(req: Request, res: Response) {
   const { id } = req.params;
 
   try {
-    await prisma.address.delete({ where: { id } });
-    res.json({ message: "Alamat berhasil dihapus." });
+    await prisma.address.delete({
+      where: { id },
+    });
+
+    res.status(200).json({ message: "Address deleted successfully" });
   } catch (error) {
-    res.status(500).json({ error: "Gagal menghapus alamat." });
+    console.error(error);
+    res.status(500).json({ message: "Error deleting address" });
+  }
+}
+
+// Set address as primary
+export async function setPrimaryAddress(req: Request, res: Response) {
+  try {
+    const user = req.user as CustomJwtPayload;
+    const userId = user.id;
+    const { id } = req.params;
+
+    // Reset all to false
+    await prisma.address.updateMany({
+      where: { userId },
+      data: { isPrimary: false },
+    });
+
+    // Set selected to true
+    await prisma.address.update({
+      where: { id },
+      data: { isPrimary: true },
+    });
+
+    res.json({ message: "Primary address set successfully." });
+  } catch (err) {
+    console.error("Set primary address error:", err);
+    res.status(500).json({ message: "Failed to set primary address." });
   }
 }

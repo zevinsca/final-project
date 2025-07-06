@@ -32,18 +32,20 @@ enum InventoryAction {
 }
 
 model User {
-  id                String   @id @default(uuid())
-  firstName         String
-  lastName          String
-  email             String   @unique
-  username          String?  @unique
-  password          String?
-  phoneNumber       String?  @unique
-  role              Role     @default(USER)
-  createdAt         DateTime @default(now())
-  provider          String?
-  isVerified        Boolean? @default(false) // Status verifikasi, default false
-  verificationToken String? // Token verifikasi
+  id                  String    @id @default(uuid())
+  firstName           String
+  lastName            String
+  email               String    @unique
+  username            String?   @unique
+  password            String?
+  phoneNumber         String?   @unique
+  role                Role      @default(USER)
+  createdAt           DateTime  @default(now())
+  provider            String?
+  resetToken          String?
+  resetTokenExpiresAt DateTime?
+  isVerified          Boolean?  @default(false) // Status verifikasi, default false
+  verificationToken   String? // Token verifikasi
 
   addresses        Address[] // Relasi satu ke banyak dengan Address
   Store            Store[]
@@ -51,39 +53,52 @@ model User {
   InventoryJournal InventoryJournal[]
   Cart             Cart[]
   Order            Order[]
+  Product          Product[]
 }
 
 model Address {
-  id         String @id @default(uuid())
-  street     String
+  id         String   @id @default(uuid())
+  userId     String?
+  recipient  String
+  address    String
   city       String
-  state      String
+  province   String
   postalCode String
-  country    String
-  userId     String // Foreign key ke User
+  storeId    String?
+  isPrimary  Boolean  @default(false) // <--- ini dia
+  createdAt  DateTime @default(now())
 
-  user      User     @relation(fields: [userId], references: [id]) // Relasi ke User
-  createdAt DateTime @default(now())
-  Order     Order[]
+  Order Order[]
+  user  User?   @relation(fields: [userId], references: [id]) // Relasi ke User
+  store Store?  @relation(fields: [storeId], references: [id]) // Relasi ke Store, opsional
 }
 
 model Store {
-  id        String    @id @default(uuid())
-  name      String    @unique
-  adminId   String
-  address   String
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  deletedAt DateTime?
+  id         String @id @default(uuid())
+  name       String @unique
+  userId     String
+  address    String
+  city       String
+  province   String
+  postalCode String
 
-  User             User               @relation(fields: [adminId], references: [id])
+  createdAt DateTime  @default(now())
+  updatedAt DateTime? @updatedAt
+
+  User User @relation(fields: [userId], references: [id])
+
   Discount         Discount[]
   InventoryJournal InventoryJournal[]
+  Product          Product[]
+  ProductInventory ProductInventory[]
+  Address          Address[]
 }
 
 model Product {
   id          String    @id @default(uuid())
   name        String    @unique
+  storeId     String
+  userId      String
   description String
   stock       Int
   price       Float
@@ -92,12 +107,15 @@ model Product {
   updatedAt   DateTime  @updatedAt
   deletedAt   DateTime?
 
+  User             User               @relation(fields: [userId], references: [id])
+  Store            Store              @relation(fields: [storeId], references: [id])
   ProductCategory  ProductCategory[]
   ProductImage     ProductImage[]
   Discount         Discount[]
   InventoryJournal InventoryJournal[]
   CartItem         CartItem[]
   OrderItem        OrderItem[]
+  ProductInventory ProductInventory[]
 }
 
 model Category {
@@ -172,12 +190,16 @@ model DiscountUsage {
 
 model ProductInventory {
   id        String    @id @default(uuid())
-  productId String    @unique
+  userId    String
   storeId   String
+  productId String
   stock     Int
   createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
   deletedAt DateTime?
+  updatedAt DateTime  @updatedAt
+
+  Product Product @relation(fields: [productId], references: [id])
+  Store   Store   @relation(fields: [storeId], references: [id])
 }
 
 model InventoryJournal {
