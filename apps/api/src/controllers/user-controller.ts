@@ -5,6 +5,7 @@ import bcrypt from "bcryptjs";
 import handlebars from "handlebars";
 import fs from "fs/promises";
 import { Resend } from "resend";
+import { Role } from "../../generated/prisma/index.js";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -257,5 +258,46 @@ export async function changePassword(
   } catch (error) {
     console.error("Change Password Error:", error);
     res.status(500).json({ message: "Failed to change password." });
+  }
+}
+
+export async function getUsersByRole(req: Request, res: Response) {
+  try {
+    const roleParam = req.query.role as string;
+
+    if (!roleParam) {
+      res.status(400).json({ message: "Role query parameter is required." });
+      return;
+    }
+
+    // Validasi role
+    let prismaRole: Role;
+    if (roleParam.toUpperCase() === "STORE_ADMIN") {
+      prismaRole = Role.STORE_ADMIN;
+    } else if (roleParam.toUpperCase() === "SUPER_ADMIN") {
+      prismaRole = Role.SUPER_ADMIN;
+    } else {
+      res.status(400).json({ message: "Invalid role value." });
+      return;
+    }
+
+    const users = await prisma.user.findMany({
+      where: {
+        role: prismaRole,
+      },
+      select: {
+        id: true,
+        username: true,
+        role: true,
+      },
+    });
+
+    res.status(200).json({
+      message: "Users fetched successfully.",
+      data: users,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Error fetching users." });
   }
 }

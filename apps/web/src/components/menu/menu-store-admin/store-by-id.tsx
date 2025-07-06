@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import AddProductPage from "./add-product";
 
 interface Product {
   id: string;
@@ -52,16 +53,14 @@ export default function StoreDetailPage({
   if (!store) return <p className="p-4 text-red-500">Store not found.</p>;
 
   return (
-    <section className="max-w-2xl mx-auto p-6">
+    <section className="max-w-2xl mx-auto p-6 border border-gray-300 shadow-xl/20 hover:shadow-xl transition-shadow duration-300 cursor-pointer hover:bg-gray-50">
       <h1 className="text-2xl font-bold mb-2">{store.name}</h1>
 
       <p className="text-gray-700 mb-4">
         {store.address}, {store.city},{store.province},{store.postalCode}
       </p>
 
-      <button className="mb-4 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
-        + Add Product
-      </button>
+      <AddProductPage params={{ storeId: store.id }} />
 
       <h2 className="text-xl font-semibold mb-2">Products</h2>
       {store.products && store.products.length > 0 ? (

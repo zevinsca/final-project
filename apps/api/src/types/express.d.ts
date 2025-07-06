@@ -4,7 +4,7 @@ import { Profile } from "passport";
 export interface CustomJwtPayload extends JwtPayload {
   id: string;
   email: string;
-  role: string;
+  role: "USER" | "STORE_ADMIN" | "SUPER_ADMIN";
   firstName: string;
   lastName: string;
   username: string;
@@ -17,7 +17,7 @@ export interface GoogleJwtPayload extends JwtPayload {
   name: string;
   photo?: string;
   provider: "google";
-  role: string;
+  role: "USER" | "STORE_ADMIN" | "SUPER_ADMIN" | string;
 }
 declare global {
   namespace Express {
