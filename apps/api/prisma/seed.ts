@@ -1,9 +1,10 @@
+import { url } from "inspector";
 import { PrismaClient } from "../generated/prisma/index.js";
 import { genSalt, hash } from "bcryptjs";
 
 const prisma = new PrismaClient();
 
-async function main() {
+async function seed() {
   console.info("🌱 [SEED] Starting seed script");
 
   try {
@@ -13,34 +14,33 @@ async function main() {
     console.info("⚡ Cleaning old data...");
 
     await prisma.address.deleteMany();
-    await prisma.user.deleteMany();
+
     await prisma.cartItem.deleteMany();
     await prisma.cart.deleteMany();
     await prisma.productInventory.deleteMany();
-    await prisma.productImage.deleteMany();
     await prisma.productCategory.deleteMany();
     await prisma.product.deleteMany();
     await prisma.image.deleteMany();
     await prisma.category.deleteMany();
     await prisma.store.deleteMany();
+    await prisma.user.deleteMany();
 
     console.info("✅ Old data cleaned");
 
     /* -------------------------------------------------------------------------- */
     /*                               CREATE USERS                                  */
     /* -------------------------------------------------------------------------- */
-    console.info("⚡ Creating user...");
+    console.info("⚡ Creating users...");
 
     const salt = await genSalt(10);
-    const hashedPassword = await hash("secret123", salt);
 
-    const user = await prisma.user.create({
+    const user1 = await prisma.user.create({
       data: {
-        id: "1",
+        id: "2",
         firstName: "John",
         lastName: "Doe",
         email: "john@example.com",
-        password: hashedPassword,
+        password: await hash("secret123", salt),
         isVerified: true,
         username: "johndoe",
         role: "USER",
@@ -50,7 +50,42 @@ async function main() {
       },
     });
 
-    console.info(`✅ User created: ${user.email}`);
+    const storeAdmin = await prisma.user.create({
+      data: {
+        id: "1",
+        firstName: "Alice",
+        lastName: "Smith",
+        email: "alice@store.com",
+        password: await hash("admin123", salt),
+        isVerified: true,
+        username: "alicestore",
+        role: "STORE_ADMIN",
+        Cart: {
+          create: {},
+        },
+      },
+    });
+
+    const superAdmin = await prisma.user.create({
+      data: {
+        id: "3",
+        firstName: "Bob",
+        lastName: "Taylor",
+        email: "bob@admin.com",
+        password: await hash("superadmin123", salt),
+        isVerified: true,
+        username: "bobsuper",
+        role: "SUPER_ADMIN",
+        Cart: {
+          create: {},
+        },
+      },
+    });
+
+    console.info("✅ Users created:");
+    console.info(`- ${user1.email} (USER)`);
+    console.info(`- ${storeAdmin.email} (STORE_ADMIN)`);
+    console.info(`- ${superAdmin.email} (SUPER_ADMIN)`);
 
     /* -------------------------------------------------------------------------- */
     /*                               CREATE STORE                                  */
@@ -60,8 +95,8 @@ async function main() {
     const store = await prisma.store.create({
       data: {
         name: "SuperMart",
-        address: "123 Main Street",
-        adminId: user.id,
+        addressid: "123 Main Street",
+        userId: user1.id,
       },
     });
 
@@ -72,40 +107,36 @@ async function main() {
     /* -------------------------------------------------------------------------- */
     console.info("⚡ Creating categories...");
 
-    const categoryData = [
-      { name: "Groceries", description: "Daily needs" },
-      { name: "Beverages", description: "Drinks and juices" },
-      { name: "Snacks", description: "Packaged snacks" },
+    const categoriesData = [
+      { name: "Fruits", description: "Fresh fruits and farm produce." },
+      { name: "Beverages", description: "Juices, water, and drinks." },
+      {
+        name: "Snacks",
+        description: "Chips, instant noodles, and ready-to-eat snacks.",
+      },
+      { name: "Bakery", description: "Breads and baked goods." },
+      {
+        name: "Eggs & Dairy",
+        description: "Milk, eggs, and other dairy products.",
+      },
+      { name: "Cheese", description: "High quality cheese products." },
     ];
 
-    const categories = await Promise.all(
-      categoryData.map((data) => prisma.category.create({ data }))
-    );
+    for (const category of categoriesData) {
+      await prisma.category.create({
+        data: {
+          description: category.description,
+          name: category.name,
+        },
+      });
+    }
 
-    console.info(`✅ ${categories.length} categories created`);
-
-    /* -------------------------------------------------------------------------- */
-    /*                               CREATE IMAGES                                 */
-    /* -------------------------------------------------------------------------- */
-    console.info("⚡ Creating images...");
-
-    const imageUrls = [
-      "https://images.unsplash.com/photo-1598511720172-31c00b2e8b09?q=80",
-      "https://images.unsplash.com/photo-1567306226416-28f0efdc88ce?q=80",
-      "https://images.unsplash.com/photo-1606788075761-1a465d96d6b2?q=80",
-    ];
-
-    const images = await Promise.all(
-      imageUrls.map((url) => prisma.image.create({ data: { imageUrl: url } }))
-    );
-
-    console.info(`✅ ${images.length} images created`);
+    console.log("Category seeding finished.");
 
     /* -------------------------------------------------------------------------- */
     /*                               CREATE PRODUCTS                               */
     /* -------------------------------------------------------------------------- */
     console.info("⚡ Creating products...");
-
     const productsData = [
       {
         name: "Apple Fuji",
@@ -115,8 +146,16 @@ async function main() {
         weight: 0.2,
         storeId: store.id,
         userId: "1",
-        categoryIds: [categories[0].id],
-        imageIds: [images[0].id],
+        imagePreview: [
+          {
+            url: "https://res.cloudinary.com/dwu9rmlyv/image/upload/v1751859664/apple_yrplns.jpg",
+          },
+        ],
+        imageContent: [
+          {
+            url: "https://res.cloudinary.com/dwu9rmlyv/image/upload/v1751859664/apel_hqtnge.jpg",
+          },
+        ],
       },
       {
         name: "Orange Juice",
@@ -126,8 +165,16 @@ async function main() {
         weight: 1,
         storeId: store.id,
         userId: "1",
-        categoryIds: [categories[1].id],
-        imageIds: [images[1].id],
+        imagePreview: [
+          {
+            url: "https://res.cloudinary.com/dwu9rmlyv/image/upload/v1751860741/orange_juice_zvtzor.jpg",
+          },
+        ],
+        imageContent: [
+          {
+            url: "https://res.cloudinary.com/dwu9rmlyv/image/upload/v1751859790/orange_juice2_txetmj.jpg",
+          },
+        ],
       },
       {
         name: "Potato Chips",
@@ -137,8 +184,149 @@ async function main() {
         weight: 0.1,
         storeId: store.id,
         userId: "1",
-        categoryIds: [categories[2].id],
-        imageIds: [images[2].id],
+        imagePreview: [
+          {
+            url: "https://res.cloudinary.com/dwu9rmlyv/image/upload/v1751859927/chips_uhv1b8.jpg",
+          },
+        ],
+        imageContent: [
+          {
+            url: "https://res.cloudinary.com/dwu9rmlyv/image/upload/v1751859927/chips2_mxjhhv.jpg",
+          },
+        ],
+      },
+      {
+        name: "Banana Cavendish",
+        description: "Sweet Cavendish bananas, ripe and ready to eat.",
+        stock: 120,
+        price: 20000,
+        weight: 1,
+        storeId: store.id,
+        userId: "1",
+        imagePreview: [
+          {
+            url: "https://res.cloudinary.com/dwu9rmlyv/image/upload/v1751859927/banana2_apja59.jpg",
+          },
+        ],
+        imageContent: [
+          {
+            url: "https://res.cloudinary.com/dwu9rmlyv/image/upload/v1751859926/banana_eetanm.jpg",
+          },
+        ],
+      },
+      {
+        name: "Milk 1L",
+        description: "Fresh cow milk in 1 liter bottle.",
+        stock: 40,
+        price: 18000,
+        weight: 1,
+        storeId: store.id,
+        userId: "1",
+        imagePreview: [
+          {
+            url: "https://res.cloudinary.com/dwu9rmlyv/image/upload/v1751861611/milk_r8mmer.jpg",
+          },
+        ],
+        imageContent: [
+          {
+            url: "https://res.cloudinary.com/dwu9rmlyv/image/upload/v1751861611/milk_r8mmer.jpg",
+          },
+        ],
+      },
+      {
+        name: "Brown Eggs 10pcs",
+        description: "Organic brown eggs, pack of 10.",
+        stock: 80,
+        price: 22000,
+        weight: 0.5,
+        storeId: store.id,
+        userId: "1",
+        imagePreview: [
+          {
+            url: "https://res.cloudinary.com/dwu9rmlyv/image/upload/v1751861611/egg_iwbzpp.jpg",
+          },
+        ],
+        imageContent: [
+          {
+            url: "https://res.cloudinary.com/dwu9rmlyv/image/upload/v1751861611/egg_iwbzpp.jpg",
+          },
+        ],
+      },
+      {
+        name: "Instant Noodles",
+        description: "Spicy chicken flavored instant noodles.",
+        stock: 300,
+        price: 3500,
+        weight: 0.08,
+        storeId: store.id,
+        userId: "1",
+        imagePreview: [
+          {
+            url: "https://res.cloudinary.com/dwu9rmlyv/image/upload/v1751861875/noodle_rftnje.jpg",
+          },
+        ],
+        imageContent: [
+          {
+            url: "https://res.cloudinary.com/dwu9rmlyv/image/upload/v1751861875/noodle_rftnje.jpg",
+          },
+        ],
+      },
+      {
+        name: "Cheddar Cheese 200g",
+        description: "Premium quality cheddar cheese block.",
+        stock: 30,
+        price: 45000,
+        weight: 0.2,
+        storeId: store.id,
+        userId: "1",
+        imagePreview: [
+          {
+            url: "https://res.cloudinary.com/dwu9rmlyv/image/upload/v1751861627/cheese_txxb1a.jpg",
+          },
+        ],
+        imageContent: [
+          {
+            url: "https://res.cloudinary.com/dwu9rmlyv/image/upload/v1751861627/cheese_txxb1a.jpg",
+          },
+        ],
+      },
+      {
+        name: "Whole Wheat Bread",
+        description: "Soft and healthy whole wheat bread loaf.",
+        stock: 60,
+        price: 25000,
+        weight: 0.5,
+        storeId: store.id,
+        userId: "1",
+        imagePreview: [
+          {
+            url: "https://res.cloudinary.com/dwu9rmlyv/image/upload/v1751862028/bread2_oypqal.jpg",
+          },
+        ],
+        imageContent: [
+          {
+            url: "https://res.cloudinary.com/dwu9rmlyv/image/upload/v1751862028/bread2_oypqal.jpg",
+          },
+        ],
+      },
+      {
+        name: "Mineral Water 600ml",
+        description: "Clean and fresh bottled mineral water.",
+        stock: 500,
+        price: 4000,
+        weight: 0.6,
+        storeId: store.id,
+        userId: "1",
+        imagePreview: [
+          {
+            url: "https://res.cloudinary.com/dwu9rmlyv/image/upload/v1751614925/water_wgkyiy.jpg",
+          },
+        ],
+        imageContent: [
+          {
+            url: "https://res.cloudinary.com/dwu9rmlyv/image/upload/v1751615147/water_content_p6ouan.jpg",
+          },
+        ],
       },
     ];
 
@@ -153,11 +341,15 @@ async function main() {
             weight: product.weight,
             storeId: product.storeId,
             userId: product.userId,
-            ProductCategory: {
-              create: product.categoryIds.map((categoryId) => ({ categoryId })),
+            imagePreview: {
+              create: product.imagePreview.map((img) => ({
+                imageUrl: img.url,
+              })),
             },
-            ProductImage: {
-              create: product.imageIds.map((imageId) => ({ imageId })),
+            imageContent: {
+              create: product.imageContent.map((img) => ({
+                imageUrl: img.url,
+              })),
             },
           },
         });
@@ -189,4 +381,4 @@ async function main() {
   }
 }
 
-main();
+seed();

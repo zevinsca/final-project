@@ -36,7 +36,8 @@ export async function getCurrentUser(
       name: user.name,
       email: user.email,
       photo: user.photo,
-      loginType: "google",
+      role: user.role,
+      loginType: user.provider,
     };
     res.status(200).json({ data: userData });
   } catch (error) {
@@ -59,7 +60,7 @@ export async function updateCurrentUser(req: Request, res: Response) {
     }
 
     // Get the data from the request body that the user wants to update
-    const { email, firstName, lastName, phoneNumber } = req.body;
+    const { email, firstName, lastName, phoneNumber, role } = req.body;
 
     // Validate if the data is present in the request body
     if (!email && !firstName && !lastName && !phoneNumber) {
@@ -74,6 +75,7 @@ export async function updateCurrentUser(req: Request, res: Response) {
         firstName, // Update first name
         lastName, // Update last name
         phoneNumber, // Update phone number
+        role,
       },
     });
 

@@ -14,6 +14,7 @@ export async function middleware(req: NextRequest) {
   if (!accessToken) {
     return NextResponse.redirect(`${req.nextUrl.origin}/auth/login`);
   }
+
   const secret = process.env.NEXT_PUBLIC_JWT_SECRET;
   if (!secret || secret.trim() === "") {
     console.error("🚨 Secret Code is not defined or empty!");

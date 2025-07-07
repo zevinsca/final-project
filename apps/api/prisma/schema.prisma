@@ -71,13 +71,13 @@ model Address {
 model Store {
   id        String    @id @default(uuid())
   name      String    @unique
-  adminId   String
-  address   String
+  userId    String
+  addressid String
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
-  User             User               @relation(fields: [adminId], references: [id])
+  User             User               @relation(fields: [userId], references: [id])
   Discount         Discount[]
   InventoryJournal InventoryJournal[]
   Product          Product[]
@@ -85,8 +85,9 @@ model Store {
 }
 
 model Product {
-  id          String    @id @default(uuid())
-  name        String    @unique
+  id   String @id @default(uuid())
+  name String @unique
+
   storeId     String
   userId      String
   description String
@@ -100,12 +101,14 @@ model Product {
   User             User               @relation(fields: [userId], references: [id])
   Store            Store              @relation(fields: [storeId], references: [id])
   ProductCategory  ProductCategory[]
-  ProductImage     ProductImage[]
   Discount         Discount[]
   InventoryJournal InventoryJournal[]
   CartItem         CartItem[]
   OrderItem        OrderItem[]
   ProductInventory ProductInventory[]
+  Image            Image[]
+  imagePreview     Image[]            @relation("imagePreview")
+  imageContent     Image[]            @relation("imageContent")
 }
 
 model Category {
@@ -120,12 +123,17 @@ model Category {
 }
 
 model Image {
-  id        String    @id @default(uuid())
-  imageUrl  String
-  createdAt DateTime  @default(now())
-  deletedAt DateTime?
+  id               String   @id @default(uuid())
+  imageUrl         String
+  previewProductId String?
+  contentProductId String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
-  ProductImage ProductImage[]
+  previewProduct Product? @relation("imagePreview", fields: [previewProductId], references: [id])
+  contentProduct Product? @relation("imageContent", fields: [contentProductId], references: [id])
+  Product        Product? @relation(fields: [ProductId], references: [id])
+  ProductId      String?
 }
 
 model ProductCategory {
@@ -136,16 +144,6 @@ model ProductCategory {
 
   Product  Product  @relation(fields: [productId], references: [id])
   Category Category @relation(fields: [categoryId], references: [id])
-}
-
-model ProductImage {
-  id        String    @id @default(uuid())
-  productId String
-  imageId   String
-  deletedAt DateTime?
-
-  Product Product @relation(fields: [productId], references: [id])
-  Image   Image   @relation(fields: [imageId], references: [id])
 }
 
 model Discount {
