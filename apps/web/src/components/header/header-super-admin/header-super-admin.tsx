@@ -10,6 +10,7 @@ interface User {
   firstName: string;
   lastName: string;
   name: string;
+  username: string;
   email: string;
   role: string;
   // avatarUrl?: string; // opsional kalau punya URL foto
@@ -57,7 +58,10 @@ export default function MenuNavbarAdmin({
           {users ? (
             <span>
               Welcome,
-              <strong>{users.name}</strong>
+              <strong>
+                {users.name}
+                {users.username}
+              </strong>
             </span>
           ) : (
             <span>Loading user...</span>

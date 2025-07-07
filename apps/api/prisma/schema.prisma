@@ -32,87 +32,62 @@ enum InventoryAction {
 }
 
 model User {
-  id                  String    @id @default(uuid())
-  firstName           String
-  lastName            String
-  email               String    @unique
-  username            String?   @unique
-  password            String?
-  phoneNumber         String?   @unique
-  role                Role      @default(USER)
-  createdAt           DateTime  @default(now())
-  provider            String?
-  resetToken          String?
-  resetTokenExpiresAt DateTime?
-  isVerified          Boolean?  @default(false) // Status verifikasi, default false
-  verificationToken   String? // Token verifikasi
+  id                String   @id @default(uuid())
+  firstName         String
+  lastName          String
+  email             String   @unique
+  username          String?  @unique
+  password          String?
+  phoneNumber       String?  @unique
+  role              Role     @default(USER)
+  createdAt         DateTime @default(now())
+  provider          String?
+  isVerified        Boolean? @default(false) // Status verifikasi, default false
+  verificationToken String? // Token verifikasi
 
-  addresses Address[] // Relasi satu ke banyak dengan Address
-
+  addresses        Address[] // Relasi satu ke banyak dengan Address
+  Store            Store[]
   DiscountUsage    DiscountUsage[]
   InventoryJournal InventoryJournal[]
   Cart             Cart[]
   Order            Order[]
   Product          Product[]
-
-  // Relasi: stores yang dibuat user ini sebagai SUPER_ADMIN
-  storesCreated Store[] @relation("StoreCreatedBy")
-
-  // Relasi: stores yang dimiliki user ini sebagai STORE_ADMIN
-  storesOwned Store[] @relation("StoreOwnedBy")
 }
 
 model Address {
-  id        String  @id @default(uuid())
-  userId    String?
-  recipient String
-  address   String
-
+  id         String @id @default(uuid())
+  street     String
   city       String
-  province   String
+  state      String
   postalCode String
-  storeId    String?
-  isPrimary  Boolean  @default(false) // <--- ini dia
-  createdAt  DateTime @default(now())
+  country    String
+  userId     String // Foreign key ke User
 
-  Order Order[]
-  user  User?   @relation(fields: [userId], references: [id]) // Relasi ke User
-  store Store?  @relation(fields: [storeId], references: [id]) // Relasi ke Store, opsional
+  user      User     @relation(fields: [userId], references: [id]) // Relasi ke User
+  createdAt DateTime @default(now())
+  Order     Order[]
 }
 
 model Store {
-  id   String @id @default(uuid())
-  name String @unique
-
-  // userId = siapa yang membuat (SUPER_ADMIN)
-  userId String
-
-  // owner = pemilik toko (STORE_ADMIN)
-  owner String
-
-  address    String
-  city       String
-  province   String
-  postalCode String
-
+  id        String    @id @default(uuid())
+  name      String    @unique
+  userId    String
+  addressid String
   createdAt DateTime  @default(now())
-  updatedAt DateTime? @updatedAt
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
 
-  // Relasi: siapa pemilik toko
-
+  User             User               @relation(fields: [userId], references: [id])
   Discount         Discount[]
   InventoryJournal InventoryJournal[]
   Product          Product[]
   ProductInventory ProductInventory[]
-  Address          Address[]
-
-  createdBy User @relation("StoreCreatedBy", fields: [userId], references: [id])
-  ownedBy   User @relation("StoreOwnedBy", fields: [owner], references: [id])
 }
 
 model Product {
-  id          String    @id @default(uuid())
-  name        String    @unique
+  id   String @id @default(uuid())
+  name String @unique
+
   storeId     String
   userId      String
   description String
@@ -126,12 +101,14 @@ model Product {
   User             User               @relation(fields: [userId], references: [id])
   Store            Store              @relation(fields: [storeId], references: [id])
   ProductCategory  ProductCategory[]
-  ProductImage     ProductImage[]
   Discount         Discount[]
   InventoryJournal InventoryJournal[]
   CartItem         CartItem[]
   OrderItem        OrderItem[]
   ProductInventory ProductInventory[]
+  Image            Image[]
+  imagePreview     Image[]            @relation("imagePreview")
+  imageContent     Image[]            @relation("imageContent")
 }
 
 model Category {
@@ -146,12 +123,17 @@ model Category {
 }
 
 model Image {
-  id        String    @id @default(uuid())
-  imageUrl  String
-  createdAt DateTime  @default(now())
-  deletedAt DateTime?
+  id               String   @id @default(uuid())
+  imageUrl         String
+  previewProductId String?
+  contentProductId String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
-  ProductImage ProductImage[]
+  previewProduct Product? @relation("imagePreview", fields: [previewProductId], references: [id])
+  contentProduct Product? @relation("imageContent", fields: [contentProductId], references: [id])
+  Product        Product? @relation(fields: [ProductId], references: [id])
+  ProductId      String?
 }
 
 model ProductCategory {
@@ -162,16 +144,6 @@ model ProductCategory {
 
   Product  Product  @relation(fields: [productId], references: [id])
   Category Category @relation(fields: [categoryId], references: [id])
-}
-
-model ProductImage {
-  id        String    @id @default(uuid())
-  productId String
-  imageId   String
-  deletedAt DateTime?
-
-  Product Product @relation(fields: [productId], references: [id])
-  Image   Image   @relation(fields: [imageId], references: [id])
 }
 
 model Discount {
@@ -205,17 +177,17 @@ model DiscountUsage {
 }
 
 model ProductInventory {
-  id        String    @id @default(uuid())
-  userId    String
-  storeId   String
   productId String
+  storeId   String
   stock     Int
   createdAt DateTime  @default(now())
-  deletedAt DateTime?
   updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
 
   Product Product @relation(fields: [productId], references: [id])
   Store   Store   @relation(fields: [storeId], references: [id])
+
+  @@id([productId, storeId])
 }
 
 model InventoryJournal {

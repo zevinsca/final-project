@@ -67,7 +67,7 @@ export async function updateCurrentUser(req: Request, res: Response) {
     }
 
     // Get the data from the request body that the user wants to update
-    const { email, firstName, lastName, phoneNumber } = req.body;
+    const { email, firstName, lastName, phoneNumber, role } = req.body;
 
     // Validate if the data is present in the request body
     if (!email && !firstName && !lastName && !phoneNumber) {
@@ -82,6 +82,7 @@ export async function updateCurrentUser(req: Request, res: Response) {
         firstName, // Update first name
         lastName, // Update last name
         phoneNumber, // Update phone number
+        role,
       },
     });
 

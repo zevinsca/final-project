@@ -28,9 +28,7 @@ export default function Submenu() {
           >
             Contact Us
           </Link>
-          <Link href="/dashboard/user/shop" className="hover:text-green-600">
-            Shop
-          </Link>
+
           <Link href="/dashboard/user/product" className="hover:text-green-600">
             Product
           </Link>
