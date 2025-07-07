@@ -14,7 +14,6 @@ async function seed() {
     console.info("⚡ Cleaning old data...");
 
     await prisma.address.deleteMany();
-
     await prisma.cartItem.deleteMany();
     await prisma.cart.deleteMany();
     await prisma.productInventory.deleteMany();
