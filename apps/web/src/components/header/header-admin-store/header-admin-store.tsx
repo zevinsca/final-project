@@ -115,18 +115,18 @@ export default function MenuNavbarStoreAdmin({
           {/* Menu */}
           <nav className="p-4 space-y-2">
             <Link
-              href="/store/dashboard"
+              href="/dashboard/admin-store"
               className="flex items-center space-x-2 hover:bg-green-700 px-2 py-1 rounded"
             >
               <FiHome />
               <span>Dashboard</span>
             </Link>
             <Link
-              href="/store/products"
+              href="/dashboard/admin-store/store"
               className="flex items-center space-x-2 hover:bg-green-700 px-2 py-1 rounded"
             >
               <FiBox />
-              <span>Produk</span>
+              <span>Store</span>
             </Link>
             <Link
               href="/store/categories"
@@ -160,7 +160,7 @@ export default function MenuNavbarStoreAdmin({
         </div>
 
         {/* Main Content */}
-        <main className="flex-1 transition-all duration-300 ease-in-out p-4 min-h-screen">
+        <main className="flex-1 transition-all duration-300 ease-in-out p-4 h-full">
           {children}
         </main>
       </div>

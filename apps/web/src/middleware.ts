@@ -6,6 +6,25 @@ export async function middleware(req: NextRequest) {
   const accessToken = req.cookies.get("accessToken")?.value;
   const pathname = req.nextUrl.pathname;
 
+  // Halaman produk bisa diakses oleh siapa saja (termasuk yang belum login)
+  if (pathname.startsWith("/dashboard/user/product")) {
+    return NextResponse.next();
+  }
+  if (pathname.startsWith("/dashboard/user/best-deals")) {
+    return NextResponse.next();
+  }
+  if (pathname.startsWith("/dashboard/user/contact-us")) {
+    return NextResponse.next();
+  }
+  if (pathname.startsWith("/dashboard/user/about")) {
+    return NextResponse.next();
+  }
+  // Halaman checkout di dalam /dashboard/user hanya bisa diakses oleh yang sudah login
+  if (pathname.startsWith("/dashboard/user/checkout") && !accessToken) {
+    return NextResponse.redirect(`${req.nextUrl.origin}/auth/login`);
+  }
+
+  // Tidak perlu token untuk halaman auth/login
   if (!accessToken && pathname.startsWith("/auth")) {
     return NextResponse.next();
   }
@@ -37,6 +56,7 @@ export async function middleware(req: NextRequest) {
 
   const role = payload?.role;
 
+  // Role-based access control
   if (
     (role === "SUPER_ADMIN" && pathname.startsWith("/dashboard/admin")) ||
     (role === "USER" && pathname.startsWith("/dashboard/user")) ||
@@ -49,5 +69,10 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/auth/:path*"],
+  matcher: [
+    "/dashboard/:path*", // Mencakup semua halaman dalam dashboard
+    "/auth/:path*",
+    "/dashboard/user/product/:path*", // Memastikan akses produk terbuka untuk semua
+    "/dashboard/user/checkout", // Hanya yang sudah login bisa mengakses halaman checkout
+  ],
 };

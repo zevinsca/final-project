@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation"; // Import useRouter untuk redirect
 
 export default function RegisterPage() {
   const [email, setEmail] = useState("");
@@ -11,6 +12,8 @@ export default function RegisterPage() {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  const router = useRouter(); // Hook untuk routing
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,6 +54,11 @@ export default function RegisterPage() {
         data.message ||
           "Registration successful! Please check your email to verify."
       );
+
+      // Redirect to home page after successful registration
+      setTimeout(() => {
+        router.push("/"); // Redirect to localhost:3000 (Home page)
+      }, 2000); // Give a 2-second delay before redirect
     } catch (error) {
       console.error(error);
       setError("An error occurred. Please try again.");

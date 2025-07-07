@@ -14,7 +14,6 @@ async function seed() {
     console.info("⚡ Cleaning old data...");
 
     await prisma.address.deleteMany();
-
     await prisma.cartItem.deleteMany();
     await prisma.cart.deleteMany();
     await prisma.productInventory.deleteMany();
@@ -24,6 +23,7 @@ async function seed() {
     await prisma.category.deleteMany();
     await prisma.store.deleteMany();
     await prisma.user.deleteMany();
+
 
     console.info("✅ Old data cleaned");
 
@@ -95,8 +95,13 @@ async function seed() {
     const store = await prisma.store.create({
       data: {
         name: "SuperMart",
+
         addressid: "123 Main Street",
         userId: user1.id,
+
+        
+       
+      
       },
     });
 
@@ -357,6 +362,7 @@ async function seed() {
         // Create ProductInventory for store
         await prisma.productInventory.create({
           data: {
+            userId: product.userId,
             productId: createdProduct.id,
             storeId: store.id,
             stock: product.stock,
