@@ -16,14 +16,13 @@ async function seed() {
     await prisma.address.deleteMany();
     await prisma.cartItem.deleteMany();
     await prisma.cart.deleteMany();
-    await prisma.productInventory.deleteMany();
+    await prisma.storeProduct.deleteMany();
     await prisma.productCategory.deleteMany();
     await prisma.product.deleteMany();
     await prisma.image.deleteMany();
     await prisma.category.deleteMany();
     await prisma.store.deleteMany();
     await prisma.user.deleteMany();
-
 
     console.info("✅ Old data cleaned");
 
@@ -95,13 +94,11 @@ async function seed() {
     const store = await prisma.store.create({
       data: {
         name: "SuperMart",
-
-        addressid: "123 Main Street",
-        userId: user1.id,
-
-        
-       
-      
+        userId: superAdmin.id, // Super Admin creates the store
+        address: "123 Main Street",
+        city: "Metropolis",
+        province: "Central Province",
+        postalCode: "12345",
       },
     });
 
@@ -344,7 +341,6 @@ async function seed() {
             stock: product.stock,
             price: product.price,
             weight: product.weight,
-            storeId: product.storeId,
             userId: product.userId,
             imagePreview: {
               create: product.imagePreview.map((img) => ({
@@ -360,9 +356,8 @@ async function seed() {
         });
 
         // Create ProductInventory for store
-        await prisma.productInventory.create({
+        await prisma.storeProduct.create({
           data: {
-            userId: product.userId,
             productId: createdProduct.id,
             storeId: store.id,
             stock: product.stock,
