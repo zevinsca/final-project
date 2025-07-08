@@ -52,11 +52,11 @@ export default function ProductCatalog() {
         {/* <p className="text-gray-600">
           Showing 1–{products.length} of {products.length} results
         </p> */}
-        <select className="border border-gray-300 rounded px-3 py-2">
+        {/* <select className="border border-gray-300 rounded px-3 py-2">
           <option>Default sorting</option>
           <option>Sort by price</option>
           <option>Sort by popularity</option>
-        </select>
+        </select> */}
       </div>
 
       {/* Products grid */}

@@ -57,20 +57,18 @@ model User {
 }
 
 model Address {
-  id        String  @id @default(uuid())
-  userId    String?
-  recipient String
-  address   String
-
+  id         String   @id @default(uuid())
+  userId     String?
+  recipient  String
+  address    String
   city       String
   province   String
   postalCode String
   storeId    String?
   isPrimary  Boolean  @default(false) // <--- ini dia
   createdAt  DateTime @default(now()) // Foreign key ke User
-
-  user  User?  @relation(fields: [userId], references: [id]) // Relasi ke User
-  store Store? @relation(fields: [storeId], references: [id]) // Relasi ke Store, opsional // Relasi ke User
+  user       User?    @relation(fields: [userId], references: [id]) // Relasi ke User
+  store      Store?   @relation(fields: [storeId], references: [id]) // Relasi ke Store, opsional // Relasi ke User
 
   Order Order[]
 }
@@ -80,24 +78,19 @@ model Store {
   name String @unique
 
   // userId = siapa yang membuat (SUPER_ADMIN)
-  userId String
-
+  userId     String
   address    String
   city       String
   province   String
   postalCode String
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime? @updatedAt
 
-  createdAt DateTime  @default(now())
-  updatedAt DateTime? @updatedAt
-
-  User User @relation(fields: [userId], references: [id])
-
+  User             User               @relation(fields: [userId], references: [id])
   Discount         Discount[]
   InventoryJournal InventoryJournal[]
-
-  StoreProduct StoreProduct[]
-
-  Address Address[]
+  StoreProduct     StoreProduct[]
+  Address          Address[]
 }
 
 model Product {

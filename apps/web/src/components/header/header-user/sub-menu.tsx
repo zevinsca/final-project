@@ -7,7 +7,14 @@ export default function Submenu() {
     <div className="bg-white shadow w-full">
       <div className="max-w-[1400px] mx-auto flex items-center justify-between px-45 py-2 text-green-900">
         <button className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded">
-          <FiMenu /> All Categories
+          <FiMenu /> All Categories{" "}
+          <select className="border border-gray-300 rounded px-3 py-2 text-black">
+            <option>All</option>
+            <option>Snacks</option>
+            <option>Bakery</option>
+            <option>Beverages</option>
+            <option>Fruits</option>
+          </select>
         </button>
         <nav className="flex gap-6">
           <Link href="/" className="hover:text-green-600">

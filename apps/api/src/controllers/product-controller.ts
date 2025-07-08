@@ -5,9 +5,18 @@ import { CustomJwtPayload } from "../types/express.js";
 // export async function createProduct() {}
 
 // GET ALL PRODUCT
-export async function getAllProduct(_req: Request, res: Response) {
+export async function getAllProduct(req: Request, res: Response) {
   try {
+    const search = req.query.search as string | undefined;
     const products = await prisma.product.findMany({
+      where: search
+        ? {
+            name: {
+              contains: search,
+              mode: "insensitive", // biar case insensitive
+            },
+          }
+        : undefined,
       include: {
         ProductCategory: { include: { Category: true } },
         User: true,
@@ -40,7 +49,6 @@ export async function getAllProduct(_req: Request, res: Response) {
   }
 }
 
-// export async function getProductById() {}
 // GET PRODUCT BY ID
 export async function getProductById(req: Request, res: Response) {
   try {
@@ -65,8 +73,6 @@ export async function getProductById(req: Request, res: Response) {
 // export async function updateProduct() {}
 
 // export async function deleteProduct() {}
-
-// src/controllers/product.controller.ts
 
 // POST
 export async function createProduct(
