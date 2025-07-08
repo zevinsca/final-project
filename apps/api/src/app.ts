@@ -10,6 +10,7 @@ import userRouter from "./routers/user-router.js";
 import addressRouter from "./routers/address-router.js";
 import productRouter from "./routers/product-router.js";
 import storeRouter from "./routers/store-router.js";
+import categoryRouter from "./routers/category-router.js"; // Ganti dengan categoryRouter jika ada
 import "./config/passport.js"; // konfigurasi strategi Passport (GoogleStrategy)
 
 const app: Application = express();
@@ -53,6 +54,7 @@ app.use("/api/v1/products", productRouter);
 app.use("/api/v1/stores", storeRouter); // Ganti dengan storeRouter jika ada
 // 🛡️ Endpoint dilindungi, bisa pakai verifyToken (JWT) atau verifyGoogleToken (session)
 app.use("/api/v1/user", userRouter);
+app.use("/api/v1/categories", categoryRouter); // Ganti dengan categoryRouter jika ada
 
 // Health check
 app.get("/api/v1/health", async (_req: Request, res: Response) => {

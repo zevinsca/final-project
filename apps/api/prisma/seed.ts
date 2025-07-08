@@ -16,7 +16,7 @@ async function seed() {
     await prisma.address.deleteMany();
     await prisma.cartItem.deleteMany();
     await prisma.cart.deleteMany();
-    await prisma.productInventory.deleteMany();
+    await prisma.storeProduct.deleteMany();
     await prisma.productCategory.deleteMany();
     await prisma.product.deleteMany();
     await prisma.image.deleteMany();
@@ -94,8 +94,11 @@ async function seed() {
     const store = await prisma.store.create({
       data: {
         name: "SuperMart",
-        addressid: "123 Main Street",
-        userId: user1.id,
+        userId: superAdmin.id, // Super Admin creates the store
+        address: "123 Main Street",
+        city: "Metropolis",
+        province: "Central Province",
+        postalCode: "12345",
       },
     });
 
@@ -355,37 +358,68 @@ async function seed() {
 
     //     const productCollection = await prisma.product.findMany();
     //     const categoryCollection = await prisma.category.findMany();
+    for (const product of productsData) {
+      try {
+        const createdProduct = await prisma.product.create({
+          data: {
+            name: product.name,
+            description: product.description,
+            stock: product.stock,
+            price: product.price,
+            weight: product.weight,
+            userId: product.userId,
+            imagePreview: {
+              create: product.imagePreview.map((img) => ({
+                imageUrl: img.url,
+              })),
+            },
+            imageContent: {
+              create: product.imageContent.map((img) => ({
+                imageUrl: img.url,
+              })),
+            },
+          },
+        });
 
-    //     for (const el of productCollection) {
-    //       const catRandomIndex = Math.round(
-    //         Math.random() * (categoryCollection.length - 1)
-    //       );
+        // Create ProductInventory for store
+        await prisma.storeProduct.create({
+          data: {
+            productId: createdProduct.id,
+            storeId: store.id,
+            stock: product.stock,
+          },
+        });
 
-    //       await prisma.productCategory.create({
-    //         data: {
-    //           productId: el.id,
-    //           categoryId: categoryCollection[catRandomIndex].id,
-    //         },
-    //       });
-    //     }
+        //     for (const el of productCollection) {
+        //       const catRandomIndex = Math.round(
+        //         Math.random() * (categoryCollection.length - 1)
+        //       );
 
-    //     // Create ProductInventory for store
-    //     await prisma.productInventory.create({
-    //       data: {
-    //         productId: createdProduct.id,
-    //         storeId: store.id,
-    //         stock: product.stock,
-    //       },
-    //     });
+        //       await prisma.productCategory.create({
+        //         data: {
+        //           productId: el.id,
+        //           categoryId: categoryCollection[catRandomIndex].id,
+        //         },
+        //       });
+        //     }
 
-    //     console.info(`✅ Product created: ${createdProduct.name}`);
-    //   } catch (productError) {
-    //     console.error(
-    //       `❌ Error creating product ${product.name}:`,
-    //       productError
-    //     );
-    //   }
-    // }
+        //     // Create ProductInventory for store
+        //     await prisma.productInventory.create({
+        //       data: {
+        //         productId: createdProduct.id,
+        //         storeId: store.id,
+        //         stock: product.stock,
+        //       },
+        //     });
+
+        console.info(`✅ Product created: ${createdProduct.name}`);
+      } catch (productError) {
+        console.error(
+          `❌ Error creating product ${product.name}:`,
+          productError
+        );
+      }
+    }
 
     console.info("🌱 Seed completed successfully ✅");
   } catch (error) {

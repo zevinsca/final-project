@@ -7,7 +7,7 @@ import Link from "next/link";
 interface Address {
   id: string;
   recipient: string;
-  addressLine: string;
+  address: string;
   city: string;
   province: string;
   postalCode: string;
@@ -21,7 +21,7 @@ export default function AddressPage() {
   const [isAddingAddress, setIsAddingAddress] = useState(false);
   const [newAddress, setNewAddress] = useState({
     recipient: "",
-    addressLine: "",
+    address: "",
     city: "",
     province: "",
     postalCode: "",
@@ -78,7 +78,7 @@ export default function AddressPage() {
         // Reset form and close form view
         setNewAddress({
           recipient: "",
-          addressLine: "",
+          address: "",
           city: "",
           province: "",
           postalCode: "",
@@ -141,7 +141,7 @@ export default function AddressPage() {
                       }`}
                     >
                       <p className="font-semibold">{address.recipient}</p>
-                      <p>{address.addressLine}</p>
+                      <p>{address.address}</p>
                       <p>
                         {address.city}, {address.province}, {address.postalCode}
                       </p>
@@ -201,11 +201,11 @@ export default function AddressPage() {
                     </label>
                     <input
                       type="text"
-                      value={newAddress.addressLine}
+                      value={newAddress.address}
                       onChange={(e) =>
                         setNewAddress({
                           ...newAddress,
-                          addressLine: e.target.value,
+                          address: e.target.value,
                         })
                       }
                       className="w-full p-2 border border-gray-300 rounded-lg"
