@@ -1,10 +1,12 @@
 import express from "express";
 import {
-  createAddress,
-  getUserAddresses,
+  getAddresses,
+  addAddress,
+  updateAddress,
   deleteAddress,
-} from "../controllers/address-controller";
-import { verifyToken } from "../middleware/auth-middleware";
+  setPrimaryAddress,
+} from "../controllers/address-controller.js";
+import { verifyToken } from "../middleware/auth-middleware.js";
 
 const router = express.Router();
 
@@ -12,9 +14,10 @@ const router = express.Router();
 router.use(verifyToken);
 
 // GET dan POST semua address milik user yang sedang login
-router.route("/").get(getUserAddresses).post(createAddress);
+router.route("/").get(getAddresses).post(addAddress);
 
 // DELETE address berdasarkan ID milik user
-router.route("/:id").delete(deleteAddress);
+router.route("/:id").put(updateAddress).delete(deleteAddress);
 
+router.route("/:id/set-primary").put(setPrimaryAddress);
 export default router;

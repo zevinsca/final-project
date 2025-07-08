@@ -35,6 +35,7 @@ export default function MenuNavbarUser({
                 placeholder="Search..."
                 className="flex-1 px-4 py-2 text-black outline-none"
               />
+
               <button className="bg-black px-4">
                 <FiSearch className="text-white" />
               </button>
@@ -58,7 +59,7 @@ export default function MenuNavbarUser({
         <Submenu />
       </div>
 
-      <main className="min-h-screen">{children}</main>
+      <main className="h-fit">{children}</main>
       <Footer />
     </section>
   );

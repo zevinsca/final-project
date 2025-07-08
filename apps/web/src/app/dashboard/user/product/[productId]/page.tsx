@@ -2,13 +2,15 @@
 import MenuNavbarUser from "@/components/header/header-user/header";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-
+import Image from "next/image";
 interface ProductType {
   id: string;
   name: string;
   description: string;
   price: number;
   stock: number;
+  imagePreview: [{ imageUrl: string }];
+  imageContent: [{ imageUrl: string }];
 }
 
 export default function ProductCatalogId({
@@ -93,6 +95,14 @@ export default function ProductCatalogId({
             key={product.id}
             className="max-w-md mx-auto border rounded shadow p-4 space-y-3"
           >
+            <Image
+              src={product.imagePreview[0].imageUrl}
+              alt={product.name}
+              width={250}
+              height={250}
+              className="mx-auto mb-4"
+            />
+
             <h2 className="text-xl font-bold">{product.name}</h2>
             <p>{product.description}</p>
             <p className="font-semibold">

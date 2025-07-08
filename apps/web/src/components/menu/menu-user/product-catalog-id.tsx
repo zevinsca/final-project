@@ -20,6 +20,25 @@ export default function ProductCatalogId({
       try {
         const { productId } = await params;
         const res = await fetch(
+          `http://localhost:8000/api/v1/products/${productId}`, //env domain/api....
+          {
+            credentials: "include",
+          }
+        );
+        const data = await res.json();
+        setProducts(data?.data);
+        console.log(data.data);
+      } catch (error) {
+        console.error("Error fetching user:", error);
+      }
+    }
+    getProduct();
+  });
+  useEffect(() => {
+    async function getProduct() {
+      try {
+        const { productId } = await params;
+        const res = await fetch(
           `http://localhost:8000/api/v1/products/${productId}`,
           {
             credentials: "include",
@@ -34,7 +53,6 @@ export default function ProductCatalogId({
     }
     getProduct();
   });
-
   return (
     <div className="grid grid-cols-2 gap-4 p-4">
       {products && (
