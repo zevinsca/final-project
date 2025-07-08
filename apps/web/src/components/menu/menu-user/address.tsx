@@ -7,7 +7,7 @@ interface Address {
   id: string;
   recipient: string;
   phone: string;
-  addressLine: string;
+  address: string;
   city: string;
   province: string;
   postalCode: string;
@@ -102,8 +102,7 @@ export default function AddressPageSection() {
             </p>
             <p>{addr.phone}</p>
             <p>
-              {addr.addressLine}, {addr.city}, {addr.province},{" "}
-              {addr.postalCode}
+              {addr.address}, {addr.city}, {addr.province}, {addr.postalCode}
             </p>
 
             <div className="mt-2 flex gap-2">

@@ -13,8 +13,7 @@ export async function getAllProduct(_req: Request, res: Response) {
         User: true,
         imageContent: true,
         imagePreview: true,
-        Store: true,
-        ProductInventory: true,
+        StoreProduct: true,
       },
     });
 
@@ -45,7 +44,7 @@ export async function getAllProduct(_req: Request, res: Response) {
 // GET PRODUCT BY ID
 export async function getProductById(req: Request, res: Response) {
   try {
-    const id = req.params.productId;
+    const id = req.params.id;
     const product = await prisma.product.findUnique({
       where: { id: id },
       include: {
@@ -53,8 +52,7 @@ export async function getProductById(req: Request, res: Response) {
         User: true,
         imageContent: true,
         imagePreview: true,
-        Store: true,
-        ProductInventory: true,
+        StoreProduct: true,
       },
     });
     res.status(200).json({ data: product });
@@ -76,50 +74,94 @@ export async function createProduct(
   res: Response
 ): Promise<void> {
   try {
-    const { name, storeId, description, price, weight, stock, categoryIds } =
+    const { name, description, price, weight, stock, categoryIds, storeId } =
       req.body;
 
     const user = req.user as CustomJwtPayload;
     const userId = user.id;
-    // Validasi sederhana
-    if (!name || !storeId || !description || !price || !weight || !stock) {
-      res.status(400).json({ message: "Missing required fields" });
+
+    // Check if name is provided and not undefined
+    if (!name || name === undefined) {
+      res.status(400).json({ message: "Product name is required." });
+      return;
     }
 
+    // Check if product name already exists
+    const existingProduct = await prisma.product.findUnique({
+      where: {
+        name: name, // Ensure name is properly provided here
+      },
+    });
+
+    if (existingProduct) {
+      res.status(400).json({ message: "Product name must be unique." });
+      return;
+    }
+
+    // Validate required fields
+    if (
+      !description ||
+      !price ||
+      !weight ||
+      !stock ||
+      !categoryIds ||
+      categoryIds.length === 0 ||
+      !storeId
+    ) {
+      res.status(400).json({
+        message: "Missing required fields or no categories selected.",
+      });
+      return;
+    }
+
+    // Create the product in the database
     const newProduct = await prisma.product.create({
       data: {
         name,
-        storeId,
         userId,
         description,
         price,
         weight,
         stock,
         ProductCategory: {
-          create: categoryIds?.map((categoryId: string) => ({
+          create: categoryIds.map((categoryId: string) => ({
             categoryId,
           })),
         },
-        // ProductImage: {
-        //   create: imageUrls?.map((imageUrl: string) => ({
-        //     Image: {
-        //       create: { imageUrl },
-        //     },
-        //   })),
-        // },
       },
       include: {
-        ProductCategory: { include: { Category: true } },
-        // ProductImage: { include: { Image: true } },
+        ProductCategory: {
+          include: {
+            Category: true,
+          },
+        },
       },
     });
-
+    if (!newProduct) {
+      res.status(500).json({ message: "Failed to create product." });
+      return;
+    }
+    // Create the StoreProduct entry to link the product to the store
+    const storeProduct = await prisma.storeProduct.create({
+      data: {
+        productId: newProduct.id,
+        storeId: storeId,
+        stock, // Link product to store
+      },
+    });
+    if (!storeProduct) {
+      res.status(500).json({ message: "Failed to link product to store." });
+      return;
+    }
     res.status(201).json({
-      message: "Product created successfully",
-      data: newProduct,
+      message: "Product created successfully and linked to the store",
+      data: {
+        product: newProduct,
+        storeProduct: storeProduct,
+      },
     });
   } catch (error) {
-    console.error(error);
+    console.error("Error creating product:", error);
     res.status(500).json({
       message: "Internal server error",
     });

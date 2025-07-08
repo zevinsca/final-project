@@ -18,20 +18,12 @@ interface Store {
   };
 }
 
-interface User {
-  id: string;
-  username: string;
-  role: string;
-}
-
 export default function StorePageSection() {
   const [stores, setStores] = useState<Store[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
-  const [storeAdmins, setStoreAdmins] = useState<User[]>([]);
 
   // Form fields
-  const [targetUsername, setTargetUsername] = useState("");
   const [name, setName] = useState("");
   const [address, setAddress] = useState("");
   const [city, setCity] = useState("");
@@ -41,9 +33,12 @@ export default function StorePageSection() {
   useEffect(() => {
     async function fetchStores() {
       try {
-        const res = await axios.get("http://localhost:8000/api/v1/stores", {
-          withCredentials: true,
-        });
+        const res = await axios.get(
+          "http://localhost:8000/api/v1/stores/super-admin",
+          {
+            withCredentials: true,
+          }
+        );
         setStores(res.data.data);
       } catch (err) {
         console.error("Error fetching stores:", err);
@@ -52,29 +47,15 @@ export default function StorePageSection() {
       }
     }
 
-    async function fetchStoreAdmins() {
-      try {
-        const res = await axios.get(
-          "http://localhost:8000/api/v1/user/users?role=STORE_ADMIN",
-          { withCredentials: true }
-        );
-        setStoreAdmins(res.data.data);
-      } catch (err) {
-        console.error("Error fetching store admins:", err);
-      }
-    }
-
     fetchStores();
-    fetchStoreAdmins();
   }, []);
 
   const handleCreateStore = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       await axios.post(
-        "http://localhost:8000/api/v1/stores",
+        "http://localhost:8000/api/v1/stores/super-admin",
         {
-          targetUsername,
           name,
           address,
           city,
@@ -86,13 +67,15 @@ export default function StorePageSection() {
 
       setShowModal(false);
 
-      const res = await axios.get("http://localhost:8000/api/v1/stores", {
-        withCredentials: true,
-      });
+      const res = await axios.get(
+        "http://localhost:8000/api/v1/stores/super-admin",
+        {
+          withCredentials: true,
+        }
+      );
       setStores(res.data.data);
 
       // Reset form
-      setTargetUsername("");
       setName("");
       setAddress("");
       setCity("");
@@ -121,25 +104,6 @@ export default function StorePageSection() {
           <div className="bg-white p-6 rounded-lg w-full max-w-md shadow-lg">
             <h2 className="text-lg font-bold mb-4">Create New Store</h2>
             <form onSubmit={handleCreateStore} className="space-y-3">
-              <div>
-                <label className="block mb-1 font-medium">
-                  Select Store Admin
-                </label>
-                <select
-                  value={targetUsername}
-                  onChange={(e) => setTargetUsername(e.target.value)}
-                  required
-                  className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="">-- Select User --</option>
-                  {storeAdmins.map((user) => (
-                    <option key={user.id} value={user.username}>
-                      {user.username}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
               <input
                 type="text"
                 placeholder="Store Name"

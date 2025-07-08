@@ -4,7 +4,7 @@ import { Profile } from "passport";
 export interface CustomJwtPayload extends JwtPayload {
   id: string;
   email: string;
-  role: "USER" | "STORE_ADMIN" | "SUPER_ADMIN";
+  role: string;
   firstName: string;
   lastName: string;
   username: string;

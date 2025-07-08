@@ -8,36 +8,10 @@ export async function createStore(req: Request, res: Response) {
     const userId = user.id;
     console.log("Requester (yang login SUPER_ADMIN):", userId);
 
-    const { targetUsername, name, address, city, province, postalCode } =
-      req.body;
+    const { name, address, city, province, postalCode } = req.body;
 
-    if (
-      !targetUsername ||
-      !name ||
-      !address ||
-      !city ||
-      !province ||
-      !postalCode
-    ) {
+    if (!name || !address || !city || !province || !postalCode) {
       res.status(400).json({ message: "All fields are required." });
-      return;
-    }
-
-    // Cari user STORE_ADMIN berdasarkan username
-    const targetUser = await prisma.user.findUnique({
-      where: { username: targetUsername },
-      select: { id: true, role: true },
-    });
-
-    if (!targetUser) {
-      res.status(404).json({ message: "Target user not found." });
-      return;
-    }
-
-    if (targetUser.role !== "STORE_ADMIN") {
-      res.status(400).json({
-        message: "Target user must have role 'STORE_ADMIN'.",
-      });
       return;
     }
 
@@ -45,7 +19,6 @@ export async function createStore(req: Request, res: Response) {
     const newStore = await prisma.store.create({
       data: {
         userId: userId, // ini SUPER_ADMIN
-        owner: targetUser.id, // ini STORE_ADMIN
         name,
         address,
         city,
@@ -54,6 +27,10 @@ export async function createStore(req: Request, res: Response) {
       },
     });
 
+    if (!newStore) {
+      res.status(500).json({ message: "Error creating Store" });
+      return;
+    }
     // Buat address
     const newAddress = await prisma.address.create({
       data: {
@@ -63,8 +40,7 @@ export async function createStore(req: Request, res: Response) {
         city: newStore.city,
         province: newStore.province,
         postalCode: newStore.postalCode,
-        isPrimary: false,
-        userId: targetUser.id, // alamat dimiliki STORE_ADMIN
+        isPrimary: true,
       },
     });
     if (!newAddress) {
@@ -82,33 +58,12 @@ export async function createStore(req: Request, res: Response) {
   }
 }
 
-export async function getStores(req: Request, res: Response) {
-  const user = req.user as CustomJwtPayload;
-  const userId = user.id;
-
+export async function getAllStores(_req: Request, res: Response) {
   try {
     const stores = await prisma.store.findMany({
-      where: {
-        userId: userId,
-      },
       include: {
-        createdBy: {
-          select: {
-            username: true,
-            email: true,
-          },
-        },
-        ownedBy: {
-          select: {
-            username: true,
-            email: true,
-          },
-        },
-        Product: true,
-        ProductInventory: true,
-      },
-      orderBy: {
-        createdAt: "desc",
+        Address: true, // Include address associated with the store
+        StoreProduct: true,
       },
     });
 
@@ -121,56 +76,67 @@ export async function getStores(req: Request, res: Response) {
     res.status(500).json({ message: "Error fetching stores" });
   }
 }
+export async function getStoreById(req: Request, res: Response): Promise<void> {
+  const storeId = req.params.storeId; // Get storeId from URL params
 
-export async function getOneStore(req: Request, res: Response) {
-  const user = req.user as CustomJwtPayload;
-  const userId = user.id;
-  const { storeId } = req.params;
-
+  // Validate storeId
   if (!storeId) {
     res.status(400).json({ message: "Store ID is required." });
     return;
   }
 
   try {
+    // Fetch the store along with related StoreProduct and Product details
     const store = await prisma.store.findUnique({
-      where: {
-        id: storeId,
-      },
+      where: { id: storeId },
       include: {
-        createdBy: {
-          select: {
-            id: true,
-            username: true,
-            email: true,
-            role: true,
+        StoreProduct: {
+          // Including StoreProduct, which links products to store
+          include: {
+            Product: true,
+            // Include the associated product details
           },
         },
-        ownedBy: {
-          select: {
-            id: true,
-            username: true,
-            email: true,
-            role: true,
-          },
-        },
-        Product: true,
-        ProductInventory: true,
       },
     });
 
-    // Validasi apakah store ada dan milik user
-    if (!store || store.userId !== userId) {
-      res.status(404).json({ message: "Store not found or unauthorized." });
+    if (!store) {
+      res.status(404).json({ message: "Store not found." });
       return;
     }
 
+    // Return the store with the related StoreProduct and Product details
     res.status(200).json({
-      message: "Store fetched successfully",
       data: store,
     });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Error fetching store." });
+    console.error("Error retrieving store:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+}
+
+export async function createStoreProduct(req: Request, res: Response) {
+  const { storeId, productId, stock } = req.body;
+  try {
+    if (!storeId || !productId || stock === undefined) {
+      res.status(400).json({ message: "All fields are required." });
+      return;
+    }
+
+    const storeProduct = await prisma.storeProduct.create({
+      data: {
+        storeId,
+        productId,
+        stock,
+      },
+    });
+
+    if (!storeProduct) {
+      res.status(500).json({ message: "Error creating product for store." });
+      return;
+    }
+  } catch (error) {
+    console.error("Error creating store product:", error);
+    res.status(500).json({ message: "Error creating store product." });
   }
 }
