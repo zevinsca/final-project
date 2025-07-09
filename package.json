@@ -27,6 +27,8 @@
   "homepage": "https://github.com/FarhanZulkarnainHarahap/final-project#readme",
   "dependencies": {
     "axios": "^1.10.0",
+    "cloudinary": "^2.7.0",
+    "cors": "^2.8.5",
     "multer": "^2.0.0",
     "prisma": "^6.10.1",
     "prisma-client": "^0.0.0",

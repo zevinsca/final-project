@@ -22,7 +22,7 @@ export default function SignOut() {
   return (
     <button
       onClick={handleClick}
-      className="flex items-center justify-center gap-2 w-full py-2 rounded-xl bg-red-600 hover:bg-red-700 transition text-white font-semibold shadow-md"
+      className="w-full flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white font-semibold py-2 rounded-md transition"
     >
       <FiLogOut size={18} />
       Sign Out

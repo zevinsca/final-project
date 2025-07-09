@@ -10,6 +10,7 @@ interface User {
   firstName: string;
   lastName: string;
   name: string;
+  username: string;
   email: string;
   role: string;
   // avatarUrl?: string; // opsional kalau punya URL foto
@@ -57,7 +58,10 @@ export default function MenuNavbarAdmin({
           {users ? (
             <span>
               Welcome,
-              <strong>{users.name}</strong>
+              <strong>
+                {users.name}
+                {users.username}
+              </strong>
             </span>
           ) : (
             <span>Loading user...</span>
@@ -113,6 +117,24 @@ export default function MenuNavbarAdmin({
               className="block w-full text-left hover:bg-green-700 px-2 py-1 rounded"
             >
               Users
+            </Link>
+            <Link
+              href="/dashboard/admin/store"
+              className="block w-full text-left hover:bg-green-700 px-2 py-1 rounded"
+            >
+              Store
+            </Link>
+            <Link
+              href="/dashboard/admin/product"
+              className="block w-full text-left hover:bg-green-700 px-2 py-1 rounded"
+            >
+              Product
+            </Link>
+            <Link
+              href="/dashboard/admin/category"
+              className="block w-full text-left hover:bg-green-700 px-2 py-1 rounded"
+            >
+              Category
             </Link>
             <Link
               href="/dashboard/admin/settings"

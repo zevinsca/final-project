@@ -8,7 +8,6 @@ import fs from "fs/promises";
 import handlebars from "handlebars";
 import { registerSchema } from "../validations/auth-validation.js";
 import { Profile } from "passport";
-import { CustomJwtPayload } from "../types/express";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -142,7 +141,7 @@ export async function login(req: Request, res: Response) {
     res.status(500).json({ message: "Login failed" });
   }
 }
-export async function logout(req: Request, res: Response) {
+export async function logout(_req: Request, res: Response) {
   try {
     res
       .clearCookie("accessToken")
@@ -216,7 +215,11 @@ export async function VerifySuccess(req: Request, res: Response) {
     ) as { email: string };
 
     // Jika token valid, redirect ke halaman yang diinginkan
-    res.redirect("http://localhost:3000");
+
+    res
+      .status(200)
+      .json({ message: "Email verified successfully", data: decoded })
+      .redirect("http://localhost:3000");
   } catch (error) {
     // Jika token tidak valid, tampilkan pesan error
     console.error(error);
@@ -295,6 +298,7 @@ export async function loginGoogle(req: Request, res: Response) {
     res
       .cookie("accessToken", accesstoken, { httpOnly: true })
       .redirect("http://localhost:3000");
+
     return;
   } catch (error) {
     console.error(error);

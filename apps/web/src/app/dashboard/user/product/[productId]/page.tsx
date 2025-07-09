@@ -3,12 +3,16 @@ import MenuNavbarUser from "@/components/header/header-user/header";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
+import Image from "next/image";
+
 interface ProductType {
   id: string;
   name: string;
   description: string;
   price: number;
   stock: number;
+  imagePreview: [{ imageUrl: string }];
+  imageContent: [{ imageUrl: string }];
 }
 
 export default function ProductCatalogId({
@@ -21,7 +25,9 @@ export default function ProductCatalogId({
    * --------------------------------------------------------------------------*/
   const [product, setProduct] = useState<ProductType | null>(null);
   const [qty, setQty] = useState<number>(1);
+
   const [notification, setNotification] = useState<string | null>(null);
+
   const router = useRouter();
 
   /* ----------------------------------------------------------------------------
@@ -49,6 +55,7 @@ export default function ProductCatalogId({
       isMounted = false;
     };
     // eslint‑disable‑next‑line react-hooks/exhaustive-deps
+
   });
 
   /* ----------------------------------------------------------------------------
@@ -61,7 +68,10 @@ export default function ProductCatalogId({
       // clamp between 1 and available stock
       return Math.max(1, Math.min(next, product.stock));
     });
-  };
+
+=======
+  }, []);
+
 
   const handleAddToCart = async () => {
     if (!product) return;
@@ -79,6 +89,7 @@ export default function ProductCatalogId({
       setTimeout(() => {
         setNotification(null);
       }, 3000);
+
     } catch (err) {
       console.error("Error adding to cart:", err);
     }
@@ -95,16 +106,28 @@ export default function ProductCatalogId({
   return (
     <MenuNavbarUser>
       <div className="p-4">
+
         {notification && (
           <div className="absolute top-0 left-0 right-0 bg-green-100 text-green-800 text-sm text-center p-2 shadow z-50">
             {notification}
           </div>
         )}
+
         {product && (
           <article
             key={product.id}
             className="max-w-md mx-auto border rounded shadow p-4 space-y-3"
           >
+
+            <Image
+              src={product.imagePreview[0].imageUrl}
+              alt={product.name}
+              width={250}
+              height={250}
+              className="mx-auto mb-4"
+            />
+
+
             <h2 className="text-xl font-bold">{product.name}</h2>
             <p>{product.description}</p>
             <p className="font-semibold">

@@ -2,7 +2,7 @@ import Image from "next/image";
 
 export default function BestDealsSection() {
   return (
-    <main>
+    <main className="bg-[#f7f8fa] min-h-screen text-black">
       <div className="bg-gray-50 w-full py-8">
         <div className="max-w-[1400px] mx-auto px-8">
           <h1 className="text-3xl font-bold mb-6">Best Deals</h1>

@@ -8,6 +8,7 @@ export interface CustomJwtPayload extends JwtPayload {
   firstName: string;
   lastName: string;
   username: string;
+  provider: string;
 }
 
 export interface GoogleJwtPayload extends JwtPayload {
@@ -16,7 +17,7 @@ export interface GoogleJwtPayload extends JwtPayload {
   name: string;
   photo?: string;
   provider: "google";
-  role: string;
+  role: "USER" | "STORE_ADMIN" | "SUPER_ADMIN" | string;
 }
 declare global {
   namespace Express {
