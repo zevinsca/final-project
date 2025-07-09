@@ -8,9 +8,18 @@ export async function createStore(req: Request, res: Response) {
     const userId = user.id;
     console.log("Requester (yang login SUPER_ADMIN):", userId);
 
-    const { name, address, city, province, postalCode } = req.body;
+    const { name, address, city, province, postalCode, latitude, longitude } =
+      req.body;
 
-    if (!name || !address || !city || !province || !postalCode) {
+    if (
+      !name ||
+      !address ||
+      !city ||
+      !province ||
+      !postalCode ||
+      !latitude ||
+      !longitude
+    ) {
       res.status(400).json({ message: "All fields are required." });
       return;
     }
@@ -24,6 +33,8 @@ export async function createStore(req: Request, res: Response) {
         city,
         province,
         postalCode,
+        latitude,
+        longitude,
       },
     });
 
@@ -76,6 +87,48 @@ export async function getAllStores(_req: Request, res: Response) {
     res.status(500).json({ message: "Error fetching stores" });
   }
 }
+
+// function calculateDistance(lat1, lon1, lat2, lon2) {
+//   return geolib.getDistance({ latitude: lat1, longitude: lon1 }, { latitude: lat2, longitude: lon2 });
+// }
+
+// async function getNearbyProducts(req, res) {
+//   try {
+//     const { userLat, userLon } = req.body; // Lokasi pengguna yang dikirim dari frontend
+
+//     if (!userLat || !userLon) {
+//       return res.status(400).json({ message: 'User location is required' });
+//     }
+
+//     // Ambil semua toko dari database
+//     const stores = await prisma.store.findMany();
+//     const storesWithDistance = stores.map(store => {
+//       const distance = calculateDistance(userLat, userLon, store.latitude, store.longitude);
+//       return { ...store, distance }; // Menambahkan informasi jarak ke toko
+//     });
+
+//     // Urutkan toko berdasarkan jarak terdekat
+//     const sortedStores = storesWithDistance.sort((a, b) => a.distance - b.distance);
+//     const nearestStore = sortedStores[0]; // Ambil toko terdekat
+
+//     // Ambil produk dari toko terdekat
+//     const products = await prisma.product.findMany({
+//       where: {
+//         storeId: nearestStore.id,
+//       },
+//       include: {
+//         ProductCategory: true,
+//         Store: true,
+//       },
+//     });
+
+//     return res.status(200).json({ store: nearestStore, products });
+//   } catch (error) {
+//     console.error(error);
+//     return res.status(500).json({ message: 'Internal server error' });
+//   }
+// }
+
 export async function getStoreById(req: Request, res: Response): Promise<void> {
   const storeId = req.params.storeId; // Get storeId from URL params
 

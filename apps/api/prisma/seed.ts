@@ -93,12 +93,27 @@ async function seed() {
 
     const store = await prisma.store.create({
       data: {
-        name: "SuperMart",
+        name: "SuperMart Jakarta",
         userId: superAdmin.id, // Super Admin creates the store
         address: "123 Main Street",
         city: "Metropolis",
         province: "Central Province",
         postalCode: "12345",
+        latitude: -6.9176,
+        longitude: 107.6191,
+      },
+    });
+
+    const store2 = await prisma.store.create({
+      data: {
+        name: "SuperMart Bandung",
+        userId: superAdmin.id, // Super Admin creates the store
+        address: "456 Elm Avenue",
+        city: "Gotham City",
+        province: "East Province",
+        postalCode: "67890",
+        latitude: -6.193125,
+        longitude: 106.82181,
       },
     });
 

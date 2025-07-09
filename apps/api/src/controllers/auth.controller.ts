@@ -134,8 +134,8 @@ export async function login(req: Request, res: Response) {
     res
       .cookie("accessToken", JWTToken, { httpOnly: true })
       .status(200)
-      .json({ message: "Login success" })
-      .redirect("http://localhost:3000");
+      .json({ message: "Login success" });
+    // .redirect("http://localhost:3000");
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Login failed" });
@@ -219,8 +219,8 @@ export async function VerifySuccess(req: Request, res: Response) {
 
     res
       .status(200)
-      .json({ message: "Email verified successfully", data: decoded })
-      .redirect("http://localhost:3000");
+      .json({ message: "Email verified successfully", data: decoded });
+    // .redirect("http://localhost:3000");
   } catch (error) {
     // Jika token tidak valid, tampilkan pesan error
     console.error(error);
@@ -296,9 +296,8 @@ export async function loginGoogle(req: Request, res: Response) {
       { expiresIn: "1d" }
     );
 
-    res
-      .cookie("accessToken", accesstoken, { httpOnly: true })
-      .redirect("http://localhost:3000");
+    res.cookie("accessToken", accesstoken, { httpOnly: true });
+    // .redirect("http://localhost:3000");
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Failed to Login", error });
