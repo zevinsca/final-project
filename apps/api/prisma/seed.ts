@@ -136,6 +136,45 @@ async function seed() {
     console.log("Category seeding finished.");
 
     /* -------------------------------------------------------------------------- */
+    /*                               CREATE ADDRESSES                             */
+    /* -------------------------------------------------------------------------- */
+    console.info("⚡ Creating addresses...");
+
+    await prisma.address.createMany({
+      data: [
+        {
+          // John Doe
+          street: "456 Elm Street",
+          city: "Jakarta",
+          state: "DKI Jakarta",
+          postalCode: "10120",
+          country: "Indonesia",
+          userId: user1.id,
+        },
+        {
+          // Alice Smith (store admin)
+          street: "789 Pine Road",
+          city: "Bandung",
+          state: "West Java",
+          postalCode: "40181",
+          country: "Indonesia",
+          userId: storeAdmin.id,
+        },
+        {
+          // Bob Taylor (super admin)
+          street: "123 Orchard Lane",
+          city: "Surabaya",
+          state: "East Java",
+          postalCode: "60241",
+          country: "Indonesia",
+          userId: superAdmin.id,
+        },
+      ],
+    });
+
+    console.info("✅ 3 addresses created");
+
+    /* -------------------------------------------------------------------------- */
     /*                               CREATE PRODUCTS                               */
     /* -------------------------------------------------------------------------- */
     console.info("⚡ Creating products...");
@@ -317,6 +356,15 @@ async function seed() {
         stock: 500,
         price: 4000,
         weight: 0.6,
+        storeId: store.id,
+        userId: "1",
+      },
+      {
+        name: "Cheddar Cheese 200g",
+        description: "Premium quality cheddar cheese block.",
+        stock: 30,
+        price: 45000,
+        weight: 0.2,
         storeId: store.id,
         userId: "1",
         imagePreview: [

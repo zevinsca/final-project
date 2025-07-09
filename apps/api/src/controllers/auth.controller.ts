@@ -149,8 +149,7 @@ export async function logout(_req: Request, res: Response) {
       .json({ message: "Logout success" });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "Failed to logout" });
-    res.redirect("/");
+    res.status(500).json({ message: "Failed to logout" }).redirect("/");
   }
 }
 
@@ -299,6 +298,8 @@ export async function loginGoogle(req: Request, res: Response) {
     res
       .cookie("accessToken", accesstoken, { httpOnly: true })
       .redirect("http://localhost:3000");
+
+    return;
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Failed to Login", error });
