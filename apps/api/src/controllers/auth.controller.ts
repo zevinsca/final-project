@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import prisma from "../config/prisma-client";
+import prisma from "../config/prisma-client.js";
 import { ZodError } from "zod";
 import { Resend } from "resend";
 import fs from "fs/promises";
@@ -135,8 +135,8 @@ export async function login(req: Request, res: Response) {
     res
       .cookie("accessToken", JWTToken, { httpOnly: true })
       .status(200)
-      .json({ message: "Login success" });
-    res.redirect("http://localhost:3000");
+      .json({ message: "Login success" })
+      .redirect("http://localhost:3000");
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Login failed" });
@@ -150,8 +150,7 @@ export async function logout(req: Request, res: Response) {
       .json({ message: "Logout success" });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "Failed to logout" });
-    res.redirect("/");
+    res.status(500).json({ message: "Failed to logout" }).redirect("/");
   }
 }
 
@@ -293,8 +292,10 @@ export async function loginGoogle(req: Request, res: Response) {
       { expiresIn: "1d" }
     );
 
-    res.cookie("accessToken", accesstoken, { httpOnly: true });
-    res.redirect("http://localhost:3000");
+    res
+      .cookie("accessToken", accesstoken, { httpOnly: true })
+      .redirect("http://localhost:3000");
+    return;
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Failed to Login", error });

@@ -9,6 +9,8 @@ import authRouter from "./routers/auth-router.js";
 import userRouter from "./routers/user-router.js";
 import addressRouter from "./routers/address-router.js";
 import productRouter from "./routers/product-router.js";
+
+import cartRouter from "./routers/cart-router.js";
 import "./config/passport.js"; // konfigurasi strategi Passport (GoogleStrategy)
 
 const app: Application = express();
@@ -49,6 +51,7 @@ app.use("/api/v1/auth", authRouter);
 
 app.use("/api/v1/addresses", addressRouter);
 app.use("/api/v1/products", productRouter);
+app.use("/api/v1/cart", cartRouter);
 // 🛡️ Endpoint dilindungi, bisa pakai verifyToken (JWT) atau verifyGoogleToken (session)
 app.use("/api/v1/user", userRouter);
 

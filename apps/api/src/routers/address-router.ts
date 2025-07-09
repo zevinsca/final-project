@@ -3,8 +3,8 @@ import {
   createAddress,
   getUserAddresses,
   deleteAddress,
-} from "../controllers/address-controller";
-import { verifyToken } from "../middleware/auth-middleware";
+} from "../controllers/address-controller.js";
+import { verifyToken } from "../middleware/auth-middleware.js";
 
 const router = express.Router();
 

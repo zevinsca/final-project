@@ -13,7 +13,6 @@ async function main() {
     console.info("⚡ Cleaning old data...");
 
     await prisma.address.deleteMany();
-    await prisma.user.deleteMany();
     await prisma.cartItem.deleteMany();
     await prisma.cart.deleteMany();
     await prisma.productInventory.deleteMany();
@@ -23,24 +22,24 @@ async function main() {
     await prisma.image.deleteMany();
     await prisma.category.deleteMany();
     await prisma.store.deleteMany();
+    await prisma.user.deleteMany();
 
     console.info("✅ Old data cleaned");
 
     /* -------------------------------------------------------------------------- */
     /*                               CREATE USERS                                  */
     /* -------------------------------------------------------------------------- */
-    console.info("⚡ Creating user...");
+    console.info("⚡ Creating users...");
 
     const salt = await genSalt(10);
-    const hashedPassword = await hash("secret123", salt);
 
-    const user = await prisma.user.create({
+    const user1 = await prisma.user.create({
       data: {
-        id: "1",
+        id: "2",
         firstName: "John",
         lastName: "Doe",
         email: "john@example.com",
-        password: hashedPassword,
+        password: await hash("secret123", salt),
         isVerified: true,
         username: "johndoe",
         role: "USER",
@@ -50,7 +49,42 @@ async function main() {
       },
     });
 
-    console.info(`✅ User created: ${user.email}`);
+    const storeAdmin = await prisma.user.create({
+      data: {
+        id: "1",
+        firstName: "Alice",
+        lastName: "Smith",
+        email: "alice@store.com",
+        password: await hash("admin123", salt),
+        isVerified: true,
+        username: "alicestore",
+        role: "STORE_ADMIN",
+        Cart: {
+          create: {},
+        },
+      },
+    });
+
+    const superAdmin = await prisma.user.create({
+      data: {
+        id: "3",
+        firstName: "Bob",
+        lastName: "Taylor",
+        email: "bob@admin.com",
+        password: await hash("superadmin123", salt),
+        isVerified: true,
+        username: "bobsuper",
+        role: "SUPER_ADMIN",
+        Cart: {
+          create: {},
+        },
+      },
+    });
+
+    console.info("✅ Users created:");
+    console.info(`- ${user1.email} (USER)`);
+    console.info(`- ${storeAdmin.email} (STORE_ADMIN)`);
+    console.info(`- ${superAdmin.email} (SUPER_ADMIN)`);
 
     /* -------------------------------------------------------------------------- */
     /*                               CREATE STORE                                  */
@@ -61,7 +95,7 @@ async function main() {
       data: {
         name: "SuperMart",
         address: "123 Main Street",
-        adminId: user.id,
+        adminId: user1.id,
       },
     });
 
@@ -102,6 +136,45 @@ async function main() {
     console.info(`✅ ${images.length} images created`);
 
     /* -------------------------------------------------------------------------- */
+    /*                               CREATE ADDRESSES                             */
+    /* -------------------------------------------------------------------------- */
+    console.info("⚡ Creating addresses...");
+
+    await prisma.address.createMany({
+      data: [
+        {
+          // John Doe
+          street: "456 Elm Street",
+          city: "Jakarta",
+          state: "DKI Jakarta",
+          postalCode: "10120",
+          country: "Indonesia",
+          userId: user1.id,
+        },
+        {
+          // Alice Smith (store admin)
+          street: "789 Pine Road",
+          city: "Bandung",
+          state: "West Java",
+          postalCode: "40181",
+          country: "Indonesia",
+          userId: storeAdmin.id,
+        },
+        {
+          // Bob Taylor (super admin)
+          street: "123 Orchard Lane",
+          city: "Surabaya",
+          state: "East Java",
+          postalCode: "60241",
+          country: "Indonesia",
+          userId: superAdmin.id,
+        },
+      ],
+    });
+
+    console.info("✅ 3 addresses created");
+
+    /* -------------------------------------------------------------------------- */
     /*                               CREATE PRODUCTS                               */
     /* -------------------------------------------------------------------------- */
     console.info("⚡ Creating products...");
@@ -115,8 +188,6 @@ async function main() {
         weight: 0.2,
         storeId: store.id,
         userId: "1",
-        categoryIds: [categories[0].id],
-        imageIds: [images[0].id],
       },
       {
         name: "Orange Juice",
@@ -126,8 +197,6 @@ async function main() {
         weight: 1,
         storeId: store.id,
         userId: "1",
-        categoryIds: [categories[1].id],
-        imageIds: [images[1].id],
       },
       {
         name: "Potato Chips",
@@ -137,8 +206,69 @@ async function main() {
         weight: 0.1,
         storeId: store.id,
         userId: "1",
-        categoryIds: [categories[2].id],
-        imageIds: [images[2].id],
+      },
+      {
+        name: "Banana Cavendish",
+        description: "Sweet Cavendish bananas, ripe and ready to eat.",
+        stock: 120,
+        price: 20000,
+        weight: 1,
+        storeId: store.id,
+        userId: "1",
+      },
+      {
+        name: "Milk 1L",
+        description: "Fresh cow milk in 1 liter bottle.",
+        stock: 40,
+        price: 18000,
+        weight: 1,
+        storeId: store.id,
+        userId: "1",
+      },
+      {
+        name: "Brown Eggs 10pcs",
+        description: "Organic brown eggs, pack of 10.",
+        stock: 80,
+        price: 22000,
+        weight: 0.5,
+        storeId: store.id,
+        userId: "1",
+      },
+      {
+        name: "Instant Noodles",
+        description: "Spicy chicken flavored instant noodles.",
+        stock: 300,
+        price: 3500,
+        weight: 0.08,
+        storeId: store.id,
+        userId: "1",
+      },
+      {
+        name: "Whole Wheat Bread",
+        description: "Soft and healthy whole wheat bread loaf.",
+        stock: 60,
+        price: 25000,
+        weight: 0.5,
+        storeId: store.id,
+        userId: "1",
+      },
+      {
+        name: "Mineral Water 600ml",
+        description: "Clean and fresh bottled mineral water.",
+        stock: 500,
+        price: 4000,
+        weight: 0.6,
+        storeId: store.id,
+        userId: "1",
+      },
+      {
+        name: "Cheddar Cheese 200g",
+        description: "Premium quality cheddar cheese block.",
+        stock: 30,
+        price: 45000,
+        weight: 0.2,
+        storeId: store.id,
+        userId: "1",
       },
     ];
 
@@ -153,12 +283,12 @@ async function main() {
             weight: product.weight,
             storeId: product.storeId,
             userId: product.userId,
-            ProductCategory: {
-              create: product.categoryIds.map((categoryId) => ({ categoryId })),
-            },
-            ProductImage: {
-              create: product.imageIds.map((imageId) => ({ imageId })),
-            },
+            // ProductCategory: {
+            //   create: product.categoryIds.map((categoryId) => ({ categoryId })),
+            // },
+            // ProductImage: {
+            //   create: product.imageIds.map((imageId) => ({ imageId })),
+            // },
           },
         });
 
