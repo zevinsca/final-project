@@ -28,10 +28,25 @@ export async function getAddresses(req: Request, res: Response) {
 export async function addAddress(req: Request, res: Response) {
   const user = req.user as CustomJwtPayload;
   const userId = user.id;
-  const { recipient, address, city, province, postalCode, isPrimary } =
-    req.body;
+  const {
+    recipient,
+    address,
+    destination,
+    city,
+    province,
+    postalCode,
+    isPrimary,
+  } = req.body;
 
-  if (!userId || !recipient || !address || !city || !province || !postalCode) {
+  if (
+    !userId ||
+    !recipient ||
+    !address ||
+    !destination ||
+    !city ||
+    !province ||
+    !postalCode
+  ) {
     res.status(400).json({ message: "All fields are required" });
     return;
   }
@@ -42,6 +57,7 @@ export async function addAddress(req: Request, res: Response) {
         userId: userId,
         recipient,
         address,
+        destination,
         city,
         province,
         postalCode,
@@ -61,8 +77,15 @@ export async function addAddress(req: Request, res: Response) {
 // Update address
 export async function updateAddress(req: Request, res: Response) {
   const { id } = req.params;
-  const { recipient, address, city, province, postalCode, isPrimary } =
-    req.body;
+  const {
+    recipient,
+    address,
+    destination,
+    city,
+    province,
+    postalCode,
+    isPrimary,
+  } = req.body;
 
   try {
     const updatedAddress = await prisma.address.update({
@@ -70,6 +93,7 @@ export async function updateAddress(req: Request, res: Response) {
       data: {
         recipient,
         address,
+        destination,
         city,
         province,
         postalCode,

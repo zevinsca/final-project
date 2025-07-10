@@ -12,6 +12,7 @@ import productRouter from "./routers/product-router.js";
 import cartRouter from "./routers/cart-router.js";
 import storeRouter from "./routers/store-router.js";
 import categoryRouter from "./routers/category-router.js"; // Ganti dengan categoryRouter jika ada
+import rajaOngkirRouter from "./routers/rajaongkir-router.js";
 
 import "./config/passport.js"; // konfigurasi strategi Passport (GoogleStrategy)
 
@@ -47,6 +48,10 @@ app.use(
 // Passport init
 app.use(passport.initialize());
 app.use(passport.session());
+
+// RajaOngkir
+
+app.use("/api/v1/rajaongkir", rajaOngkirRouter);
 
 // Routing
 app.use("/api/v1/auth", authRouter);

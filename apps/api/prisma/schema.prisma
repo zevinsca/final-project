@@ -57,18 +57,19 @@ model User {
 }
 
 model Address {
-  id         String   @id @default(uuid())
-  userId     String?
-  recipient  String
-  address    String
-  city       String
-  province   String
-  postalCode String
-  storeId    String?
-  isPrimary  Boolean  @default(false) // <--- ini dia
-  createdAt  DateTime @default(now()) // Foreign key ke User
-  user       User?    @relation(fields: [userId], references: [id]) // Relasi ke User
-  store      Store?   @relation(fields: [storeId], references: [id]) // Relasi ke Store, opsional // Relasi ke User
+  id          String   @id @default(uuid())
+  userId      String?
+  recipient   String
+  address     String
+  destination String
+  city        String
+  province    String
+  postalCode  String
+  storeId     String?
+  isPrimary   Boolean  @default(false) // <--- ini dia
+  createdAt   DateTime @default(now()) // Foreign key ke User
+  user        User?    @relation(fields: [userId], references: [id]) // Relasi ke User
+  store       Store?   @relation(fields: [storeId], references: [id]) // Relasi ke Store, opsional // Relasi ke User
 
   Order Order[]
 }
