@@ -16,9 +16,10 @@ interface Address {
 }
 
 interface DestinationOption {
+  label: string;
   city_name: string;
-  province: string;
-  postal_code: string;
+  province_name: string;
+  zip_code: string;
 }
 
 export default function AddressPage() {
@@ -259,25 +260,24 @@ export default function AddressPage() {
                       required
                     />
                     {/* Optional: tampilkan list suggestion */}
-                    {destinationOptions.length > 0 && (
-                      <ul className="border rounded mt-1 bg-white shadow text-sm">
-                        {destinationOptions.map((opt, index) => (
-                          <li
-                            key={index}
-                            className="p-2 hover:bg-gray-100 cursor-pointer"
-                            onClick={() => {
-                              setNewAddress({
-                                ...newAddress,
-                                destination: opt.city_name,
-                              });
-                              setDestinationOptions([]);
-                            }}
-                          >
-                            {opt.city_name}, {opt.province}
-                          </li>
-                        ))}
-                      </ul>
-                    )}
+                    {destinationOptions.map((opt, index) => (
+                      <li
+                        key={index}
+                        className="p-2 hover:bg-gray-100 cursor-pointer"
+                        onClick={() => {
+                          setNewAddress({
+                            ...newAddress,
+                            destination: opt.label, // ✅ isi destination dengan label lengkap
+                            city: opt.city_name,
+                            province: opt.province_name,
+                            postalCode: opt.zip_code,
+                          });
+                          setDestinationOptions([]);
+                        }}
+                      >
+                        {opt.label}
+                      </li>
+                    ))}
                   </div>
 
                   <div className="mb-4">
