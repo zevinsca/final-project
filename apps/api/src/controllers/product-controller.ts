@@ -53,20 +53,39 @@ export async function getAllProduct(req: Request, res: Response) {
 export async function getProductById(req: Request, res: Response) {
   try {
     const id = req.params.id;
-    const product = await prisma.product.findUnique({
-      where: { id: id },
+    console.log("Mencari produk dengan ID:", id);
+
+    const product = await prisma.product.findFirst({
+      where: {
+        id,
+        deletedAt: null, // hanya ambil yang belum dihapus
+      },
       include: {
-        ProductCategory: { include: { Category: true } },
+        ProductCategory: {
+          include: {
+            Category: true,
+          },
+        },
         User: true,
         imageContent: true,
         imagePreview: true,
-        StoreProduct: true,
+        StoreProduct: {
+          include: {
+            Store: true,
+          },
+        },
       },
     });
+
+    if (!product) {
+      res.status(404).json({ message: "Produk tidak ditemukan." });
+      return;
+    }
+
     res.status(200).json({ data: product });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Failed to get product by id" });
+    console.error("Gagal mengambil produk berdasarkan ID:", error);
+    res.status(500).json({ message: "Gagal mengambil produk berdasarkan ID." });
   }
 }
 

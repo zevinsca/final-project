@@ -1,8 +1,37 @@
+"use client";
+
 import Image from "next/image";
+import { useEffect, useState } from "react";
+import GetAllProductWithNearby from "./prodcut-nearby";
 
 export default function HomePageUser() {
+  const [latitude, setLatitude] = useState<number | null>(null);
+  const [longitude, setLongitude] = useState<number | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Mengambil lokasi pengguna menggunakan Geolocation API
+    if ("geolocation" in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const userLatitude = position.coords.latitude;
+          const userLongitude = position.coords.longitude;
+          setLatitude(userLatitude);
+          setLongitude(userLongitude);
+        },
+        (error) => {
+          console.log(error);
+          setError("Error getting geolocation");
+        }
+      );
+    } else {
+      setError("Geolocation is not supported by your browser");
+    }
+  }, []);
   return (
     <div>
+      {error && <p className="text-red-500">{error}</p>}
+      {/* Menampilkan pesan error jika ada */}
       <div className="grid grid-cols-[1fr_30%] px-40">
         <div className="justify-center p-6">
           <div className="grid grid-rows-2 gap-5">
@@ -80,7 +109,7 @@ export default function HomePageUser() {
           </div>
         </div>
       </div>
-
+      <GetAllProductWithNearby latitude={latitude} longitude={longitude} />
       {/* Best Sellers Section */}
       <div className="py-8 px-40 w-full bg-blue-100">
         <h2 className="text-left text-3xl font-bold mb-6">Best Sellers</h2>
@@ -147,7 +176,6 @@ export default function HomePageUser() {
           </div>
         </div>
       </div>
-
       {/* Today's Deals Section */}
       <div className="py-8 px-40 w-full">
         <h2 className="text-left text-3xl font-bold mb-6">Today Deals</h2>

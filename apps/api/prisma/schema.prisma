@@ -32,65 +32,63 @@ enum InventoryAction {
 }
 
 model User {
-  id                String   @id @default(uuid())
-  firstName         String
-  lastName          String
-  email             String   @unique
-  username          String?  @unique
-  password          String?
-  phoneNumber       String?  @unique
-  role              Role     @default(USER)
-  createdAt         DateTime @default(now())
-  provider          String?
-  isVerified        Boolean? @default(false) // Status verifikasi, default false
-  verificationToken String? // Token verifikasi
+  id                  String    @id @default(uuid())
+  firstName           String
+  lastName            String
+  email               String    @unique
+  username            String?   @unique
+  password            String?
+  phoneNumber         String?   @unique
+  role                Role      @default(USER)
+  createdAt           DateTime  @default(now())
+  provider            String?
+  resetToken          String?
+  resetTokenExpiresAt DateTime?
+  isVerified          Boolean?  @default(false) // Status verifikasi, default false
+  verificationToken   String? // Token verifikasi
 
   addresses        Address[] // Relasi satu ke banyak dengan Address
+  Store            Store[]
   DiscountUsage    DiscountUsage[]
   InventoryJournal InventoryJournal[]
   Cart             Cart[]
   Order            Order[]
   Product          Product[]
-  storesCreated    Store[]
-
-  // Relasi: stores yang dimiliki user ini sebagai STORE_ADMIN
 }
 
 model Address {
-  id         String   @id @default(uuid())
-  userId     String?
-  recipient  String
-  address    String
-  city       String
-  province   String
-  postalCode String
-  storeId    String?
-  isPrimary  Boolean  @default(false) // <--- ini dia
-  createdAt  DateTime @default(now()) // Foreign key ke User
-  user       User?    @relation(fields: [userId], references: [id]) // Relasi ke User
-  store      Store?   @relation(fields: [storeId], references: [id]) // Relasi ke Store, opsional // Relasi ke User
+  id          String   @id @default(uuid())
+  recipient   String?
+  userId      String?
+  storeId     String?
+  destination String
+  address     String
+  city        String
+  province    String
+  postalCode  String
+  isPrimary   Boolean  @default(false) // <--- ini dia
+  createdAt   DateTime @default(now()) // Foreign key ke User
+  user        User?    @relation(fields: [userId], references: [id]) // Relasi ke User
+  store       Store?   @relation(fields: [storeId], references: [id]) // Relasi ke Store, opsional // Relasi ke User
 
   Order Order[]
 }
 
 model Store {
-  id   String @id @default(uuid())
-  name String @unique
+  id        String    @id @default(uuid())
+  name      String    @unique
+  userId    String
+  // Added: longitude for geographical location
+  createdAt DateTime  @default(now())
+  updatedAt DateTime? @updatedAt
+  distance  Float?
 
-  // userId = siapa yang membuat (SUPER_ADMIN)
-  userId     String
-  address    String
-  city       String
-  province   String
-  postalCode String
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime? @updatedAt
+  User User @relation(fields: [userId], references: [id])
 
-  User             User               @relation(fields: [userId], references: [id])
-  Discount         Discount[]
-  InventoryJournal InventoryJournal[]
-  StoreProduct     StoreProduct[]
-  Address          Address[]
+  Discounts    Discount[]
+  Inventory    InventoryJournal[]
+  StoreProduct StoreProduct[]
+  Addresses    Address[]
 }
 
 model Product {

@@ -1,200 +1,134 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import axios from "axios";
+import Link from "next/link";
+import CreateStoreSection from "./create-newstore";
 
+// Tipe untuk Store
 interface Store {
   id: string;
   name: string;
   address: string;
+  destination: string;
   city: string;
   province: string;
   postalCode: string;
-  createdBy?: {
-    username: string;
-  };
-  ownedBy?: {
-    username: string;
-  };
 }
 
-export default function StorePageSection() {
-  const [stores, setStores] = useState<Store[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [showModal, setShowModal] = useState(false);
+export default function StoreList() {
+  const [stores, setStores] = useState<Store[]>([]); // Menyimpan daftar toko
+  const [error, setError] = useState<string>(""); // Menyimpan pesan error
 
-  // Form fields
-  const [name, setName] = useState("");
-  const [address, setAddress] = useState("");
-  const [city, setCity] = useState("");
-  const [province, setProvince] = useState("");
-  const [postalCode, setPostalCode] = useState("");
-
+  // Mengambil data toko saat pertama kali dimuat
   useEffect(() => {
     async function fetchStores() {
       try {
-        const res = await axios.get(
+        const response = await fetch(
           "http://localhost:8000/api/v1/stores/super-admin",
           {
-            withCredentials: true,
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            credentials: "include", // untuk mengirimkan cookies
           }
         );
-        setStores(res.data.data);
-      } catch (err) {
-        console.error("Error fetching stores:", err);
-      } finally {
-        setLoading(false);
+
+        if (!response.ok) {
+          throw new Error("Failed to fetch stores");
+        }
+
+        const data = await response.json();
+        setStores(data.data); // Set data toko
+      } catch (error) {
+        console.log(error);
+        setError("Gagal mengambil data toko.");
       }
     }
 
     fetchStores();
   }, []);
 
-  const handleCreateStore = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // Fungsi untuk menghapus toko berdasarkan ID
+  const handleDelete = async (storeId: string) => {
     try {
-      await axios.post(
-        "http://localhost:8000/api/v1/stores/super-admin",
+      const response = await fetch(
+        `http://localhost:8000/api/v1/stores/super-admin/${storeId}`,
         {
-          name,
-          address,
-          city,
-          province,
-          postalCode,
-        },
-        { withCredentials: true }
-      );
-
-      setShowModal(false);
-
-      const res = await axios.get(
-        "http://localhost:8000/api/v1/stores/super-admin",
-        {
-          withCredentials: true,
+          method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include", // untuk mengirimkan cookies
         }
       );
-      setStores(res.data.data);
 
-      // Reset form
-      setName("");
-      setAddress("");
-      setCity("");
-      setProvince("");
-      setPostalCode("");
+      if (!response.ok) {
+        throw new Error("Failed to delete store");
+      }
+
+      // Menghapus toko dari state setelah berhasil dihapus
+      setStores(stores.filter((store) => store.id !== storeId));
     } catch (error) {
-      console.error("Error creating store:", error);
-      alert("Failed to create store.");
+      console.log(error);
+      setError("Gagal menghapus toko.");
     }
   };
 
-  if (loading) return <p>Loading...</p>;
+  // Menampilkan error jika ada masalah
+  if (error)
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <span className="text-xl text-red-500">{error}</span>
+      </div>
+    );
 
   return (
-    <section>
-      <h1 className="text-2xl font-bold mb-4">All Stores</h1>
-      <button
-        onClick={() => setShowModal(true)}
-        className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 mb-6"
-      >
-        Create New Store
-      </button>
+    <div className="max-w-4xl mx-auto p-4">
+      <h1 className="text-3xl font-bold text-center mb-6">Store Management</h1>
 
-      {showModal && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg w-full max-w-md shadow-lg">
-            <h2 className="text-lg font-bold mb-4">Create New Store</h2>
-            <form onSubmit={handleCreateStore} className="space-y-3">
-              <input
-                type="text"
-                placeholder="Store Name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                required
-                className="w-full border border-gray-300 rounded px-3 py-2"
-              />
+      {/* Tombol untuk menambah toko */}
+      <div className="text-center mb-6">
+        <CreateStoreSection />
+      </div>
 
-              <input
-                type="text"
-                placeholder="Address"
-                value={address}
-                onChange={(e) => setAddress(e.target.value)}
-                required
-                className="w-full border border-gray-300 rounded px-3 py-2"
-              />
-
-              <input
-                type="text"
-                placeholder="City"
-                value={city}
-                onChange={(e) => setCity(e.target.value)}
-                required
-                className="w-full border border-gray-300 rounded px-3 py-2"
-              />
-
-              <input
-                type="text"
-                placeholder="Province"
-                value={province}
-                onChange={(e) => setProvince(e.target.value)}
-                required
-                className="w-full border border-gray-300 rounded px-3 py-2"
-              />
-
-              <input
-                type="text"
-                placeholder="Postal Code"
-                value={postalCode}
-                onChange={(e) => setPostalCode(e.target.value)}
-                required
-                className="w-full border border-gray-300 rounded px-3 py-2"
-              />
-
-              <div className="flex justify-end space-x-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setShowModal(false)}
-                  className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-                >
-                  Create
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {stores.length === 0 ? (
-        <p>No stores found. You can create one.</p>
-      ) : (
-        <ul className="space-y-5">
+      {/* Menampilkan daftar toko */}
+      {stores.length > 0 ? (
+        <ul className="space-y-4">
           {stores.map((store) => (
             <li
               key={store.id}
-              className="border border-gray-300 rounded-lg p-4"
+              className="border border-gray-300 rounded-lg p-4 flex flex-col md:flex-row justify-between items-start bg-white shadow-md"
             >
-              <h2 className="text-xl font-semibold">{store.name}</h2>
-              <p className="mt-1 text-gray-700">
-                {store.address}, {store.city}, {store.province},{" "}
-                {store.postalCode}
-              </p>
-              <p className="text-sm text-gray-600 mt-1">
-                <span className="font-medium">Owner:</span>{" "}
-                {store.ownedBy?.username ?? "Unknown"}
-              </p>
-              <p className="text-sm text-gray-600">
-                <span className="font-medium">Created By:</span>{" "}
-                {store.createdBy?.username ?? "Unknown"}
-              </p>
+              <div className="flex flex-col md:flex-row items-start">
+                <h3 className="text-xl font-semibold">{store.name}</h3>
+                <p className="text-gray-600">
+                  {store.address}, {store.city},{store.province}
+                </p>
+                <p className="text-gray-500">{store.postalCode}</p>
+              </div>
+              <div className="mt-4 md:mt-0 flex flex-col md:flex-row gap-4">
+                {/* Tautan untuk melihat detail toko */}
+                <Link
+                  href={`/dashboard/admin/store/${store.id}`}
+                  className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+                >
+                  View Store
+                </Link>
+                {/* Tombol untuk menghapus toko */}
+                <button
+                  onClick={() => handleDelete(store.id)}
+                  className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600"
+                >
+                  Delete Store
+                </button>
+              </div>
             </li>
           ))}
         </ul>
+      ) : (
+        <p className="text-center text-gray-500">No stores available.</p>
       )}
-    </section>
+    </div>
   );
 }
