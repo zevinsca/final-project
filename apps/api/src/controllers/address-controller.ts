@@ -28,10 +28,25 @@ export async function getAddresses(req: Request, res: Response) {
 export async function addAddress(req: Request, res: Response) {
   const user = req.user as CustomJwtPayload;
   const userId = user.id;
-  const { recipient, address, city, province, postalCode, isPrimary } =
-    req.body;
+  const {
+    recipient,
+    address,
+    city,
+    province,
+    destination,
+    postalCode,
+    isPrimary,
+  } = req.body;
 
-  if (!userId || !recipient || !address || !city || !province || !postalCode) {
+  if (
+    !userId ||
+    !recipient ||
+    !address ||
+    !city ||
+    !destination ||
+    !province ||
+    !postalCode
+  ) {
     res.status(400).json({ message: "All fields are required" });
     return;
   }
@@ -43,6 +58,7 @@ export async function addAddress(req: Request, res: Response) {
         recipient,
         address,
         city,
+        destination,
         province,
         postalCode,
         isPrimary,

@@ -8,10 +8,18 @@ interface Address {
   id: string;
   recipient: string;
   address: string;
+  destination: string;
   city: string;
   province: string;
   postalCode: string;
   isPrimary: boolean;
+}
+
+interface DestinationOption {
+  label: string;
+  city_name: string;
+  province_name: string;
+  zip_code: string;
 }
 
 export default function AddressPage() {
@@ -19,37 +27,58 @@ export default function AddressPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>("");
   const [isAddingAddress, setIsAddingAddress] = useState(false);
+  const [destinationOptions, setDestinationOptions] = useState<
+    DestinationOption[]
+  >([]);
   const [newAddress, setNewAddress] = useState({
     recipient: "",
     address: "",
+    destination: "",
     city: "",
     province: "",
     postalCode: "",
     isPrimary: false,
   });
 
-  // Fetch the addresses from the backend
-  useEffect(() => {
-    async function fetchAddresses() {
-      try {
-        const res = await fetch("http://localhost:8000/api/v1/addresses", {
-          credentials: "include",
-        });
-        const data = await res.json();
+  // ✅ Reusable function to fetch addresses
+  const fetchAddresses = async () => {
+    try {
+      const res = await fetch("http://localhost:8000/api/v1/addresses", {
+        credentials: "include",
+      });
+      const data = await res.json();
 
-        if (res.ok) {
-          setAddresses(data); // Assuming `data` is the array of addresses
-        } else {
-          setError(data.message || "Failed to fetch addresses.");
-        }
-      } catch (error) {
-        setError("Error fetching addresses.");
-        console.error("Error fetching addresses:", error);
-      } finally {
-        setLoading(false);
+      if (res.ok) {
+        setAddresses(data); // ✅ Must return array of Address
+      } else {
+        setError(data.message || "Failed to fetch addresses.");
       }
+    } catch (error) {
+      setError("Error fetching addresses.");
+      console.error("Error fetching addresses:", error);
+    } finally {
+      setLoading(false);
     }
+  };
 
+  const fetchDestinationSuggestions = async (keyword: string) => {
+    try {
+      const res = await fetch(
+        `http://localhost:8000/api/v1/rajaongkir/search?keyword=${encodeURIComponent(keyword)}`
+      );
+      const data = await res.json();
+
+      if (res.ok) {
+        setDestinationOptions(data); // misalnya array destinasi
+      } else {
+        console.error("Failed to fetch destinations:", data.message);
+      }
+    } catch (error) {
+      console.error("Error fetching destination:", error);
+    }
+  };
+
+  useEffect(() => {
     fetchAddresses();
   }, []);
 
@@ -58,7 +87,7 @@ export default function AddressPage() {
   };
 
   const handleCloseForm = () => {
-    setIsAddingAddress(false); // Close the form and return to the list
+    setIsAddingAddress(false);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -75,20 +104,24 @@ export default function AddressPage() {
       });
 
       if (response.ok) {
-        // Reset form and close form view
+        const addedAddress = await response.json();
+        console.log("🚀 Added Address:", addedAddress);
+
+        // Reset form
         setNewAddress({
           recipient: "",
           address: "",
+          destination: "",
           city: "",
           province: "",
           postalCode: "",
           isPrimary: false,
         });
+
         setIsAddingAddress(false);
 
-        // Optimistic update: add the new address to the list
-        const addedAddress = await response.json();
-        setAddresses((prevAddresses) => [...prevAddresses, addedAddress]); // Add new address to state
+        // ✅ Refresh address list from backend
+        await fetchAddresses();
       } else {
         const data = await response.json();
         setError(data.message || "Failed to add address.");
@@ -156,7 +189,6 @@ export default function AddressPage() {
               )}
             </div>
 
-            {/* Add New Address Button */}
             <div className="mt-6 text-center">
               {!isAddingAddress && (
                 <button
@@ -169,7 +201,6 @@ export default function AddressPage() {
             </div>
           </div>
 
-          {/* Modal for Adding Address */}
           {isAddingAddress && (
             <div className="fixed inset-0 bg-gray-600/10 bg-opacity-50 backdrop-blur-sm flex justify-center items-center">
               <div className="bg-white p-8 rounded-lg shadow-lg w-[40%]">
@@ -211,6 +242,42 @@ export default function AddressPage() {
                       className="w-full p-2 border border-gray-300 rounded-lg"
                       required
                     />
+                  </div>
+
+                  <div className="mb-4">
+                    <label className="block mb-2 text-sm font-medium">
+                      Destination
+                    </label>
+                    <input
+                      type="text"
+                      value={newAddress.destination || ""}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        setNewAddress({ ...newAddress, destination: value });
+                        fetchDestinationSuggestions(value); // fetch suggestion saat user ketik
+                      }}
+                      className="w-full p-2 border border-gray-300 rounded-lg"
+                      required
+                    />
+                    {/* Optional: tampilkan list suggestion */}
+                    {destinationOptions.map((opt, index) => (
+                      <li
+                        key={index}
+                        className="p-2 hover:bg-gray-100 cursor-pointer"
+                        onClick={() => {
+                          setNewAddress({
+                            ...newAddress,
+                            destination: opt.label, // ✅ isi destination dengan label lengkap
+                            city: opt.city_name,
+                            province: opt.province_name,
+                            postalCode: opt.zip_code,
+                          });
+                          setDestinationOptions([]);
+                        }}
+                      >
+                        {opt.label}
+                      </li>
+                    ))}
                   </div>
 
                   <div className="mb-4">
@@ -282,7 +349,6 @@ export default function AddressPage() {
                   <div className="text-center">
                     <button
                       type="submit"
-                      onSubmit={handleSubmit}
                       className="bg-green-600 text-white px-4 py-2 rounded"
                     >
                       Save Address

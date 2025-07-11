@@ -130,12 +130,14 @@ export async function login(req: Request, res: Response) {
       },
       process.env.JWT_SECRET as string
     );
-
+    if (!JWTToken) {
+      res.status(404).json({ message: "Invalid credentials" });
+      return;
+    }
     res
       .cookie("accessToken", JWTToken, { httpOnly: true })
       .status(200)
-      .json({ message: "Login success" })
-      .redirect("http://localhost:3000");
+      .json({ message: "Login success" });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Login failed" });
