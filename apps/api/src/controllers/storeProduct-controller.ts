@@ -26,9 +26,53 @@ export const getAllStoreProducts = async (_req: Request, res: Response) => {
 
 export const getProductsByStore = async (req: Request, res: Response) => {
   const { storeId } = req.params;
+  const page = parseInt(req.query.page as string) || 1;
+  const pageSize = parseInt(req.query.pageSize as string) || 10;
+  const category = req.query.category as string | undefined;
+
+  const skip = (page - 1) * pageSize;
+
   try {
+    // Hitung total count buat pagination
+    const totalCount = await prisma.storeProduct.count({
+      where: {
+        storeId,
+        Product: {
+          ProductCategory: category
+            ? {
+                some: {
+                  Category: {
+                    name: {
+                      equals: category,
+                      mode: "insensitive",
+                    },
+                  },
+                },
+              }
+            : undefined,
+        },
+      },
+    });
+
+    // Ambil data store products dengan filter
     const storeProducts = await prisma.storeProduct.findMany({
-      where: { storeId },
+      where: {
+        storeId,
+        Product: {
+          ProductCategory: category
+            ? {
+                some: {
+                  Category: {
+                    name: {
+                      equals: category,
+                      mode: "insensitive",
+                    },
+                  },
+                },
+              }
+            : undefined,
+        },
+      },
       include: {
         Product: {
           include: {
@@ -37,8 +81,11 @@ export const getProductsByStore = async (req: Request, res: Response) => {
           },
         },
       },
+      skip,
+      take: pageSize,
     });
 
+    // Format data
     const data = storeProducts.map((item) => ({
       id: item.Product.id,
       name: item.Product.name,
@@ -49,7 +96,16 @@ export const getProductsByStore = async (req: Request, res: Response) => {
       category: item.Product.ProductCategory.map((el) => el.Category.name),
     }));
 
-    res.status(200).json({ data });
+    // Response dengan data & info pagination
+    res.status(200).json({
+      data,
+      pagination: {
+        totalItems: totalCount,
+        totalPages: Math.ceil(totalCount / pageSize),
+        currentPage: page,
+        pageSize,
+      },
+    });
   } catch (error) {
     console.error("Error fetching products by store:", error);
     res.status(500).json({ message: "Internal Server Error" });

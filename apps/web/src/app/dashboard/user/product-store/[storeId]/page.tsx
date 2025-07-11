@@ -20,19 +20,45 @@ export default function ProductStorePage() {
   const storeId = params.storeId as string;
 
   const [products, setProducts] = useState<Product[]>([]);
+  const [category, setCategory] = useState<string>("");
+  const [page, setPage] = useState<number>(1);
+  const [totalPages, setTotalPages] = useState<number>(1);
+  const [categories, setCategories] = useState<{ id: string; name: string }[]>(
+    []
+  );
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const res = await fetch("http://localhost:8000/api/v1/categories");
+        const json = await res.json();
+        setCategories(json.data || []);
+      } catch (error) {
+        console.error("Failed to fetch categories:", error);
+      }
+    };
+
+    fetchCategories();
+  }, []);
+
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchStoreProducts = async () => {
+      setLoading(true);
       try {
+        const params = new URLSearchParams();
+        params.set("page", String(page));
+        params.set("pageSize", "8");
+        if (category) params.set("category", category);
+
         const res = await fetch(
-          `http://localhost:8000/api/v1/store-products/${storeId}/products`,
-          {
-            cache: "no-store",
-          }
+          `http://localhost:8000/api/v1/store-products/${storeId}/products?${params}`,
+          { cache: "no-store" }
         );
         const json = await res.json();
         setProducts(json.data || []);
+        setTotalPages(json.pagination?.totalPages || 1);
       } catch (error) {
         console.error("Failed to fetch store products:", error);
       } finally {
@@ -43,7 +69,7 @@ export default function ProductStorePage() {
     if (storeId) {
       fetchStoreProducts();
     }
-  }, [storeId]);
+  }, [storeId, page, category]);
 
   if (loading) {
     return (
@@ -55,17 +81,42 @@ export default function ProductStorePage() {
     <MenuNavbarUser>
       <section className="max-w-[1200px] mx-auto py-12 px-6">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">Products in This Store</h1>
+        <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
+          <p className="text-gray-600">
+            Showing {products.length} product{products.length !== 1 && "s"} in
+            this store
+          </p>
+
+          <div className="flex items-center gap-2">
+            <label htmlFor="category" className="text-sm">
+              Filter by Category:
+            </label>
+            <select
+              id="category"
+              value={category}
+              onChange={(e) => {
+                setCategory(e.target.value);
+                setPage(1); // reset halaman
+              }}
+              className="border rounded px-2 py-1 text-sm"
+            >
+              <option value="">All</option>
+              {categories.map((cat) => (
+                <option key={cat.id} value={cat.name}>
+                  {cat.name}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
 
-        {/* Top bar */}
+        {/* Top bar
         <div className="flex items-center justify-between mb-6">
           <p className="text-gray-600">
             Showing {products.length} product{products.length !== 1 && "s"} in
             this store
           </p>
-        </div>
+        </div> */}
 
         {/* Products grid */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
@@ -130,6 +181,27 @@ export default function ProductStorePage() {
             ))
           )}
         </div>
+        {totalPages > 1 && (
+          <div className="flex justify-center mt-8 gap-4">
+            <button
+              onClick={() => setPage((prev) => Math.max(1, prev - 1))}
+              disabled={page === 1}
+              className="px-3 py-1 bg-gray-200 rounded disabled:opacity-50"
+            >
+              Prev
+            </button>
+            <span className="text-sm">
+              Page {page} of {totalPages}
+            </span>
+            <button
+              onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
+              disabled={page === totalPages}
+              className="px-3 py-1 bg-gray-200 rounded disabled:opacity-50"
+            >
+              Next
+            </button>
+          </div>
+        )}
       </section>
     </MenuNavbarUser>
   );

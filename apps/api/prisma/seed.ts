@@ -397,6 +397,54 @@ async function seed() {
       }
 
       console.info("✅ Store products created");
+
+      console.info("⚡ Creating product-category links...");
+
+      try {
+        const allProducts = await prisma.product.findMany();
+        const allCategories = await prisma.category.findMany();
+
+        const productMap = new Map(allProducts.map((p) => [p.name, p.id]));
+        const categoryMap = new Map(allCategories.map((c) => [c.name, c.id]));
+
+        const productCategoryMapping = [
+          { productName: "Apple Fuji 1 Kg", categoryName: "Fruits" },
+          { productName: "Banana Cavendish", categoryName: "Fruits" },
+          { productName: "Orange Juice", categoryName: "Beverages" },
+          { productName: "Potato Chips", categoryName: "Snacks" },
+          { productName: "Whole Wheat Bread", categoryName: "Bakery" },
+          { productName: "Brown Eggs 10pcs", categoryName: "Eggs & Dairy" },
+          { productName: "Milk 1L", categoryName: "Eggs & Dairy" },
+          { productName: "Instant Noodles", categoryName: "Snacks" },
+          { productName: "Cheddar Cheese 200g", categoryName: "Cheese" },
+          { productName: "Mineral Water 600ml", categoryName: "Beverages" },
+        ];
+
+        const productCategoryData: { productId: string; categoryId: string }[] =
+          [];
+
+        for (const mapping of productCategoryMapping) {
+          const productId = productMap.get(mapping.productName);
+          const categoryId = categoryMap.get(mapping.categoryName);
+          if (productId && categoryId) {
+            productCategoryData.push({
+              productId,
+              categoryId,
+            });
+          }
+        }
+
+        if (productCategoryData.length > 0) {
+          await prisma.productCategory.createMany({
+            data: productCategoryData,
+            skipDuplicates: true,
+          });
+        }
+
+        console.info("✅ Product-category links created");
+      } catch (error) {
+        console.error("❌ Error creating product-category links:", error);
+      }
     } catch (error) {
       console.error("❌ Error creating store products:", error);
     }

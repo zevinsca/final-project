@@ -42,9 +42,13 @@ export default function StoreHomePage() {
   return (
     <section className="max-w-[1200px] mx-auto py-12 px-6">
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Store</h1>
-        <p className="text-gray-500">Our Store</p>
+      <div className="mb-8 text-center">
+        <h1 className="text-4xl font-extrabold text-green-700 mb-3">
+          Discover Our Stores
+        </h1>
+        <p className="text-gray-600 max-w-2xl mx-auto">
+          Find the perfect place to shop today.
+        </p>
       </div>
 
       {/* Top bar */}
@@ -76,7 +80,7 @@ export default function StoreHomePage() {
             />
 
             {/* Name */}
-            <h3 className="text-2xl font-bold text-gray-800 mb-2">
+            <h3 className="text-3xl font-bold text-gray-800 mb-2">
               {store.name}
             </h3>
 
