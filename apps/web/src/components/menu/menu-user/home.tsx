@@ -1,5 +1,6 @@
 import Image from "next/image";
-
+import StoreHomePage from "./store-homePage";
+// import ProductNearby from "./nearby-product";
 export default function HomePageUser() {
   return (
     <div>
@@ -82,7 +83,7 @@ export default function HomePageUser() {
       </div>
 
       {/* Best Sellers Section */}
-      <div className="py-8 px-40 w-full bg-blue-100">
+      {/* <div className="py-8 px-40 w-full bg-blue-100">
         <h2 className="text-left text-3xl font-bold mb-6">Best Sellers</h2>
         <div className="grid grid-cols-4 gap-6">
           <div className="bg-white p-6 rounded-xl shadow-lg flex flex-col items-center">
@@ -146,10 +147,12 @@ export default function HomePageUser() {
             </button>
           </div>
         </div>
-      </div>
-
+      </div> */}
+      {/* 
+      <ProductNearby /> */}
+      <StoreHomePage />
       {/* Today's Deals Section */}
-      <div className="py-8 px-40 w-full">
+      {/* <div className="py-8 px-40 w-full">
         <h2 className="text-left text-3xl font-bold mb-6">Today Deals</h2>
         <div className="grid grid-cols-3 gap-5">
           <div className="bg-white p-6 rounded-xl shadow-lg flex flex-col items-center border ">
@@ -199,7 +202,7 @@ export default function HomePageUser() {
             </button>
           </div>
         </div>
-      </div>
+      </div> */}
     </div>
   );
 }

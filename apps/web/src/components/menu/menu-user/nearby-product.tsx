@@ -9,27 +9,23 @@ interface Product {
   name: string;
   description: string;
   price: number;
-  totalStock: number;
-  stockPerStore: {
-    storeId: string;
-    storeName: string;
-    stock: number;
-  }[];
-  imagePreview: { imageUrl: string }[];
+  stock: number;
+  imagePreview: [{ imageUrl: string }];
 }
 
-export default function ProductCatalog() {
+export default function ProductNearby() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const res = await fetch("http://localhost:8000/api/v1/products", {
+        const res = await fetch("http://localhost:8000/api/v1/stores/nearby", {
           cache: "no-store",
         });
         const json = await res.json();
         setProducts(json.data || []);
+        console.log(json.data);
       } catch (error) {
         console.error("Failed to fetch products:", error);
       } finally {
@@ -48,8 +44,8 @@ export default function ProductCatalog() {
     <section className="max-w-[1200px] mx-auto py-12 px-6">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Product</h1>
-        <p className="text-gray-500">Home / Product</p>
+        <h1 className="text-3xl font-bold mb-2">Product Near You</h1>
+        <p className="text-gray-500">Product</p>
       </div>
 
       {/* Top bar */}
@@ -87,6 +83,11 @@ export default function ProductCatalog() {
               className="mx-auto mb-4"
             />
 
+            {/* Stock */}
+            <p className="text-gray-400 text-sm">
+              {product.stock > 0 ? "In Stock" : "Out of Stock"}
+            </p>
+
             {/* Name */}
             <p className="font-semibold mb-1">{product.name}</p>
 
@@ -109,29 +110,6 @@ export default function ProductCatalog() {
             >
               View Product
             </Link>
-
-            {/* Total stock */}
-            <p className="text-gray-400 text-sm mb-2">
-              {product.totalStock > 0
-                ? `${product.totalStock} pcs available`
-                : "Out of Stock"}
-            </p>
-
-            {/* Stock per store */}
-            {product.totalStock > 0 && (
-              <div className="text-xs text-gray-500 text-left mt-2">
-                <p className="font-semibold mb-1">Available in stores:</p>
-                <ul className="list-disc list-inside">
-                  {product.stockPerStore
-                    .filter((store) => store.stock > 0)
-                    .map((store) => (
-                      <li key={store.storeId}>
-                        {store.storeName}: {store.stock} pcs
-                      </li>
-                    ))}
-                </ul>
-              </div>
-            )}
           </div>
         ))}
       </div>

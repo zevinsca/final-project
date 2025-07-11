@@ -95,8 +95,10 @@ async function seed() {
       data: {
         name: "SuperMart Jakarta",
         userId: superAdmin.id, // Super Admin creates the store
-        address: "123 Main Street",
-        city: "Metropolis",
+        imageUrl:
+          "https://res.cloudinary.com/dwu9rmlyv/image/upload/v1752207909/kota1_mr0e9e.jpg",
+        address: "Jl.Setiabudi No.17",
+        city: "Jakarta",
         province: "Central Province",
         postalCode: "12345",
         latitude: -6.9176,
@@ -108,8 +110,10 @@ async function seed() {
       data: {
         name: "SuperMart Bandung",
         userId: superAdmin.id, // Super Admin creates the store
-        address: "456 Elm Avenue",
-        city: "Gotham City",
+        imageUrl:
+          "https://res.cloudinary.com/dwu9rmlyv/image/upload/v1752207909/kota2_kr8hk1.jpg",
+        address: "Jl. Asia Afrika No.2",
+        city: "Bandung",
         province: "East Province",
         postalCode: "67890",
         latitude: -6.193125,
@@ -156,12 +160,10 @@ async function seed() {
     console.info("⚡ Creating products...");
     const productsData = [
       {
-        name: "Apple Fuji",
+        name: "Apple Fuji 1 Kg",
         description: "Fresh Fuji apples from the farm.",
-        stock: 100,
         price: 30000,
         weight: 0.2,
-        storeId: store.id,
         userId: "1",
         imagePreview: [
           {
@@ -177,10 +179,8 @@ async function seed() {
       {
         name: "Orange Juice",
         description: "100% pure orange juice, no sugar added.",
-        stock: 0,
         price: 25000,
         weight: 1,
-        storeId: store.id,
         userId: "1",
         imagePreview: [
           {
@@ -196,10 +196,8 @@ async function seed() {
       {
         name: "Potato Chips",
         description: "Crispy salted potato chips.",
-        stock: 50,
         price: 15000,
         weight: 0.1,
-        storeId: store.id,
         userId: "1",
         imagePreview: [
           {
@@ -215,10 +213,8 @@ async function seed() {
       {
         name: "Banana Cavendish",
         description: "Sweet Cavendish bananas, ripe and ready to eat.",
-        stock: 120,
         price: 20000,
         weight: 1,
-        storeId: store.id,
         userId: "1",
         imagePreview: [
           {
@@ -234,10 +230,8 @@ async function seed() {
       {
         name: "Milk 1L",
         description: "Fresh cow milk in 1 liter bottle.",
-        stock: 40,
         price: 18000,
         weight: 1,
-        storeId: store.id,
         userId: "1",
         imagePreview: [
           {
@@ -253,10 +247,8 @@ async function seed() {
       {
         name: "Brown Eggs 10pcs",
         description: "Organic brown eggs, pack of 10.",
-        stock: 80,
         price: 22000,
         weight: 0.5,
-        storeId: store.id,
         userId: "1",
         imagePreview: [
           {
@@ -272,10 +264,8 @@ async function seed() {
       {
         name: "Instant Noodles",
         description: "Spicy chicken flavored instant noodles.",
-        stock: 300,
         price: 3500,
         weight: 0.08,
-        storeId: store.id,
         userId: "1",
         imagePreview: [
           {
@@ -291,10 +281,8 @@ async function seed() {
       {
         name: "Cheddar Cheese 200g",
         description: "Premium quality cheddar cheese block.",
-        stock: 30,
         price: 45000,
         weight: 0.2,
-        storeId: store.id,
         userId: "1",
         imagePreview: [
           {
@@ -310,10 +298,8 @@ async function seed() {
       {
         name: "Whole Wheat Bread",
         description: "Soft and healthy whole wheat bread loaf.",
-        stock: 60,
         price: 25000,
         weight: 0.5,
-        storeId: store.id,
         userId: "1",
         imagePreview: [
           {
@@ -329,10 +315,8 @@ async function seed() {
       {
         name: "Mineral Water 600ml",
         description: "Clean and fresh bottled mineral water.",
-        stock: 500,
         price: 4000,
         weight: 0.6,
-        storeId: store.id,
         userId: "1",
         imagePreview: [
           {
@@ -347,39 +331,12 @@ async function seed() {
       },
     ];
 
-    // for (const product of productsData) {
-    //   try {
-    //     const createdProduct = await prisma.product.create({
-    //       data: {
-    //         name: product.name,
-    //         description: product.description,
-    //         stock: product.stock,
-    //         price: product.price,
-    //         weight: product.weight,
-    //         storeId: product.storeId,
-    //         userId: product.userId,
-    //         imagePreview: {
-    //           create: product.imagePreview.map((img) => ({
-    //             imageUrl: img.url,
-    //           })),
-    //         },
-    //         imageContent: {
-    //           create: product.imageContent.map((img) => ({
-    //             imageUrl: img.url,
-    //           })),
-    //         },
-    //       },
-    //     });
-
-    //     const productCollection = await prisma.product.findMany();
-    //     const categoryCollection = await prisma.category.findMany();
     for (const product of productsData) {
       try {
         const createdProduct = await prisma.product.create({
           data: {
             name: product.name,
             description: product.description,
-            stock: product.stock,
             price: product.price,
             weight: product.weight,
             userId: product.userId,
@@ -396,37 +353,6 @@ async function seed() {
           },
         });
 
-        // Create ProductInventory for store
-        await prisma.storeProduct.create({
-          data: {
-            productId: createdProduct.id,
-            storeId: store.id,
-            stock: product.stock,
-          },
-        });
-
-        //     for (const el of productCollection) {
-        //       const catRandomIndex = Math.round(
-        //         Math.random() * (categoryCollection.length - 1)
-        //       );
-
-        //       await prisma.productCategory.create({
-        //         data: {
-        //           productId: el.id,
-        //           categoryId: categoryCollection[catRandomIndex].id,
-        //         },
-        //       });
-        //     }
-
-        //     // Create ProductInventory for store
-        //     await prisma.productInventory.create({
-        //       data: {
-        //         productId: createdProduct.id,
-        //         storeId: store.id,
-        //         stock: product.stock,
-        //       },
-        //     });
-
         console.info(`✅ Product created: ${createdProduct.name}`);
       } catch (productError) {
         console.error(
@@ -437,6 +363,43 @@ async function seed() {
     }
 
     console.info("🌱 Seed completed successfully ✅");
+    /* -------------------------------------------------------------------------- */
+    /*                           CREATE STORE PRODUCT                             */
+    /* -------------------------------------------------------------------------- */
+    console.info("⚡ Creating store products...");
+
+    try {
+      // Ambil semua products dan stores dari DB
+      const allProducts = await prisma.product.findMany();
+      const allStores = await prisma.store.findMany();
+
+      const storeProductData: {
+        storeId: string;
+        productId: string;
+        stock: number;
+      }[] = [];
+
+      for (const store of allStores) {
+        for (const product of allProducts) {
+          storeProductData.push({
+            storeId: store.id,
+            productId: product.id,
+            stock: Math.floor(Math.random() * 50) + 10,
+          });
+        }
+      }
+
+      if (storeProductData.length > 0) {
+        await prisma.storeProduct.createMany({
+          data: storeProductData,
+          skipDuplicates: true,
+        });
+      }
+
+      console.info("✅ Store products created");
+    } catch (error) {
+      console.error("❌ Error creating store products:", error);
+    }
   } catch (error) {
     console.error("❌ Error during seed:", error);
   } finally {

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import axios from "axios";
+import Image from "next/image";
 
 interface Category {
   id: string;
@@ -21,6 +22,7 @@ interface Product {
   stock: number;
   weight: number;
   category: string[];
+  imagePreview: [{ imageUrl: string }];
 }
 
 export default function CreateProductPage() {
@@ -341,6 +343,13 @@ export default function CreateProductPage() {
               key={product.id}
               className="border border-gray-300 rounded-lg p-4"
             >
+              <Image
+                src={product.imagePreview[0].imageUrl}
+                alt={product.name}
+                width={250}
+                height={250}
+                className="mx-auto mb-4"
+              />
               <h3 className="text-lg font-semibold">{product.name}</h3>
               <p className="mt-2 text-gray-700">{product.description}</p>
               <p className="text-sm text-gray-600">

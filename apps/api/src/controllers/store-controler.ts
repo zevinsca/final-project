@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import prisma from "../config/prisma-client.js";
 import { CustomJwtPayload } from "../types/express.js";
+import * as geolib from "geolib";
 
 export async function createStore(req: Request, res: Response) {
   try {
@@ -8,8 +9,16 @@ export async function createStore(req: Request, res: Response) {
     const userId = user.id;
     console.log("Requester (yang login SUPER_ADMIN):", userId);
 
-    const { name, address, city, province, postalCode, latitude, longitude } =
-      req.body;
+    const {
+      name,
+      address,
+      city,
+      province,
+      postalCode,
+      latitude,
+      longitude,
+      imageUrl,
+    } = req.body;
 
     if (
       !name ||
@@ -35,6 +44,7 @@ export async function createStore(req: Request, res: Response) {
         postalCode,
         latitude,
         longitude,
+        imageUrl,
       },
     });
 
@@ -88,46 +98,73 @@ export async function getAllStores(_req: Request, res: Response) {
   }
 }
 
-// function calculateDistance(lat1, lon1, lat2, lon2) {
-//   return geolib.getDistance({ latitude: lat1, longitude: lon1 }, { latitude: lat2, longitude: lon2 });
-// }
+function calculateDistance(
+  lat1: number,
+  lon1: number,
+  lat2: number,
+  lon2: number
+): number {
+  return geolib.getDistance(
+    { latitude: lat1, longitude: lon1 },
+    { latitude: lat2, longitude: lon2 }
+  );
+}
 
-// async function getNearbyProducts(req, res) {
-//   try {
-//     const { userLat, userLon } = req.body; // Lokasi pengguna yang dikirim dari frontend
+// Controller untuk menampilkan produk dari toko terdekat berdasarkan lokasi pengguna
+export async function getNearbyStoreProducts(req: Request, res: Response) {
+  try {
+    const { userLat, userLon } = req.body; // Lokasi pengguna
 
-//     if (!userLat || !userLon) {
-//       return res.status(400).json({ message: 'User location is required' });
-//     }
+    if (!userLat || !userLon) {
+      res.status(400).json({
+        message: "User location (latitude and longitude) is required.",
+      });
+      return;
+    }
 
-//     // Ambil semua toko dari database
-//     const stores = await prisma.store.findMany();
-//     const storesWithDistance = stores.map(store => {
-//       const distance = calculateDistance(userLat, userLon, store.latitude, store.longitude);
-//       return { ...store, distance }; // Menambahkan informasi jarak ke toko
-//     });
+    // Ambil semua toko dari database
+    const stores = await prisma.store.findMany();
 
-//     // Urutkan toko berdasarkan jarak terdekat
-//     const sortedStores = storesWithDistance.sort((a, b) => a.distance - b.distance);
-//     const nearestStore = sortedStores[0]; // Ambil toko terdekat
+    // Menambahkan jarak dari setiap toko ke lokasi pengguna
+    const storesWithDistance = stores.map((store) => {
+      const distance = calculateDistance(
+        userLat,
+        userLon,
+        store.latitude,
+        store.longitude
+      );
+      return { ...store, distance }; // Menambahkan informasi jarak ke toko
+    });
 
-//     // Ambil produk dari toko terdekat
-//     const products = await prisma.product.findMany({
-//       where: {
-//         storeId: nearestStore.id,
-//       },
-//       include: {
-//         ProductCategory: true,
-//         Store: true,
-//       },
-//     });
+    // Urutkan toko berdasarkan jarak terdekat
+    const sortedStores = storesWithDistance.sort(
+      (a, b) => a.distance - b.distance
+    );
+    const nearestStore = sortedStores[0]; // Ambil toko terdekat
 
-//     return res.status(200).json({ store: nearestStore, products });
-//   } catch (error) {
-//     console.error(error);
-//     return res.status(500).json({ message: 'Internal server error' });
-//   }
-// }
+    // Ambil produk dari toko terdekat
+    const products = await prisma.product.findMany({
+      where: {
+        StoreProduct: {
+          some: {
+            storeId: nearestStore.id,
+          },
+        },
+      },
+      include: {
+        StoreProduct: true, // Menampilkan produk dari toko
+      },
+    });
+
+    res.status(200).json({
+      nearestStore,
+      products,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+}
 
 export async function getStoreById(req: Request, res: Response): Promise<void> {
   const storeId = req.params.storeId; // Get storeId from URL params

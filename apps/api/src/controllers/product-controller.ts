@@ -22,23 +22,46 @@ export async function getAllProduct(req: Request, res: Response) {
         User: true,
         imageContent: true,
         imagePreview: true,
-        StoreProduct: true,
+        StoreProduct: {
+          include: {
+            Store: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        },
       },
     });
 
     const finalResult = products.map((item) => {
+      // Hitung total stock semua toko
+      const totalStock = item.StoreProduct.reduce(
+        (sum, sp) => sum + sp.stock,
+        0
+      );
+
+      // Ambil detail per store
+      const stockPerStore = item.StoreProduct.map((sp) => ({
+        storeId: sp.storeId,
+        storeName: sp.Store?.name,
+        stock: sp.stock,
+      }));
+
       return {
         id: item.id,
         name: item.name,
-        decription: item.description,
+        description: item.description,
         price: item.price,
-        stock: item.stock,
         imagePreview: item.imagePreview,
-        createdAt: item.createdAt,
-        updatedAt: item.updatedAt,
         category: item.ProductCategory.map(
           (el: { Category: { name: string } }) => el.Category.name
         ),
+        totalStock,
+        stockPerStore,
+        createdAt: item.createdAt,
+        updatedAt: item.updatedAt,
       };
     });
 
@@ -128,7 +151,6 @@ export async function createProduct(
         description,
         price,
         weight,
-        stock,
         ProductCategory: {
           create: categoryIds.map((categoryId: string) => ({
             categoryId,
