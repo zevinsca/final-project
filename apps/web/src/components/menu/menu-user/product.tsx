@@ -11,7 +11,7 @@ interface Product {
   price: number;
   stock: number;
   imagePreview: [{ imageUrl: string }];
-}
+  imageContent: [{ imageUrl: string }];
 
 export default function ProductCatalog() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -45,18 +45,20 @@ export default function ProductCatalog() {
       <div className="mb-8">
         <h1 className="text-3xl font-bold mb-2">Product</h1>
         <p className="text-gray-500">Home / Product</p>
+
       </div>
 
       {/* Top bar */}
       <div className="flex items-center justify-between mb-6">
+
         {/* <p className="text-gray-600">
           Showing 1–{products.length} of {products.length} results
         </p> */}
-        <select className="border border-gray-300 rounded px-3 py-2">
+        {/* <select className="border border-gray-300 rounded px-3 py-2">
           <option>Default sorting</option>
           <option>Sort by price</option>
           <option>Sort by popularity</option>
-        </select>
+        </select> */}
       </div>
 
       {/* Products grid */}
@@ -75,6 +77,7 @@ export default function ProductCatalog() {
 
             {/* Image */}
             <Image
+
               src={product.imagePreview[0].imageUrl}
               alt={product.name}
               width={150}
@@ -82,7 +85,7 @@ export default function ProductCatalog() {
               className="mx-auto mb-4"
             />
 
-            {/* Stock */}
+
             <p className="text-gray-400 text-sm">
               {product.stock > 0 ? "In Stock" : "Out of Stock"}
             </p>
@@ -94,11 +97,13 @@ export default function ProductCatalog() {
             <div className="mb-2">
               {product.price < 100 && (
                 <span className="text-gray-400 line-through mr-2">
-                  Rp{product.price + 10}
+
+                  ${product.price + 10}.00
                 </span>
               )}
               <span className="text-green-700 font-bold">
-                Rp{product.price.toFixed()}
+                ${product.price.toFixed(2)}
+
               </span>
             </div>
 

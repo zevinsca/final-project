@@ -57,27 +57,21 @@ model User {
 }
 
 model Address {
-  id          String  @id @default(uuid())
+  id          String   @id @default(uuid())
   recipient   String?
   userId      String?
   storeId     String?
   destination String
-
-  address    String
-  city       String
-  province   String
-  postalCode String
-  latitude   Float? // Added: latitude for geographical location
-  longitude  Float?
-  isPrimary  Boolean  @default(false) // <--- ini dia
-  createdAt  DateTime @default(now()) // Foreign key ke User
-
-  // Relasi ke User
-  // Relasi ke Store, opsional // Relasi ke User
+  address     String
+  city        String
+  province    String
+  postalCode  String
+  isPrimary   Boolean  @default(false) // <--- ini dia
+  createdAt   DateTime @default(now()) // Foreign key ke User
+  user        User?    @relation(fields: [userId], references: [id]) // Relasi ke User
+  store       Store?   @relation(fields: [storeId], references: [id]) // Relasi ke Store, opsional // Relasi ke User
 
   Order Order[]
-  User  User?   @relation(fields: [userId], references: [id])
-  Store Store?  @relation(fields: [storeId], references: [id])
 }
 
 model Store {

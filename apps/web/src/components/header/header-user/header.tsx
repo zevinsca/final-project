@@ -1,10 +1,11 @@
 "use client";
-import { useState } from "react";
+// import { useState } from "react";
 import Submenu from "./sub-menu";
 import Image from "next/image";
 import { FiSearch, FiHeart, FiShoppingBag } from "react-icons/fi";
 import LoginPageSection from "@/components/login/login";
-import ShoppingBag from "@/components/menu/menu-user/shoppingbag";
+import Link from "next/link";
+// import ShoppingBag from "@/components/menu/menu-user/shoppingbag";
 import Footer from "@/components/footer/footer";
 
 export default function MenuNavbarUser({
@@ -12,7 +13,7 @@ export default function MenuNavbarUser({
 }: {
   children: React.ReactNode;
 }) {
-  const [isCartOpen, setIsCartOpen] = useState(false);
+  // const [isCartOpen, setIsCartOpen] = useState(false);
   return (
     <section>
       <div className="w-full bg-green-900 text-white">
@@ -35,6 +36,7 @@ export default function MenuNavbarUser({
                 placeholder="Search..."
                 className="flex-1 px-4 py-2 text-black outline-none"
               />
+
               <button className="bg-black px-4">
                 <FiSearch className="text-white" />
               </button>
@@ -45,16 +47,19 @@ export default function MenuNavbarUser({
           <div className="flex items-center gap-4 shrink-0">
             <FiHeart size={20} />
             <LoginPageSection />
-            <button onClick={() => setIsCartOpen(true)}>
+            {/* <button onClick={() => setIsCartOpen(true)}>
               <FiShoppingBag size={20} />
-            </button>
+            </button> */}
+            <Link href="/cart" className="hover:opacity-80 shrink-0">
+              <FiShoppingBag size={20} />
+            </Link>
           </div>
         </div>
       </div>
       {/* Submenu */}
       <div className="bg-white shadow">
-        <ShoppingBag isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
-        {/* Submenu content */}
+        {/* <ShoppingBag isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} /> */}
+
         <Submenu />
       </div>
 
