@@ -192,3 +192,75 @@ export async function createProduct(
     });
   }
 }
+
+export async function getAllProductsByCity(req: Request, res: Response) {
+  const { province } = req.query;
+
+  if (!province || typeof province !== "string") {
+    res.status(400).json({ message: "City parameter is required." });
+    return;
+  }
+
+  try {
+    // Get all addresses in the given city
+    const addresses = await prisma.address.findMany({
+      where: {
+        province: {
+          equals: province,
+          mode: "insensitive", // optional: make case-insensitive
+        },
+        storeAddressId: {
+          not: null,
+        },
+      },
+      select: {
+        storeAddressId: true,
+      },
+    });
+
+    const storeAddressIds = addresses.map((addr) => addr.storeAddressId!);
+
+    // Get all store IDs connected to those store addresses
+    const storeAddresses = await prisma.storeAddress.findMany({
+      where: {
+        id: {
+          in: storeAddressIds,
+        },
+      },
+      select: {
+        storeId: true,
+      },
+    });
+
+    const storeIds = storeAddresses.map((sa) => sa.storeId);
+
+    // Get all products from those stores
+    const storeProducts = await prisma.storeProduct.findMany({
+      where: {
+        storeId: {
+          in: storeIds,
+        },
+      },
+      include: {
+        Product: true,
+        Store: {
+          include: {
+            StoreAddress: {
+              include: {
+                Address: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    res.status(200).json({
+      message: `Products in city: ${province}`,
+      data: storeProducts,
+    });
+  } catch (error) {
+    console.error("Error fetching products by city:", error);
+    res.status(500).json({ message: "Error fetching products." });
+  }
+}

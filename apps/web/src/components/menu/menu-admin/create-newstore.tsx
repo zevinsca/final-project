@@ -9,45 +9,67 @@ interface DestinationOption {
   zip_code: string;
 }
 
-export default function CreateStoreSection() {
+interface CreateStoreSectionProps {
+  onStoreCreated?: () => void;
+}
+
+interface StoreInput {
+  name: string;
+  address: string;
+  destination: string;
+  city: string;
+  province: string;
+  postalCode: string;
+  latitude: number;
+  longtitude: number;
+}
+
+export default function CreateStoreSection({
+  onStoreCreated,
+}: CreateStoreSectionProps) {
   const [latitude, setLatitude] = useState<number>(0);
-  const [longitude, setLongitude] = useState<number>(0);
+  const [longtitude, setLongtitude] = useState<number>(0);
   const [error, setError] = useState<string>("");
   const [success, setSuccess] = useState<string>("");
   const [showModal, setShowModal] = useState<boolean>(false);
   const [destinationOptions, setDestinationOptions] = useState<
     DestinationOption[]
   >([]);
-  const [newStore, setNewStore] = useState({
+
+  const [newStore, setNewStore] = useState<StoreInput>({
     name: "",
     address: "",
     destination: "",
     city: "",
     province: "",
     postalCode: "",
-    latitude: latitude,
-    longitude: longitude,
-    isPrimary: false,
+    latitude: 0,
+    longtitude: 0,
   });
 
-  // Handler untuk submit form
+  const handleChange = <K extends keyof StoreInput>(
+    key: K,
+    value: StoreInput[K]
+  ) => {
+    setNewStore((prev) => ({ ...prev, [key]: value }));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(""); // Reset error message
-    setSuccess(""); // Reset success message
+    setError("");
+    setSuccess("");
 
-    // Validasi latitude dan longitude
     if (
       latitude < -90 ||
       latitude > 90 ||
-      longitude < -180 ||
-      longitude > 180
+      longtitude < -180 ||
+      longtitude > 180
     ) {
       setError("Latitude and Longitude must be within valid ranges.");
       return;
     }
 
-    const updatedStore = { ...newStore, latitude, longitude };
+    const updatedStore = { ...newStore, latitude, longtitude };
 
     try {
       const response = await fetch(
@@ -63,10 +85,7 @@ export default function CreateStoreSection() {
       );
 
       if (response.ok) {
-        const addedAddress = await response.json();
-        console.log("🚀 Added Address:", addedAddress);
-
-        // Reset form dan tutup modal setelah berhasil
+        await response.json();
         setNewStore({
           name: "",
           address: "",
@@ -75,11 +94,11 @@ export default function CreateStoreSection() {
           province: "",
           postalCode: "",
           latitude: 0,
-          longitude: 0,
-          isPrimary: false,
+          longtitude: 0,
         });
         setShowModal(false);
         setSuccess("Toko berhasil dibuat!");
+        if (onStoreCreated) onStoreCreated();
       } else {
         setError("Gagal membuat toko. Pastikan semua data sudah benar.");
       }
@@ -89,29 +108,19 @@ export default function CreateStoreSection() {
     }
   };
 
-  // Fungsi untuk membuka modal
-  const handleOpenModal = () => {
-    setShowModal(true);
-  };
+  const handleOpenModal = () => setShowModal(true);
+  const handleCloseModal = () => setShowModal(false);
 
-  // Fungsi untuk menutup modal
-  const handleCloseModal = () => {
-    setShowModal(false);
-  };
-
-  // Fetch destinasi berdasarkan keyword yang dimasukkan
   const fetchDestinationSuggestions = async (keyword: string) => {
     try {
       const res = await fetch(
-        `http://localhost:8000/api/v1/rajaongkir/search?keyword=${encodeURIComponent(keyword)}`
+        `http://localhost:8000/api/v1/rajaongkir/search?keyword=${encodeURIComponent(
+          keyword
+        )}`
       );
       const data = await res.json();
-
-      if (res.ok) {
-        setDestinationOptions(data); // Simpan destinasi yang ditemukan
-      } else {
-        console.error("Failed to fetch destinations:", data.message);
-      }
+      if (res.ok) setDestinationOptions(data);
+      else console.error("Failed to fetch destinations:", data.message);
     } catch (error) {
       console.error("Error fetching destination:", error);
     }
@@ -127,9 +136,8 @@ export default function CreateStoreSection() {
       </button>
 
       {showModal && (
-        <div className="fixed inset-0 bg-gray-500/50 bg-opacity-75 flex justify-center items-center z-50">
+        <div className="fixed inset-0 bg-gray-500/50 flex justify-center items-center z-50">
           <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-lg relative">
-            {/* Close Button */}
             <button
               onClick={handleCloseModal}
               className="absolute top-2 right-2 text-xl text-gray-500 hover:text-gray-700"
@@ -139,61 +147,38 @@ export default function CreateStoreSection() {
 
             <h2 className="text-xl font-semibold mb-4">Create Store</h2>
             <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Name */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Store Name
-                </label>
-                <input
-                  type="text"
-                  value={newStore.name}
-                  onChange={(e) =>
-                    setNewStore({
-                      ...newStore,
-                      name: e.target.value,
-                    })
-                  }
-                  className="mt-1 p-2 w-full border border-gray-300 rounded-md"
-                  required
-                />
-              </div>
+              {(
+                ["name", "address", "city", "province", "postalCode"] as const
+              ).map((field) => (
+                <div key={field}>
+                  <label className="block text-sm font-medium text-gray-700">
+                    {field.charAt(0).toUpperCase() + field.slice(1)}
+                  </label>
+                  <input
+                    type="text"
+                    value={newStore[field]}
+                    onChange={(e) => handleChange(field, e.target.value)}
+                    className="mt-1 p-2 w-full border border-gray-300 rounded-md"
+                    required
+                  />
+                </div>
+              ))}
 
-              {/* Address */}
               <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Address
-                </label>
-                <input
-                  type="text"
-                  value={newStore.address}
-                  onChange={(e) =>
-                    setNewStore({
-                      ...newStore,
-                      address: e.target.value,
-                    })
-                  }
-                  className="mt-1 p-2 w-full border border-gray-300 rounded-md"
-                  required
-                />
-              </div>
-
-              {/* Destination */}
-              <div className="mb-4">
                 <label className="block mb-2 text-sm font-medium">
                   Destination
                 </label>
                 <input
                   type="text"
-                  value={newStore.destination || ""}
+                  value={newStore.destination}
                   onChange={(e) => {
                     const value = e.target.value;
-                    setNewStore({ ...newStore, destination: value });
-                    fetchDestinationSuggestions(value); // fetch suggestion saat user ketik
+                    handleChange("destination", value);
+                    fetchDestinationSuggestions(value);
                   }}
                   className="w-full p-2 border border-gray-300 rounded-lg"
                   required
                 />
-                {/* Display suggestions */}
                 {destinationOptions.map((opt, index) => (
                   <li
                     key={index}
@@ -214,58 +199,6 @@ export default function CreateStoreSection() {
                 ))}
               </div>
 
-              {/* City */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  City
-                </label>
-                <input
-                  type="text"
-                  value={newStore.city}
-                  onChange={(e) =>
-                    setNewStore({ ...newStore, city: e.target.value })
-                  }
-                  className="mt-1 p-2 w-full border border-gray-300 rounded-md"
-                  required
-                />
-              </div>
-
-              {/* Province */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Province
-                </label>
-                <input
-                  type="text"
-                  value={newStore.province}
-                  onChange={(e) =>
-                    setNewStore({ ...newStore, province: e.target.value })
-                  }
-                  className="mt-1 p-2 w-full border border-gray-300 rounded-md"
-                  required
-                />
-              </div>
-
-              {/* Postal Code */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Postal Code
-                </label>
-                <input
-                  type="text"
-                  value={newStore.postalCode}
-                  onChange={(e) =>
-                    setNewStore({
-                      ...newStore,
-                      postalCode: e.target.value,
-                    })
-                  }
-                  className="mt-1 p-2 w-full border border-gray-300 rounded-md"
-                  required
-                />
-              </div>
-
-              {/* Latitude */}
               <div>
                 <label className="block text-sm font-medium text-gray-700">
                   Latitude
@@ -279,15 +212,14 @@ export default function CreateStoreSection() {
                 />
               </div>
 
-              {/* Longitude */}
               <div>
                 <label className="block text-sm font-medium text-gray-700">
-                  Longitude
+                  Longtitude
                 </label>
                 <input
                   type="number"
-                  value={longitude}
-                  onChange={(e) => setLongitude(parseFloat(e.target.value))}
+                  value={longtitude}
+                  onChange={(e) => setLongtitude(parseFloat(e.target.value))}
                   className="mt-1 p-2 w-full border border-gray-300 rounded-md"
                   required
                 />
@@ -301,7 +233,6 @@ export default function CreateStoreSection() {
               </button>
             </form>
 
-            {/* Error or Success Messages */}
             {error && <div className="mt-4 text-red-500">{error}</div>}
             {success && <div className="mt-4 text-green-500">{success}</div>}
           </div>
