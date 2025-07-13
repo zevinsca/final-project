@@ -47,31 +47,51 @@ model User {
   isVerified          Boolean?  @default(false) // Status verifikasi, default false
   verificationToken   String? // Token verifikasi
 
-  addresses        Address[] // Relasi satu ke banyak dengan Address
   Store            Store[]
   DiscountUsage    DiscountUsage[]
   InventoryJournal InventoryJournal[]
   Cart             Cart[]
   Order            Order[]
   Product          Product[]
+  UserAddress      UserAddress[]
+}
+
+model UserAddress {
+  id        String  @id @default(uuid())
+  userId    String
+  recipient String
+  isPrimary Boolean @default(false)
+
+  User    User      @relation(fields: [userId], references: [id])
+  Address Address[]
 }
 
 model Address {
-  id          String   @id @default(uuid())
-  recipient   String?
-  userId      String?
-  storeId     String?
-  destination String
-  address     String
-  city        String
-  province    String
-  postalCode  String
-  isPrimary   Boolean  @default(false) // <--- ini dia
-  createdAt   DateTime @default(now()) // Foreign key ke User
-  user        User?    @relation(fields: [userId], references: [id]) // Relasi ke User
-  store       Store?   @relation(fields: [storeId], references: [id]) // Relasi ke Store, opsional // Relasi ke User
+  id             String   @id @default(uuid())
+  userAddressId  String?
+  storeAddressId String?
+  destination    String
+  address        String
+  city           String
+  province       String
+  postalCode     String
+  createdAt      DateTime @default(now())
 
-  Order Order[]
+  StoreAddress StoreAddress? @relation(fields: [storeAddressId], references: [id])
+  UserAddress  UserAddress?  @relation(fields: [userAddressId], references: [id])
+  Order        Order[]
+}
+
+model StoreAddress {
+  id         String @id @default(uuid())
+  storeId    String
+  latitude   Float
+  longtitude Float
+
+  createdAt DateTime @default(now())
+
+  Address Address[]
+  Store   Store     @relation(fields: [storeId], references: [id])
 }
 
 model Store {
@@ -88,7 +108,7 @@ model Store {
   Discounts    Discount[]
   Inventory    InventoryJournal[]
   StoreProduct StoreProduct[]
-  Addresses    Address[]
+  StoreAddress StoreAddress[]
 }
 
 model Product {

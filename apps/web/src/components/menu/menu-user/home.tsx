@@ -1,230 +1,178 @@
 "use client";
 
-import Image from "next/image";
 import { useEffect, useState } from "react";
-import GetAllProductWithNearby from "./prodcut-nearby";
+import { FiMenu } from "react-icons/fi";
+import Icons from "./icons";
+
+interface Product {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  stock: number;
+}
+
+interface Store {
+  name: string;
+}
+
+interface StoreProductResponse {
+  Product: Product;
+  Store: Store;
+}
 
 export default function HomePageUser() {
+  const [provinces, setProvinces] = useState<string[]>([]);
   const [latitude, setLatitude] = useState<number | null>(null);
   const [longitude, setLongitude] = useState<number | null>(null);
+  const [selectedProvince, setSelectedProvince] = useState<string>("All");
+  const [products, setProducts] = useState<Product[]>([]);
+  const [stores, setStores] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [isGeoActive, setIsGeoActive] = useState<boolean>(false);
 
   useEffect(() => {
-    // Mengambil lokasi pengguna menggunakan Geolocation API
     if ("geolocation" in navigator) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
-          const userLatitude = position.coords.latitude;
-          const userLongitude = position.coords.longitude;
-          setLatitude(userLatitude);
-          setLongitude(userLongitude);
+          setLatitude(position.coords.latitude);
+          setLongitude(position.coords.longitude);
+          setIsGeoActive(true);
         },
-        (error) => {
-          console.log(error);
-          setError("Error getting geolocation");
+        () => {
+          setIsGeoActive(false);
         }
       );
-    } else {
-      setError("Geolocation is not supported by your browser");
     }
   }, []);
+
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        if (isGeoActive && (latitude === null || longitude === null)) return;
+
+        let url = "";
+
+        if (isGeoActive && latitude !== null && longitude !== null) {
+          url = `http://localhost:8000/api/v1/products/nearby?latitude=${latitude}&longitude=${longitude}&radius=7000`;
+        } else if (selectedProvince !== "All") {
+          url = `http://localhost:8000/api/v1/products/by-province?province=${selectedProvince}`;
+        } else {
+          url = `http://localhost:8000/api/v1/products`;
+        }
+
+        const res = await fetch(url);
+        if (!res.ok) {
+          throw new Error("Gagal memuat produk.");
+        }
+
+        const data = await res.json();
+        const rawData = data.data ?? data.products ?? [];
+
+        const normalized: Product[] = rawData.map(
+          (item: Product | StoreProductResponse) =>
+            "Product" in item ? item.Product : item
+        );
+
+        const nearbyStoreNames: string[] = (data.nearbyStores ?? []).map(
+          (store: { name: string }) => store.name
+        );
+
+        setProducts(normalized);
+        setStores(nearbyStoreNames);
+      } catch (err) {
+        setError((err as Error).message);
+      }
+    };
+
+    fetchProducts();
+  }, [latitude, longitude, selectedProvince, isGeoActive]);
+
+  useEffect(() => {
+    const fetchProvinces = async () => {
+      try {
+        const res = await fetch(
+          "http://localhost:8000/api/v1/addresses/provinces"
+        );
+        const data = await res.json();
+        setProvinces(data.provinces || []);
+      } catch (err) {
+        console.error("Gagal mengambil provinsi", err);
+      }
+    };
+
+    fetchProvinces();
+  }, []);
+
   return (
-    <div>
-      {error && <p className="text-red-500">{error}</p>}
-      {/* Menampilkan pesan error jika ada */}
-      <div className="grid grid-cols-[1fr_30%] px-40">
-        <div className="justify-center p-6">
-          <div className="grid grid-rows-2 gap-5">
-            <div className="">
-              <div className="bg-green-800 rounded-xl p-6 text-white flex flex-col justify-center w-full h-full">
-                <p className="italic text-sm">FARM FRESH</p>
-                <h1 className="text-4xl font-bold mt-2 mb-4">
-                  Organic & Healthy
-                </h1>
-                <p className="text-sm leading-relaxed">
-                  Donec sed mauris non quam molestie imperdiet. Integer
-                  ullamcorper, purus sit amet hendrerit tincidunt
-                </p>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-5">
-              <div className="bg-orange-400 text-white rounded-xl p-6 flex flex-col items-center justify-center">
-                <Image
-                  src="/pineapple.png"
-                  alt="Pineapple"
-                  width={112}
-                  height={112}
-                  className="mb-4"
-                />
-                <h2 className="text-2xl font-bold">Healthy Juices</h2>
-                <button className="mt-4 bg-yellow-400 text-black px-5 py-2 rounded-md shadow">
-                  Shop Now
-                </button>
-              </div>
+    <div className="min-h-screen px-6 md:px-20 lg:px-40 py-10 grid grid-rows-[auto_1fr] gap-10">
+      <div>
+        <h1 className="text-3xl font-bold text-center">
+          Selamat Datang di Market Snap
+        </h1>
 
-              <div className="bg-cyan-600 text-white rounded-xl p-6 flex flex-col items-center justify-center">
-                <Image
-                  src="/pineapple.png"
-                  alt="Pineapple"
-                  width={112}
-                  height={112}
-                  className="mb-4"
-                />
-                <h2 className="text-2xl font-bold">Farm Fresh</h2>
-                <button className="mt-4 bg-yellow-400 text-black px-5 py-2 rounded-md shadow">
-                  Shop Now
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div className="justify-center p-6 ">
-          <div className="grid gap-y-5">
-            <div className="bg-orange-400 text-white rounded-xl p-6 flex flex-col items-center justify-center">
-              <Image
-                src="/pineapple.png"
-                alt="Pineapple"
-                width={112}
-                height={112}
-                className="mb-4"
-              />
-              <h2 className="text-2xl font-bold">Organic Fruits</h2>
-              <button className="mt-4 bg-yellow-400 text-black px-5 py-2 rounded-md shadow">
-                Shop Now
-              </button>
-            </div>
-            <div className="bg-orange-400 text-white rounded-xl p-6 flex flex-col items-center justify-center">
-              <Image
-                src="/pineapple.png"
-                alt="Pineapple"
-                width={112}
-                height={112}
-                className="mb-4"
-              />
-              <h2 className="text-2xl font-bold">Organic Fruits</h2>
-              <button className="mt-4 bg-yellow-400 text-black px-5 py-2 rounded-md shadow">
-                Shop Now
-              </button>
-            </div>
-          </div>
-        </div>
+        {error && <p className="text-red-400 text-center">{error}</p>}
       </div>
-      <GetAllProductWithNearby latitude={latitude} longitude={longitude} />
-      {/* Best Sellers Section */}
-      <div className="py-8 px-40 w-full bg-blue-100">
-        <h2 className="text-left text-3xl font-bold mb-6">Best Sellers</h2>
-        <div className="grid grid-cols-4 gap-6">
-          <div className="bg-white p-6 rounded-xl shadow-lg flex flex-col items-center">
-            <Image
-              src="/tomato.png"
-              alt="Tomato"
-              width={150}
-              height={150}
-              className="mb-4"
-            />
-            <p className="text-xl font-bold">Omnis iste natus</p>
-            <p className="text-green-600">-40%</p>
-            <p className="text-xl font-semibold">$40.00 - $300.00</p>
-            <button className="bg-green-600 text-white mt-4 px-5 py-2 rounded-md">
-              Select options
-            </button>
+      <div className="grid grid-rows-[auto_1fr] gap-5">
+        {!isGeoActive && (
+          <div className="w-full flex justify-end px-5">
+            <div className="flex items-center gap-2 bg-green-700 text-white px-6 py-2 rounded shadow-md">
+              <FiMenu />
+              <span className="font-semibold">Pilih Lokasi</span>
+              <select
+                className="border border-gray-300 rounded px-3 py-2 text-black"
+                value={selectedProvince}
+                onChange={(e) => {
+                  setSelectedProvince(e.target.value);
+                }}
+              >
+                <option value="All">All</option>
+                {provinces.map((province) => (
+                  <option key={province} value={province}>
+                    {province}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
-          <div className="bg-white p-6 rounded-xl shadow-lg flex flex-col items-center">
-            <Image
-              src="/juice.png"
-              alt="Juice"
-              width={150}
-              height={150}
-              className="mb-4"
-            />
-            <p className="text-xl font-bold">Ut perspiciatis</p>
-            <p className="text-red-600">-48%</p>
-            <p className="text-xl font-semibold">$400.00</p>
-            <button className="bg-green-600 text-white mt-4 px-5 py-2 rounded-md">
-              Add to cart
-            </button>
-          </div>
-          <div className="bg-white p-6 rounded-xl shadow-lg flex flex-col items-center">
-            <Image
-              src="/bread.png"
-              alt="Bread"
-              width={150}
-              height={150}
-              className="mb-4"
-            />
-            <p className="text-xl font-bold">Magnam aliquam</p>
-            <p className="text-yellow-600">-50%</p>
-            <p className="text-xl font-semibold">$410.00</p>
-            <button className="bg-green-600 text-white mt-4 px-5 py-2 rounded-md">
-              Add to cart
-            </button>
-          </div>
-          <div className="bg-white p-6 rounded-xl shadow-lg flex flex-col items-center">
-            <Image
-              src="/onion.png"
-              alt="Onion"
-              width={150}
-              height={150}
-              className="mb-4"
-            />
-            <p className="text-xl font-bold">Quasi architecto</p>
-            <p className="text-yellow-600">-30%</p>
-            <p className="text-xl font-semibold">$88.00 - $99.00</p>
-            <button className="bg-green-600 text-white mt-4 px-5 py-2 rounded-md">
-              Select options
-            </button>
-          </div>
-        </div>
-      </div>
-      {/* Today's Deals Section */}
-      <div className="py-8 px-40 w-full">
-        <h2 className="text-left text-3xl font-bold mb-6">Today Deals</h2>
-        <div className="grid grid-cols-3 gap-5">
-          <div className="bg-white p-6 rounded-xl shadow-lg flex flex-col items-center border ">
-            <Image
-              src="/tomato.png"
-              alt="Tomato"
-              width={150}
-              height={150}
-              className="mb-4"
-            />
-            <p className="text-xl font-bold">Farm Fresh</p>
-            <p className="text-green-600">-40%</p>
-            <p className="text-xl font-semibold">$40.00 - $300.00</p>
-            <button className="bg-green-600 text-white mt-4 px-5 py-2 rounded-md">
-              Select Options
-            </button>
-          </div>
-          <div className="bg-white p-6 rounded-xl shadow-lg flex flex-col items-center border">
-            <Image
-              src="/juice.png"
-              alt="Juice"
-              width={150}
-              height={150}
-              className="mb-4"
-            />
-            <p className="text-xl font-bold">Healthy Juice</p>
-            <p className="text-red-600">-48%</p>
-            <p className="text-xl font-semibold">$49.00 - $199.00</p>
-            <button className="bg-green-600 text-white mt-4 px-5 py-2 rounded-md">
-              Select Options
-            </button>
-          </div>
-          <div className="bg-white p-6 rounded-xl shadow-lg flex flex-col items-center border">
-            <Image
-              src="/bread.png"
-              alt="Bread"
-              width={150}
-              height={150}
-              className="mb-4"
-            />
+        )}
 
-            <p className="text-xl font-bold">Fresh Breads</p>
-            <p className="text-yellow-600">-50%</p>
-            <p className="text-xl font-semibold">$88.00 - $99.00</p>
-            <button className="bg-green-600 text-white mt-4 px-5 py-2 rounded-md">
-              Select Options
-            </button>
+        <div className="p-6 rounded-lg shadow-l grid grid-rows-2 gap-20">
+          <Icons />
+          <div>
+            <h2 className="text-2xl font-bold mb-4 text-green-900">
+              Produk dari Toko
+            </h2>
+
+            {isGeoActive && stores.length > 0 && (
+              <div className="mb-2 text-green-900 font-semibold">
+                <strong>Toko terdekat:</strong> {stores.join(", ")}
+              </div>
+            )}
+
+            {products.length === 0 && (
+              <p className="text-green-100">Belum ada produk yang ditemukan.</p>
+            )}
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+              {products.map((product) => (
+                <div
+                  key={product.id}
+                  className="bg-green-900 text-white border border-green-700 p-4 rounded-lg shadow transition-all duration-500 transform hover:scale-105 hover:shadow-2xl hover:bg-green-800"
+                >
+                  <h3 className="text-lg font-semibold text-white">
+                    {product.name}
+                  </h3>
+                  <p className="text-green-200">{product.description}</p>
+                  <p className="font-bold text-lime-300 pt-2">
+                    Rp {product.price.toLocaleString()}
+                  </p>
+                  <p className="text-sm text-green-300">
+                    Stok: {product.stock}
+                  </p>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>

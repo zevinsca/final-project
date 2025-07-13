@@ -5,6 +5,7 @@ import {
   getAllStores,
   createStoreProduct,
   deleteStore,
+  updateStore,
 } from "../controllers/store-controler.js";
 import { roleGuard, verifyToken } from "../middleware/auth-middleware.js";
 
@@ -27,5 +28,7 @@ router
 router
   .route("/:storeId")
   .get(verifyToken, roleGuard("STORE_ADMIN"), getStoreById);
-router.route("/:storeId").delete(deleteStore);
+router.route("/super-admin/:storeId").delete(deleteStore);
+
+router.route("/super-admin/:editingStore.id").put(updateStore);
 export default router;
