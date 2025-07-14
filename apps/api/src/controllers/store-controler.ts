@@ -1,190 +1,167 @@
 import { Request, Response } from "express";
 import prisma from "../config/prisma-client.js";
 import { CustomJwtPayload } from "../types/express.js";
-import * as geolib from "geolib";
 
 export async function createStore(req: Request, res: Response) {
+  const user = req.user as CustomJwtPayload;
+  const userId = user.id;
+
+  if (!userId) {
+    res.status(401).json({ message: "Unauthorized. User not found." });
+    return;
+  }
+
+  const {
+    name,
+    address,
+    city,
+    province,
+    postalCode,
+    destination,
+    latitude,
+    longtitude,
+  } = req.body;
+
+  // Validasi input
+  if (
+    !name ||
+    !address ||
+    !city ||
+    !province ||
+    !postalCode ||
+    !destination ||
+    latitude === undefined ||
+    longtitude === undefined
+  ) {
+    res.status(400).json({ message: "All fields are required." });
+    return;
+  }
+
   try {
-    const user = req.user as CustomJwtPayload;
-    const userId = user.id;
-    console.log("Requester (yang login SUPER_ADMIN):", userId);
-
-    const {
-      name,
-      address,
-      city,
-      province,
-      postalCode,
-      latitude,
-      longitude,
-      imageUrl,
-    } = req.body;
-
-    if (
-      !name ||
-      !address ||
-      !city ||
-      !province ||
-      !postalCode ||
-      !latitude ||
-      !longitude
-    ) {
-      res.status(400).json({ message: "All fields are required." });
-      return;
-    }
-
-    // Buat store
-    const newStore = await prisma.store.create({
+    // 1. Create Store
+    const store = await prisma.store.create({
       data: {
-        userId: userId, // ini SUPER_ADMIN
         name,
+        userId: userId,
+      },
+    });
+
+    // 2. Create StoreAddress
+    const storeAddress = await prisma.storeAddress.create({
+      data: {
+        storeId: store.id,
+        latitude: parseFloat(latitude),
+        longtitude: parseFloat(longtitude),
+      },
+    });
+
+    // 3. Create Address terkait dengan StoreAddress
+    const createdAddress = await prisma.address.create({
+      data: {
         address,
         city,
         province,
         postalCode,
-        latitude,
-        longitude,
-        imageUrl,
+        destination,
+        storeAddressId: storeAddress.id,
       },
     });
-
-    if (!newStore) {
-      res.status(500).json({ message: "Error creating Store" });
-      return;
-    }
-    // Buat address
-    const newAddress = await prisma.address.create({
-      data: {
-        storeId: newStore.id,
-        recipient: newStore.name,
-        address: newStore.address,
-        city: newStore.city,
-        province: newStore.province,
-        postalCode: newStore.postalCode,
-        isPrimary: true,
-      },
-    });
-    if (!newAddress) {
-      res.status(500).json({ message: "Error creating address for store." });
-      return;
-    }
 
     res.status(201).json({
-      message: "Store and address created successfully.",
-      data: { store: newStore, address: newAddress },
+      message: "Store created successfully.",
+      data: {
+        store,
+        storeAddress,
+        address: createdAddress,
+      },
     });
   } catch (error) {
-    console.error("Error creating store:", error);
-    res.status(500).json({ message: "Error creating store with address." });
+    console.error("Create store error:", error);
+    res.status(500).json({ message: "Error creating store." });
   }
 }
 
+// Get all stores with their associated addresses and store products
 export async function getAllStores(_req: Request, res: Response) {
   try {
     const stores = await prisma.store.findMany({
       include: {
-        Address: true, // Include address associated with the store
-        StoreProduct: true,
-      },
-    });
-
-    res.status(200).json({
-      message: "Stores fetched successfully",
-      data: stores,
-    });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Error fetching stores" });
-  }
-}
-
-function calculateDistance(
-  lat1: number,
-  lon1: number,
-  lat2: number,
-  lon2: number
-): number {
-  return geolib.getDistance(
-    { latitude: lat1, longitude: lon1 },
-    { latitude: lat2, longitude: lon2 }
-  );
-}
-
-// Controller untuk menampilkan produk dari toko terdekat berdasarkan lokasi pengguna
-export async function getNearbyStoreProducts(req: Request, res: Response) {
-  try {
-    const { userLat, userLon } = req.body; // Lokasi pengguna
-
-    if (!userLat || !userLon) {
-      res.status(400).json({
-        message: "User location (latitude and longitude) is required.",
-      });
-      return;
-    }
-
-    // Ambil semua toko dari database
-    const stores = await prisma.store.findMany();
-
-    // Menambahkan jarak dari setiap toko ke lokasi pengguna
-    const storesWithDistance = stores.map((store) => {
-      const distance = calculateDistance(
-        userLat,
-        userLon,
-        store.latitude,
-        store.longitude
-      );
-      return { ...store, distance }; // Menambahkan informasi jarak ke toko
-    });
-
-    // Urutkan toko berdasarkan jarak terdekat
-    const sortedStores = storesWithDistance.sort(
-      (a, b) => a.distance - b.distance
-    );
-    const nearestStore = sortedStores[0]; // Ambil toko terdekat
-
-    // Ambil produk dari toko terdekat
-    const products = await prisma.product.findMany({
-      where: {
-        StoreProduct: {
-          some: {
-            storeId: nearestStore.id,
+        StoreAddress: {
+          include: {
+            Address: true,
           },
         },
       },
-      include: {
-        StoreProduct: true, // Menampilkan produk dari toko
-      },
     });
-
-    res.status(200).json({
-      nearestStore,
-      products,
-    });
+    if (!stores) {
+      res.status(400).json({ message: "Stores Not Found" });
+      return;
+    }
+    res.status(200).json({ message: "Stores fetched.", data: stores });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Internal server error" });
+    console.error("Fetch stores error:", error);
+    res.status(500).json({ message: "Error fetching stores." });
   }
 }
 
-export async function getStoreById(req: Request, res: Response): Promise<void> {
-  const storeId = req.params.storeId; // Get storeId from URL params
+export async function deleteStore(req: Request, res: Response) {
+  const { storeId } = req.params;
 
-  // Validate storeId
+  try {
+    // 1. Ambil semua StoreAddress yang terhubung ke Store ini
+    const storeAddresses = await prisma.storeAddress.findMany({
+      where: { storeId },
+    });
+
+    // 2. Hapus semua Address yang berelasi dengan masing-masing StoreAddress
+    for (const sa of storeAddresses) {
+      await prisma.address.deleteMany({
+        where: { storeAddressId: sa.id },
+      });
+    }
+
+    // 3. Hapus semua StoreAddress yang terkait dengan storeId
+    await prisma.storeAddress.deleteMany({
+      where: { storeId },
+    });
+
+    // 4. Hapus semua StoreProduct yang terkait dengan storeId (jika ada)
+    await prisma.storeProduct.deleteMany({
+      where: { storeId },
+    });
+
+    // 5. Hapus data Store itu sendiri
+    const deletedStore = await prisma.store.delete({
+      where: { id: storeId },
+    });
+
+    res
+      .status(200)
+      .json({ message: "Toko berhasil dihapus.", data: deletedStore });
+  } catch (error) {
+    console.error("Delete store error:", error);
+    res.status(500).json({ message: "Terjadi kesalahan saat menghapus toko." });
+  }
+}
+// Get a store by its ID along with its associated products
+export async function getStoreById(req: Request, res: Response) {
+  const { storeId } = req.params;
+
   if (!storeId) {
     res.status(400).json({ message: "Store ID is required." });
     return;
   }
 
   try {
-    // Fetch the store along with related StoreProduct and Product details
     const store = await prisma.store.findUnique({
       where: { id: storeId },
       include: {
         StoreProduct: {
-          // Including StoreProduct, which links products to store
+          include: { Product: true },
+        },
+        StoreAddress: {
           include: {
-            Product: true,
-            // Include the associated product details
+            Address: true,
           },
         },
       },
@@ -195,24 +172,110 @@ export async function getStoreById(req: Request, res: Response): Promise<void> {
       return;
     }
 
-    // Return the store with the related StoreProduct and Product details
-    res.status(200).json({
-      data: store,
-    });
+    res.status(200).json({ message: `Get ${storeId} success`, data: store });
   } catch (error) {
-    console.error("Error retrieving store:", error);
-    res.status(500).json({ message: "Internal server error" });
+    console.error("Get store by ID error:", error);
+    res.status(500).json({ message: "Error retrieving store." });
+  }
+}
+export async function updateStore(req: Request, res: Response) {
+  const user = req.user as CustomJwtPayload;
+  const userId = user.id;
+  const storeId = req.params.storeId;
+
+  if (!userId) {
+    res.status(401).json({ message: "Unauthorized user." });
+    return;
+  }
+
+  const {
+    name,
+    address,
+    city,
+    province,
+    postalCode,
+    destination,
+    latitude,
+    longtitude,
+  } = req.body;
+
+  if (
+    !name ||
+    !address ||
+    !city ||
+    !province ||
+    !postalCode ||
+    !destination ||
+    latitude === undefined ||
+    longtitude === undefined
+  ) {
+    res.status(400).json({ message: "All fields are required." });
+    return;
+  }
+
+  try {
+    // 1. Check if store exists and owned by current user
+    const store = await prisma.store.findUnique({
+      where: { id: storeId },
+      include: { StoreAddress: { include: { Address: true } } },
+    });
+
+    if (!store || store.userId !== userId) {
+      res.status(404).json({ message: "Store not found or access denied." });
+      return;
+    }
+
+    // 2. Update store name
+    await prisma.store.update({
+      where: { id: storeId },
+      data: { name },
+    });
+
+    // 3. Update StoreAddress (ambil satu alamat pertama)
+    const storeAddress = store.StoreAddress[0];
+    if (storeAddress) {
+      await prisma.storeAddress.update({
+        where: { id: storeAddress.id },
+        data: {
+          latitude,
+          longtitude,
+        },
+      });
+
+      // 4. Update Address terkait
+      const relatedAddress = storeAddress.Address[0];
+      if (relatedAddress) {
+        await prisma.address.update({
+          where: { id: relatedAddress.id },
+          data: {
+            address,
+            city,
+            province,
+            postalCode,
+            destination,
+          },
+        });
+      }
+    }
+
+    res.json({ message: "Store updated successfully." });
+  } catch (error) {
+    console.error("Update store error:", error);
+    res.status(500).json({ message: "Error updating store." });
   }
 }
 
 export async function createStoreProduct(req: Request, res: Response) {
   const { storeId, productId, stock } = req.body;
+
   try {
+    // Validate inputs
     if (!storeId || !productId || stock === undefined) {
       res.status(400).json({ message: "All fields are required." });
       return;
     }
 
+    // Create a new store product entry
     const storeProduct = await prisma.storeProduct.create({
       data: {
         storeId,
@@ -225,8 +288,96 @@ export async function createStoreProduct(req: Request, res: Response) {
       res.status(500).json({ message: "Error creating product for store." });
       return;
     }
+
+    // Return success response
+    res.status(201).json({
+      message: "Product created for the store successfully.",
+      data: storeProduct,
+    });
   } catch (error) {
     console.error("Error creating store product:", error);
     res.status(500).json({ message: "Error creating store product." });
   }
+}
+
+// Fungsi untuk menghitung jarak antara dua titik koordinat
+export async function getNearbyProducts(req: Request, res: Response) {
+  const { latitude, longitude, radius = 5000 } = req.query;
+
+  if (!latitude || !longitude) {
+    res.status(400).json({ message: "Latitude and longitude are required." });
+    return;
+  }
+
+  const lat = parseFloat(latitude as string);
+  const lon = parseFloat(longitude as string);
+  const rad = parseFloat(radius as string);
+
+  try {
+    // Ambil semua store beserta alamat dan produk
+    const stores = await prisma.store.findMany({
+      include: {
+        StoreAddress: true,
+        StoreProduct: {
+          include: {
+            Product: true,
+          },
+        },
+      },
+    });
+
+    // Filter store berdasarkan jarak dari StoreAddress
+    const nearbyStores = stores.filter((store) => {
+      const addr = store.StoreAddress[0]; // Ambil StoreAddress pertama jika ada
+      if (!addr?.latitude || !addr?.longtitude) return false;
+
+      const distance = calculateDistance(
+        lat,
+        lon,
+        addr.latitude,
+        addr.longtitude
+      );
+      // Simpan nilai jarak ke dalam store.distance (opsional, jika perlu dipakai di frontend)
+      store.distance = distance;
+
+      return distance <= rad;
+    });
+
+    // Ambil semua produk dari toko-toko terdekat
+    const products = nearbyStores.flatMap((store) =>
+      store.StoreProduct.map((sp) => sp.Product)
+    );
+
+    res.json({
+      nearbyStores: nearbyStores.map((s) => ({
+        id: s.id,
+        name: s.name,
+        distance: s.distance,
+      })),
+      products,
+    });
+  } catch (error) {
+    console.error("Error fetching nearby products:", error);
+    res.status(500).json({ message: "Internal server error." });
+  }
+}
+
+function calculateDistance(
+  lat1: number,
+  lon1: number,
+  lat2: number,
+  lon2: number
+): number {
+  const R = 6371e3; // Radius bumi dalam meter
+  const φ1 = (lat1 * Math.PI) / 180;
+  const φ2 = (lat2 * Math.PI) / 180;
+  const Δφ = ((lat2 - lat1) * Math.PI) / 180;
+  const Δλ = ((lon2 - lon1) * Math.PI) / 180;
+
+  const a =
+    Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+    Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+  return R * c; // Jarak dalam meter
 }

@@ -110,14 +110,6 @@ export default function ProductStorePage() {
           </div>
         </div>
 
-        {/* Top bar
-        <div className="flex items-center justify-between mb-6">
-          <p className="text-gray-600">
-            Showing {products.length} product{products.length !== 1 && "s"} in
-            this store
-          </p>
-        </div> */}
-
         {/* Products grid */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
           {products.length === 0 ? (

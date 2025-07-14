@@ -31,7 +31,7 @@
     "typescript": "^5.8.3"
   },
   "dependencies": {
-    "@prisma/client": "^6.9.0",
+    "@prisma/client": "^6.11.0",
     "axios": "^1.10.0",
     "bcryptjs": "^3.0.2",
     "cloudinary": "^2.7.0",
@@ -40,8 +40,10 @@
     "dotenv": "^16.5.0",
     "express": "^5.1.0",
     "express-session": "^1.18.1",
+    "geolib": "^3.3.4",
     "google-auth-library": "^10.1.0",
     "handlebars": "^4.7.8",
+    "haversine-distance": "^1.2.4",
     "jsonwebtoken": "^9.0.2",
     "multer": "^2.0.1",
     "passport": "^0.7.0",

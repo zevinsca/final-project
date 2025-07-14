@@ -42,60 +42,73 @@ model User {
   role                Role      @default(USER)
   createdAt           DateTime  @default(now())
   provider            String?
-  resetToken          String? // Status verifikasi, default false
+  resetToken          String?
   resetTokenExpiresAt DateTime?
   isVerified          Boolean?  @default(false) // Status verifikasi, default false
   verificationToken   String? // Token verifikasi
 
-  addresses        Address[] // Relasi satu ke banyak dengan Address
+  Store            Store[]
   DiscountUsage    DiscountUsage[]
   InventoryJournal InventoryJournal[]
   Cart             Cart[]
   Order            Order[]
   Product          Product[]
-  Store            Store[]
+  UserAddress      UserAddress[]
+}
 
-  // Relasi: stores yang dimiliki user ini sebagai STORE_ADMIN
+model UserAddress {
+  id        String  @id @default(uuid())
+  userId    String
+  recipient String
+  isPrimary Boolean @default(false)
+
+  User    User      @relation(fields: [userId], references: [id])
+  Address Address[]
 }
 
 model Address {
-  id         String   @id @default(uuid())
-  userId     String?
-  recipient  String
-  address    String
-  city       String
-  province   String
-  postalCode String
-  storeId    String?
-  isPrimary  Boolean  @default(false) // <--- ini dia
-  createdAt  DateTime @default(now()) // Foreign key ke User
-  user       User?    @relation(fields: [userId], references: [id]) // Relasi ke User
-  store      Store?   @relation(fields: [storeId], references: [id]) // Relasi ke Store, opsional // Relasi ke User
+  id             String   @id @default(uuid())
+  userAddressId  String?
+  storeAddressId String?
+  destination    String
+  address        String
+  city           String
+  province       String
+  postalCode     String
+  createdAt      DateTime @default(now())
 
-  Order Order[]
+  StoreAddress StoreAddress? @relation(fields: [storeAddressId], references: [id])
+  UserAddress  UserAddress?  @relation(fields: [userAddressId], references: [id])
+  Order        Order[]
+}
+
+model StoreAddress {
+  id         String @id @default(uuid())
+  storeId    String
+  latitude   Float
+  longtitude Float
+
+  createdAt DateTime @default(now())
+
+  Address Address[]
+  Store   Store     @relation(fields: [storeId], references: [id])
 }
 
 model Store {
-  id   String @id @default(uuid())
-  name String @unique
+  id        String    @id @default(uuid())
+  name      String    @unique
+  userId    String
+  // Added: longitude for geographical location
+  createdAt DateTime  @default(now())
+  updatedAt DateTime? @updatedAt
+  distance  Float?
 
-  // userId = siapa yang membuat (SUPER_ADMIN)
-  userId     String
-  imageUrl   String
-  address    String
-  city       String
-  province   String
-  postalCode String
-  latitude   Float // Koordinat latitude untuk perhitungan jarak
-  longitude  Float // Koordinat longitude untuk perhitungan jara
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime? @updatedAt
+  User User @relation(fields: [userId], references: [id])
 
-  User             User               @relation(fields: [userId], references: [id])
-  Discount         Discount[]
-  InventoryJournal InventoryJournal[]
-  StoreProduct     StoreProduct[]
-  Address          Address[]
+  Discounts    Discount[]
+  Inventory    InventoryJournal[]
+  StoreProduct StoreProduct[]
+  StoreAddress StoreAddress[]
 }
 
 model Product {
@@ -123,7 +136,6 @@ model Product {
 }
 
 model StoreProduct {
-  id        String    @id @default(uuid())
   productId String
   storeId   String
   stock     Int
@@ -134,7 +146,7 @@ model StoreProduct {
   Product Product @relation(fields: [productId], references: [id])
   Store   Store   @relation(fields: [storeId], references: [id])
 
-  @@unique([productId, storeId])
+  @@id([productId, storeId])
 }
 
 model Category {
@@ -151,7 +163,6 @@ model Category {
 model Image {
   id               String   @id @default(uuid())
   imageUrl         String
-  ProductId        String?
   previewProductId String?
   contentProductId String?
   createdAt        DateTime @default(now())
@@ -160,6 +171,7 @@ model Image {
   previewProduct Product? @relation("imagePreview", fields: [previewProductId], references: [id])
   contentProduct Product? @relation("imageContent", fields: [contentProductId], references: [id])
   Product        Product? @relation(fields: [ProductId], references: [id])
+  ProductId      String?
 }
 
 model ProductCategory {

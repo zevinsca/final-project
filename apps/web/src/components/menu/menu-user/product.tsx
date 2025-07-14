@@ -15,9 +15,11 @@ interface Product {
     storeName: string;
     stock: number;
   }[];
-  imagePreview: { imageUrl: string }[];
-}
 
+  stock: number;
+  imagePreview: [{ imageUrl: string }];
+  imageContent: [{ imageUrl: string }];
+}
 export default function ProductCatalog() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -80,12 +82,16 @@ export default function ProductCatalog() {
 
             {/* Image */}
             <Image
-              src={product.imagePreview[0].imageUrl}
+              src={product.imagePreview?.[0]?.imageUrl ?? "/placeholder.jpg"}
               alt={product.name}
               width={150}
               height={150}
               className="mx-auto mb-4"
             />
+
+            <p className="text-gray-400 text-sm">
+              {product.stock > 0 ? "In Stock" : "Out of Stock"}
+            </p>
 
             {/* Name */}
             <p className="font-semibold mb-1">{product.name}</p>
@@ -94,11 +100,11 @@ export default function ProductCatalog() {
             <div className="mb-2">
               {product.price < 100 && (
                 <span className="text-gray-400 line-through mr-2">
-                  Rp{product.price + 10}
+                  ${product.price + 10}.00
                 </span>
               )}
               <span className="text-green-700 font-bold">
-                Rp{product.price.toFixed()}
+                ${product.price.toFixed(2)}
               </span>
             </div>
 

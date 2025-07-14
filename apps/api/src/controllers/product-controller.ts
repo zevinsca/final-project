@@ -8,12 +8,13 @@ import { CustomJwtPayload } from "../types/express.js";
 export async function getAllProduct(req: Request, res: Response) {
   try {
     const search = req.query.search as string | undefined;
+
     const products = await prisma.product.findMany({
       where: search
         ? {
             name: {
               contains: search,
-              mode: "insensitive", // biar case insensitive
+              mode: "insensitive",
             },
           }
         : undefined,
@@ -24,44 +25,26 @@ export async function getAllProduct(req: Request, res: Response) {
         imagePreview: true,
         StoreProduct: {
           include: {
-            Store: {
-              select: {
-                id: true,
-                name: true,
-              },
-            },
+            Store: true,
           },
         },
       },
     });
 
     const finalResult = products.map((item) => {
-      // Hitung total stock semua toko
-      const totalStock = item.StoreProduct.reduce(
-        (sum, sp) => sum + sp.stock,
-        0
-      );
-
-      // Ambil detail per store
-      const stockPerStore = item.StoreProduct.map((sp) => ({
-        storeId: sp.storeId,
-        storeName: sp.Store?.name,
-        stock: sp.stock,
-      }));
+      const storeProduct = item.StoreProduct?.[0];
 
       return {
         id: item.id,
         name: item.name,
         description: item.description,
         price: item.price,
+        stock: storeProduct ? storeProduct.stock : 0,
+        storeName: storeProduct?.Store?.name ?? null,
         imagePreview: item.imagePreview,
-        category: item.ProductCategory.map(
-          (el: { Category: { name: string } }) => el.Category.name
-        ),
-        totalStock,
-        stockPerStore,
         createdAt: item.createdAt,
         updatedAt: item.updatedAt,
+        category: item.ProductCategory.map((el) => el.Category.name),
       };
     });
 
@@ -76,20 +59,39 @@ export async function getAllProduct(req: Request, res: Response) {
 export async function getProductById(req: Request, res: Response) {
   try {
     const id = req.params.id;
-    const product = await prisma.product.findUnique({
-      where: { id: id },
+    console.log("Mencari produk dengan ID:", id);
+
+    const product = await prisma.product.findFirst({
+      where: {
+        id,
+        deletedAt: null, // hanya ambil yang belum dihapus
+      },
       include: {
-        ProductCategory: { include: { Category: true } },
+        ProductCategory: {
+          include: {
+            Category: true,
+          },
+        },
         User: true,
         imageContent: true,
         imagePreview: true,
-        StoreProduct: true,
+        StoreProduct: {
+          include: {
+            Store: true,
+          },
+        },
       },
     });
+
+    if (!product) {
+      res.status(404).json({ message: "Produk tidak ditemukan." });
+      return;
+    }
+
     res.status(200).json({ data: product });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Failed to get product by id" });
+    console.error("Gagal mengambil produk berdasarkan ID:", error);
+    res.status(500).json({ message: "Gagal mengambil produk berdasarkan ID." });
   }
 }
 
@@ -151,6 +153,7 @@ export async function createProduct(
         description,
         price,
         weight,
+        // stock,
         ProductCategory: {
           create: categoryIds.map((categoryId: string) => ({
             categoryId,
@@ -193,5 +196,77 @@ export async function createProduct(
     res.status(500).json({
       message: "Internal server error",
     });
+  }
+}
+
+export async function getAllProductsByCity(req: Request, res: Response) {
+  const { province } = req.query;
+
+  if (!province || typeof province !== "string") {
+    res.status(400).json({ message: "City parameter is required." });
+    return;
+  }
+
+  try {
+    // Get all addresses in the given city
+    const addresses = await prisma.address.findMany({
+      where: {
+        province: {
+          equals: province,
+          mode: "insensitive", // optional: make case-insensitive
+        },
+        storeAddressId: {
+          not: null,
+        },
+      },
+      select: {
+        storeAddressId: true,
+      },
+    });
+
+    const storeAddressIds = addresses.map((addr) => addr.storeAddressId!);
+
+    // Get all store IDs connected to those store addresses
+    const storeAddresses = await prisma.storeAddress.findMany({
+      where: {
+        id: {
+          in: storeAddressIds,
+        },
+      },
+      select: {
+        storeId: true,
+      },
+    });
+
+    const storeIds = storeAddresses.map((sa) => sa.storeId);
+
+    // Get all products from those stores
+    const storeProducts = await prisma.storeProduct.findMany({
+      where: {
+        storeId: {
+          in: storeIds,
+        },
+      },
+      include: {
+        Product: true,
+        Store: {
+          include: {
+            StoreAddress: {
+              include: {
+                Address: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    res.status(200).json({
+      message: `Products in city: ${province}`,
+      data: storeProducts,
+    });
+  } catch (error) {
+    console.error("Error fetching products by city:", error);
+    res.status(500).json({ message: "Error fetching products." });
   }
 }

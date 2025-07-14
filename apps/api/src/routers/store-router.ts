@@ -4,7 +4,8 @@ import {
   getStoreById,
   getAllStores,
   createStoreProduct,
-  getNearbyStoreProducts,
+  deleteStore,
+  updateStore,
 } from "../controllers/store-controler.js";
 import { roleGuard, verifyToken } from "../middleware/auth-middleware.js";
 
@@ -12,13 +13,7 @@ const router = express.Router();
 
 router
   .route("/")
-  // .get(verifyToken, getAllStores)
-  .get(getAllStores)
-  .post(verifyToken, roleGuard("STORE_ADMIN"), createStoreProduct);
-
-router
-  .route("/nearby")
-  .get(verifyToken, getNearbyStoreProducts)
+  .get(verifyToken, getAllStores)
   .post(verifyToken, roleGuard("STORE_ADMIN"), createStoreProduct);
 
 // GET satu store
@@ -26,7 +21,14 @@ router
   .route("/super-admin")
   .get(verifyToken, getAllStores)
   .post(verifyToken, roleGuard("SUPER_ADMIN"), createStore);
+router
+  .route("/super-admin/:storeId")
+  .get(verifyToken, roleGuard("SUPER_ADMIN"), getStoreById);
 
-router.route("/:storeId").get(getStoreById);
-// .get(verifyToken, roleGuard("STORE_ADMIN"), getStoreById);
+router
+  .route("/:storeId")
+  .get(verifyToken, roleGuard("STORE_ADMIN"), getStoreById);
+router.route("/super-admin/:storeId").delete(deleteStore);
+
+router.route("/super-admin/:editingStore.id").put(updateStore);
 export default router;
