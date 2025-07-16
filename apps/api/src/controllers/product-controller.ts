@@ -256,25 +256,35 @@ export async function getAllProductsByCity(req: Request, res: Response) {
 
     const storeIds = storeAddresses.map((sa) => sa.storeId);
 
-    // Step 3: Build dynamic WHERE for storeProduct
-    const where: any = {
-      storeId: { in: storeIds },
-      deletedAt: null,
-    };
+    // Step 3: (NEW) If category filter is present, get matching productIds
+    let productIds: string[] | undefined = undefined;
 
     if (category && typeof category === "string") {
-      where.Product = {
-        ProductCategory: {
-          some: {
-            Category: {
-              name: { equals: category, mode: "insensitive" },
+      const products = await prisma.product.findMany({
+        where: {
+          deletedAt: null,
+          ProductCategory: {
+            some: {
+              Category: {
+                name: { equals: category, mode: "insensitive" },
+              },
             },
           },
         },
-      };
+        select: { id: true },
+      });
+
+      productIds = products.map((p) => p.id);
     }
 
-    // Step 4: Get store products with optional category filter
+    // Step 4: Build WHERE for storeProduct
+    const where: any = {
+      storeId: { in: storeIds },
+      deletedAt: null,
+      ...(productIds && { productId: { in: productIds } }),
+    };
+
+    // Step 5: Get storeProducts with includes
     const storeProducts = await prisma.storeProduct.findMany({
       where,
       include: {
@@ -312,17 +322,55 @@ export async function getAllProductsByStore(
 ): Promise<void> {
   try {
     const storeId = req.query.storeId as string;
+    const search = req.query.search as string | undefined;
+    const category = req.query.category as string | undefined;
 
     if (!storeId) {
       res.status(400).json({ message: "storeId is required" });
       return;
     }
 
+    // Step 1: Optional filter productIds by category
+    let productIds: string[] | undefined = undefined;
+
+    if (category && typeof category === "string") {
+      const products = await prisma.product.findMany({
+        where: {
+          deletedAt: null,
+          ProductCategory: {
+            some: {
+              Category: {
+                name: { equals: category, mode: "insensitive" },
+              },
+            },
+          },
+        },
+        select: { id: true },
+      });
+
+      productIds = products.map((p) => p.id);
+    }
+
+    // Step 2: Build dynamic WHERE
+    const where: any = {
+      storeId,
+      deletedAt: null,
+      ...(productIds && { productId: { in: productIds } }),
+    };
+
+    if (search && typeof search === "string") {
+      where.Product = {
+        ...where.Product,
+        name: {
+          contains: search,
+          mode: "insensitive",
+        },
+      };
+    }
+
+    // Step 3: Query storeProduct with filters
     const storeProducts = await prisma.storeProduct.findMany({
-      where: {
-        storeId,
-        deletedAt: null,
-      },
+      where,
       include: {
         Product: {
           include: {
@@ -343,11 +391,9 @@ export async function getAllProductsByStore(
     }));
 
     res.status(200).json({ data: result });
-    return;
   } catch (error) {
     console.error("Error fetching products by store:", error);
     res.status(500).json({ message: "Failed to fetch products by store" });
-    return;
   }
 }
 

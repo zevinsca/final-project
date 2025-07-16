@@ -37,16 +37,13 @@ export default function ProductPage() {
   const [error, setError] = useState<string | null>(null);
   const [isGeoActive, setIsGeoActive] = useState<boolean>(false);
 
-  // ✅ State untuk kategori
-  const [categories, setCategories] = useState<{ id: string; name: string }[]>(
-    []
-  );
-  const [selectedCategory, setSelectedCategory] = useState<string>("All");
-
-  // ✅ Search & Pagination
-  // const [search, setSearch] = useState<string>("");
+  const [search, setSearch] = useState<string>("");
   const [page, setPage] = useState<number>(1);
   const [limit] = useState<number>(12);
+
+  // ✅ NEW: Filter by category
+  const [category, setCategory] = useState<string>("");
+  const [categories, setCategories] = useState<string[]>([]);
 
   useEffect(() => {
     if ("geolocation" in navigator) {
@@ -69,12 +66,10 @@ export default function ProductPage() {
         if (isGeoActive && (latitude === null || longitude === null)) return;
 
         const params = new URLSearchParams();
-        // if (search) params.append("search", search);
-        // params.append("page", page.toString());
-        // params.append("limit", limit.toString());
-        if (selectedCategory && selectedCategory !== "All") {
-          params.append("categoryId", selectedCategory);
-        }
+        if (search) params.append("search", search);
+        if (category) params.append("category", category);
+        params.append("page", page.toString());
+        params.append("limit", limit.toString());
 
         let url = "";
 
@@ -121,10 +116,10 @@ export default function ProductPage() {
     longitude,
     selectedProvince,
     isGeoActive,
-    // search,
+    search,
     page,
     limit,
-    selectedCategory,
+    category,
   ]);
 
   useEffect(() => {
@@ -144,7 +139,11 @@ export default function ProductPage() {
       try {
         const res = await fetch(`${domain}/api/v1/categories`);
         const data = await res.json();
-        setCategories(data.data ?? []); // ✅ gunakan data.data sesuai respons
+        console.log("Fetched categories:", data);
+
+        // Ambil array nama kategori dari data.data
+        const names = (data.data || []).map((c: { name: string }) => c.name);
+        setCategories(names);
       } catch (err) {
         console.error("Gagal mengambil kategori", err);
       }
@@ -188,7 +187,7 @@ export default function ProductPage() {
             <h2 className="text-2xl font-bold mb-4 text-green-900"></h2>
 
             <div className="flex flex-wrap gap-4 mb-6 items-center">
-              {/* <input
+              <input
                 type="text"
                 placeholder="Search products..."
                 value={search}
@@ -200,20 +199,20 @@ export default function ProductPage() {
                 className="bg-green-700 text-white px-4 py-2 rounded shadow"
               >
                 Search
-              </button> */}
+              </button>
 
               <select
-                value={selectedCategory}
+                value={category}
                 onChange={(e) => {
-                  setSelectedCategory(e.target.value);
+                  setCategory(e.target.value);
                   setPage(1);
                 }}
                 className="border rounded px-3 py-2 shadow"
               >
-                <option value="All">All Categories</option>
-                {categories.map((category) => (
-                  <option key={category.id} value={category.id}>
-                    {category.name}
+                <option value="">All Categories</option>
+                {categories.map((cat) => (
+                  <option key={cat} value={cat}>
+                    {cat}
                   </option>
                 ))}
               </select>
