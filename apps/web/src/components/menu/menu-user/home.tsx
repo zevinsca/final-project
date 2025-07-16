@@ -29,8 +29,11 @@ export default function HomePageUser() {
   const [products, setProducts] = useState<Product[]>([]);
   const [stores, setStores] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
   const [isGeoActive, setIsGeoActive] = useState<boolean>(false);
+  const [locationReady, setLocationReady] = useState<boolean>(false);
 
+  // Ambil lokasi pengguna
   useEffect(() => {
     if ("geolocation" in navigator) {
       navigator.geolocation.getCurrentPosition(
@@ -38,22 +41,31 @@ export default function HomePageUser() {
           setLatitude(position.coords.latitude);
           setLongitude(position.coords.longitude);
           setIsGeoActive(true);
+          setLocationReady(true);
         },
         () => {
           setIsGeoActive(false);
+          setLocationReady(false);
         }
       );
     }
   }, []);
 
+  // Fetch produk
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        if (isGeoActive && (latitude === null || longitude === null)) return;
+        setLoading(true);
+        setError(null);
 
         let url = "";
 
-        if (isGeoActive && latitude !== null && longitude !== null) {
+        if (
+          isGeoActive &&
+          locationReady &&
+          latitude !== null &&
+          longitude !== null
+        ) {
           url = `http://localhost:8000/api/v1/products/nearby?latitude=${latitude}&longitude=${longitude}&radius=7000`;
         } else if (selectedProvince !== "All") {
           url = `http://localhost:8000/api/v1/products/by-province?province=${selectedProvince}`;
@@ -62,9 +74,7 @@ export default function HomePageUser() {
         }
 
         const res = await fetch(url);
-        if (!res.ok) {
-          throw new Error("Gagal memuat produk.");
-        }
+        if (!res.ok) throw new Error("Gagal memuat produk.");
 
         const data = await res.json();
         const rawData = data.data ?? data.products ?? [];
@@ -82,12 +92,15 @@ export default function HomePageUser() {
         setStores(nearbyStoreNames);
       } catch (err) {
         setError((err as Error).message);
+      } finally {
+        setLoading(false);
       }
     };
 
     fetchProducts();
-  }, [latitude, longitude, selectedProvince, isGeoActive]);
+  }, [latitude, longitude, selectedProvince, isGeoActive, locationReady]);
 
+  // Fetch provinsi
   useEffect(() => {
     const fetchProvinces = async () => {
       try {
@@ -107,12 +120,12 @@ export default function HomePageUser() {
   return (
     <div className="min-h-screen px-6 md:px-20 lg:px-40 py-10 grid grid-rows-[auto_1fr] gap-10">
       <div>
-        <h1 className="text-3xl font-bold text-center">
+        <h1 className="text-3xl font-bold text-center text-green-900 animate-fade-in-up">
           Selamat Datang di Market Snap
         </h1>
-
         {error && <p className="text-red-400 text-center">{error}</p>}
       </div>
+
       <div className="grid grid-rows-[auto_1fr] gap-5">
         {!isGeoActive && (
           <div className="w-full flex justify-end px-5">
@@ -122,9 +135,7 @@ export default function HomePageUser() {
               <select
                 className="border border-gray-300 rounded px-3 py-2 text-black"
                 value={selectedProvince}
-                onChange={(e) => {
-                  setSelectedProvince(e.target.value);
-                }}
+                onChange={(e) => setSelectedProvince(e.target.value)}
               >
                 <option value="All">All</option>
                 {provinces.map((province) => (
@@ -139,6 +150,7 @@ export default function HomePageUser() {
 
         <div className="p-6 rounded-lg shadow-l grid grid-rows-2 gap-20">
           <Icons />
+
           <div>
             <h2 className="text-2xl font-bold mb-4 text-green-900">
               Produk dari Toko
@@ -150,19 +162,23 @@ export default function HomePageUser() {
               </div>
             )}
 
-            {products.length === 0 && (
-              <p className="text-green-100">Belum ada produk yang ditemukan.</p>
+            {loading && (
+              <p className="text-green-700 italic">Memuat produk terdekat...</p>
+            )}
+
+            {!loading && products.length === 0 && (
+              <p className="text-green-500 italic">
+                Belum ada produk yang ditemukan.
+              </p>
             )}
 
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
               {products.map((product) => (
                 <div
                   key={product.id}
-                  className="bg-green-900 text-white border border-green-700 p-4 rounded-lg shadow transition-all duration-500 transform hover:scale-105 hover:shadow-2xl hover:bg-green-800"
+                  className="bg-green-900 text-white border border-green-700 p-4 rounded-lg shadow transition duration-300 transform hover:scale-105 hover:shadow-2xl hover:bg-green-800"
                 >
-                  <h3 className="text-lg font-semibold text-white">
-                    {product.name}
-                  </h3>
+                  <h3 className="text-lg font-semibold">{product.name}</h3>
                   <p className="text-green-200">{product.description}</p>
                   <p className="font-bold text-lime-300 pt-2">
                     Rp {product.price.toLocaleString()}

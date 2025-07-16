@@ -6,16 +6,17 @@ import {
   register,
   loginSuccess,
   loginFailed,
-  verifyEmail,
+  sendVerificationEmail,
   VerifySuccess,
   loginGoogle,
+  setPassword,
+  resetPassword,
+  setNewPassword,
+  confirmEmail,
 } from "../controllers/auth.controller.js";
 
-import {
-  changePassword,
-  resetPassword,
-} from "../controllers/user-controller.js";
-import { authMiddleware } from "../middleware/auth-middleware.js";
+import { changePassword } from "../controllers/user-controller.js";
+import { authMiddleware, verifyToken } from "../middleware/auth-middleware.js";
 
 const router = express.Router();
 
@@ -41,19 +42,28 @@ router.get(
 router.route("/logout").delete(logout);
 
 /* -------------------------------------------------------------------------- */
-/*                                LOGIN MANUAL                                */
+/*                               Verify Account                               */
 /* -------------------------------------------------------------------------- */
-router.route("/verify-email").get(verifyEmail).get(VerifySuccess);
 
-router.post("/register", register);
-router.post("/login", login); // Logout khusus JWT
+router.route("/verify-email").post(verifyToken, sendVerificationEmail);
+router.route("/confirm-email").get(confirmEmail);
+router.route("/verify-success").get(VerifySuccess);
+
+/* -------------------------------------------------------------------------- */
+/*                     Login and register With MarketSnap                     */
+/* -------------------------------------------------------------------------- */
+
+router.route("/register").post(register);
+router.route("/login").post(login); // Logout khusus JWT
 
 /* -------------------------------------------------------------------------- */
 /*                          Reser and change Password                         */
 /* -------------------------------------------------------------------------- */
 
-router.post("/reset-password", resetPassword);
+router.route("/reset-password").post(resetPassword);
+router.route("/set-new-password").post(setNewPassword);
 
 // Change password harus login
-router.post("/change-password", authMiddleware, changePassword);
+router.route("/change-password").post(authMiddleware, changePassword);
+router.route("/set-password").post(setPassword);
 export default router;
