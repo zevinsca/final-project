@@ -1,11 +1,6 @@
 "use client";
-// import Image from "next/image";
-// import StoreHomePage from "./store-homePage";
-// import ProductNearby from "./nearby-product";
 
 import { useEffect, useState } from "react";
-// import { FiMenu } from "react-icons/fi";
-// import Icons from "./icons";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -29,6 +24,9 @@ interface StoreProductResponse {
   stock: number;
 }
 
+const domain = process.env.NEXT_PUBLIC_DOMAIN;
+const DEFAULT_STORE_ID = "f96bdf49-a653-44f9-bcb8-39432ff738c1";
+
 export default function ProductPage() {
   const [provinces, setProvinces] = useState<string[]>([]);
   const [latitude, setLatitude] = useState<number | null>(null);
@@ -38,6 +36,17 @@ export default function ProductPage() {
   const [stores, setStores] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isGeoActive, setIsGeoActive] = useState<boolean>(false);
+
+  // ✅ State untuk kategori
+  const [categories, setCategories] = useState<{ id: string; name: string }[]>(
+    []
+  );
+  const [selectedCategory, setSelectedCategory] = useState<string>("All");
+
+  // ✅ Search & Pagination
+  // const [search, setSearch] = useState<string>("");
+  const [page, setPage] = useState<number>(1);
+  const [limit] = useState<number>(12);
 
   useEffect(() => {
     if ("geolocation" in navigator) {
@@ -59,14 +68,27 @@ export default function ProductPage() {
       try {
         if (isGeoActive && (latitude === null || longitude === null)) return;
 
+        const params = new URLSearchParams();
+        // if (search) params.append("search", search);
+        // params.append("page", page.toString());
+        // params.append("limit", limit.toString());
+        if (selectedCategory && selectedCategory !== "All") {
+          params.append("categoryId", selectedCategory);
+        }
+
         let url = "";
 
         if (isGeoActive && latitude !== null && longitude !== null) {
-          url = `http://localhost:8000/api/v1/products/nearby?latitude=${latitude}&longitude=${longitude}&radius=7000`;
+          params.append("latitude", latitude.toString());
+          params.append("longitude", longitude.toString());
+          params.append("radius", "20000");
+          url = `${domain}/api/v1/products/nearby?${params.toString()}`;
         } else if (selectedProvince !== "All") {
-          url = `http://localhost:8000/api/v1/products/by-province?province=${selectedProvince}`;
+          params.append("province", selectedProvince);
+          url = `${domain}/api/v1/products/by-province?${params.toString()}`;
         } else {
-          url = `http://localhost:8000/api/v1/products`;
+          params.append("storeId", DEFAULT_STORE_ID);
+          url = `${domain}/api/v1/products/by-store?${params.toString()}`;
         }
 
         const res = await fetch(url);
@@ -79,9 +101,7 @@ export default function ProductPage() {
 
         const normalized: Product[] = rawData.map(
           (item: Product | StoreProductResponse) =>
-            "Product" in item
-              ? { ...item.Product, stock: item.stock } // inject stock dari StoreProduct
-              : item
+            "Product" in item ? { ...item.Product, stock: item.stock } : item
         );
 
         const nearbyStoreNames: string[] = (data.nearbyStores ?? []).map(
@@ -96,7 +116,16 @@ export default function ProductPage() {
     };
 
     fetchProducts();
-  }, [latitude, longitude, selectedProvince, isGeoActive]);
+  }, [
+    latitude,
+    longitude,
+    selectedProvince,
+    isGeoActive,
+    // search,
+    page,
+    limit,
+    selectedCategory,
+  ]);
 
   useEffect(() => {
     const fetchProvinces = async () => {
@@ -111,7 +140,18 @@ export default function ProductPage() {
       }
     };
 
+    const fetchCategories = async () => {
+      try {
+        const res = await fetch(`${domain}/api/v1/categories`);
+        const data = await res.json();
+        setCategories(data.data ?? []); // ✅ gunakan data.data sesuai respons
+      } catch (err) {
+        console.error("Gagal mengambil kategori", err);
+      }
+    };
+
     fetchProvinces();
+    fetchCategories();
   }, []);
 
   return (
@@ -123,13 +163,16 @@ export default function ProductPage() {
             <div className="flex items-center gap-2 bg-green-700 text-white px-6 py-2 rounded shadow-md">
               <span className="font-semibold">Pilih Lokasi</span>
               <select
-                className="border border-gray-300 rounded px-3 py-2 text-black"
+                className="border-none rounded-md px-3 py-2 text-black cursor-pointer shadow-sm transition duration-200 focus:outline-none focus:ring-2 focus:ring-green-500"
                 value={selectedProvince}
                 onChange={(e) => {
                   setSelectedProvince(e.target.value);
+                  setPage(1);
                 }}
               >
-                <option value="All">All</option>
+                <option value="" disabled hidden>
+                  Pilih Provinsi
+                </option>
                 {provinces.map((province) => (
                   <option key={province} value={province}>
                     {province}
@@ -139,19 +182,51 @@ export default function ProductPage() {
             </div>
           </div>
         )}
-        {/* <StoreHomePage /> */}
-        <div className="p-6 rounded-lg shadow-l grid grid-rows-2 gap-20">
+
+        <div className="p-6 rounded-lg shadow-l grid grid-rows-2 gap-10">
           <div>
             <h2 className="text-2xl font-bold mb-4 text-green-900"></h2>
 
+            <div className="flex flex-wrap gap-4 mb-6 items-center">
+              {/* <input
+                type="text"
+                placeholder="Search products..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="px-3 py-2 border rounded shadow"
+              />
+              <button
+                onClick={() => setPage(1)}
+                className="bg-green-700 text-white px-4 py-2 rounded shadow"
+              >
+                Search
+              </button> */}
+
+              <select
+                value={selectedCategory}
+                onChange={(e) => {
+                  setSelectedCategory(e.target.value);
+                  setPage(1);
+                }}
+                className="border rounded px-3 py-2 shadow"
+              >
+                <option value="All">All Categories</option>
+                {categories.map((category) => (
+                  <option key={category.id} value={category.id}>
+                    {category.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
             {isGeoActive && stores.length > 0 && (
               <div className="mb-2 text-green-900 font-semibold">
-                <strong></strong> {stores.join(", ")}
+                <strong>Toko terdekat:</strong> {stores.join(", ")}
               </div>
             )}
 
             {products.length === 0 && (
-              <p className="text-green-100">Belum ada produk yang ditemukan.</p>
+              <p className="text-green-600">Belum ada produk yang ditemukan.</p>
             )}
 
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
@@ -170,18 +245,6 @@ export default function ProductPage() {
                     className="mx-auto mb-4"
                   />
 
-                  {/* <p
-                    className={`text-sm mb-2 ${
-                      (product.stock ?? 0 > 0)
-                        ? "text-green-600"
-                        : "text-red-500"
-                    }`}
-                  >
-                    {(product.stock ?? 0 > 0)
-                      ? `Stok: ${product.stock}`
-                      : "Out of Stock"}
-                  </p> */}
-
                   <h3 className="text-lg font-semibold text-gray-900 mb-1">
                     {product.name}
                   </h3>
@@ -198,6 +261,24 @@ export default function ProductPage() {
                   </Link>
                 </div>
               ))}
+            </div>
+
+            <div className="flex justify-center mt-8 gap-3">
+              <button
+                onClick={() => setPage((prev) => Math.max(prev - 1, 1))}
+                className="px-4 py-2 bg-green-700 text-white rounded shadow"
+              >
+                Prev
+              </button>
+              <span className="px-4 py-2 border rounded shadow">
+                Page {page}
+              </span>
+              <button
+                onClick={() => setPage((prev) => prev + 1)}
+                className="px-4 py-2 bg-green-700 text-white rounded shadow"
+              >
+                Next
+              </button>
             </div>
           </div>
         </div>

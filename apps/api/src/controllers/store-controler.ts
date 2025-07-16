@@ -19,7 +19,7 @@ export async function createStore(req: Request, res: Response) {
     postalCode,
     destination,
     latitude,
-    longtitude,
+    longitude,
   } = req.body;
 
   // Validasi input
@@ -31,7 +31,7 @@ export async function createStore(req: Request, res: Response) {
     !postalCode ||
     !destination ||
     latitude === undefined ||
-    longtitude === undefined
+    longitude === undefined
   ) {
     res.status(400).json({ message: "All fields are required." });
     return;
@@ -51,7 +51,7 @@ export async function createStore(req: Request, res: Response) {
       data: {
         storeId: store.id,
         latitude: parseFloat(latitude),
-        longtitude: parseFloat(longtitude),
+        longitude: parseFloat(longitude),
       },
     });
 
@@ -196,7 +196,7 @@ export async function updateStore(req: Request, res: Response) {
     postalCode,
     destination,
     latitude,
-    longtitude,
+    longitude,
   } = req.body;
 
   if (
@@ -207,7 +207,7 @@ export async function updateStore(req: Request, res: Response) {
     !postalCode ||
     !destination ||
     latitude === undefined ||
-    longtitude === undefined
+    longitude === undefined
   ) {
     res.status(400).json({ message: "All fields are required." });
     return;
@@ -238,7 +238,7 @@ export async function updateStore(req: Request, res: Response) {
         where: { id: storeAddress.id },
         data: {
           latitude,
-          longtitude,
+          longitude,
         },
       });
 
@@ -302,7 +302,12 @@ export async function createStoreProduct(req: Request, res: Response) {
 
 // Fungsi untuk menghitung jarak antara dua titik koordinat
 export async function getNearbyProducts(req: Request, res: Response) {
-  const { latitude, longitude, radius = 5000 } = req.query;
+  const { latitude, longitude, radius = 5000, category } = req.query;
+
+  const search = req.query.search as string | undefined;
+  const page = parseInt(req.query.page as string) || 1;
+  const limit = parseInt(req.query.limit as string) || 10;
+  const offset = (page - 1) * limit;
 
   if (!latitude || !longitude) {
     res.status(400).json({ message: "Latitude and longitude are required." });
@@ -314,47 +319,110 @@ export async function getNearbyProducts(req: Request, res: Response) {
   const rad = parseFloat(radius as string);
 
   try {
-    // Ambil semua store beserta alamat dan produk
+    // 1. Ambil semua store & alamat
     const stores = await prisma.store.findMany({
-      include: {
-        StoreAddress: true,
-        StoreProduct: {
-          include: {
-            Product: true,
+      include: { StoreAddress: true },
+    });
+
+    // 2. Filter store berdasarkan jarak
+    const nearbyStores = stores
+      .map((store) => {
+        const addr = store.StoreAddress[0];
+        if (!addr?.latitude || !addr?.longitude) return null;
+        const distance = calculateDistance(
+          lat,
+          lon,
+          addr.latitude,
+          addr.longitude
+        );
+        return distance <= rad
+          ? { id: store.id, name: store.name, distance }
+          : null;
+      })
+      .filter(
+        (s): s is { id: string; name: string; distance: number } => s !== null
+      );
+
+    if (nearbyStores.length === 0) {
+      return res.json({
+        nearbyStores: [],
+        products: [],
+        pagination: {
+          page,
+          limit,
+          totalItems: 0,
+          totalPages: 0,
+        },
+      });
+    }
+
+    const nearbyStoreIds = nearbyStores.map((s) => s.id);
+
+    // 3. Buat filter dinamis untuk kategori
+    const productFilter: any = {
+      deletedAt: null,
+      name: search
+        ? {
+            contains: search,
+            mode: "insensitive",
+          }
+        : undefined,
+    };
+
+    if (category && typeof category === "string") {
+      productFilter.ProductCategory = {
+        some: {
+          Category: {
+            name: { equals: category, mode: "insensitive" },
           },
         },
-      },
-    });
+      };
+    }
 
-    // Filter store berdasarkan jarak dari StoreAddress
-    const nearbyStores = stores.filter((store) => {
-      const addr = store.StoreAddress[0]; // Ambil StoreAddress pertama jika ada
-      if (!addr?.latitude || !addr?.longtitude) return false;
+    // 4. Query produk (storeProduct) dengan filter kategori
+    const [storeProducts, totalItems] = await Promise.all([
+      prisma.storeProduct.findMany({
+        where: {
+          storeId: { in: nearbyStoreIds },
+          deletedAt: null,
+          Product: productFilter,
+        },
+        include: {
+          Product: {
+            include: {
+              imagePreview: true,
+              ProductCategory: { include: { Category: true } },
+            },
+          },
+          Store: true,
+        },
+        skip: offset,
+        take: limit,
+      }),
+      prisma.storeProduct.count({
+        where: {
+          storeId: { in: nearbyStoreIds },
+          deletedAt: null,
+          Product: productFilter,
+        },
+      }),
+    ]);
 
-      const distance = calculateDistance(
-        lat,
-        lon,
-        addr.latitude,
-        addr.longtitude
-      );
-      // Simpan nilai jarak ke dalam store.distance (opsional, jika perlu dipakai di frontend)
-      store.distance = distance;
-
-      return distance <= rad;
-    });
-
-    // Ambil semua produk dari toko-toko terdekat
-    const products = nearbyStores.flatMap((store) =>
-      store.StoreProduct.map((sp) => sp.Product)
-    );
+    const products = storeProducts.map((sp) => ({
+      ...sp.Product,
+      stock: sp.stock,
+      storeName: sp.Store?.name ?? null,
+    }));
 
     res.json({
-      nearbyStores: nearbyStores.map((s) => ({
-        id: s.id,
-        name: s.name,
-        distance: s.distance,
-      })),
+      nearbyStores,
       products,
+      pagination: {
+        page,
+        limit,
+        totalItems,
+        totalPages: Math.ceil(totalItems / limit),
+      },
     });
   } catch (error) {
     console.error("Error fetching nearby products:", error);

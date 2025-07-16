@@ -83,10 +83,10 @@ model Address {
 }
 
 model StoreAddress {
-  id         String @id @default(uuid())
-  storeId    String
-  latitude   Float
-  longtitude Float
+  id        String @id @default(uuid())
+  storeId   String
+  latitude  Float
+  longitude Float
 
   createdAt DateTime @default(now())
 

@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { FiMenu } from "react-icons/fi";
+
 import Icons from "./icons";
 import Image from "next/image";
-
+import Link from "next/link";
 interface Product {
   id: string;
   name: string;
@@ -24,6 +24,8 @@ interface StoreProductResponse {
   Store: Store;
   stock: number;
 }
+const domain = process.env.NEXT_PUBLIC_DOMAIN;
+const DEFAULT_STORE_ID = "f96bdf49-a653-44f9-bcb8-39432ff738c1";
 
 export default function HomePageUser() {
   const [provinces, setProvinces] = useState<string[]>([]);
@@ -58,11 +60,11 @@ export default function HomePageUser() {
         let url = "";
 
         if (isGeoActive && latitude !== null && longitude !== null) {
-          url = `http://localhost:8000/api/v1/products/nearby?latitude=${latitude}&longitude=${longitude}&radius=7000`;
+          url = `${domain}/api/v1/products/nearby?latitude=${latitude}&longitude=${longitude}&radius=20000`;
         } else if (selectedProvince !== "All") {
-          url = `http://localhost:8000/api/v1/products/by-province?province=${selectedProvince}`;
+          url = `${domain}/api/v1/products/by-province?province=${selectedProvince}`;
         } else {
-          url = `http://localhost:8000/api/v1/products`;
+          url = `${domain}/api/v1/products/by-store?storeId=${DEFAULT_STORE_ID}`;
         }
 
         const res = await fetch(url);
@@ -123,16 +125,15 @@ export default function HomePageUser() {
         {!isGeoActive && (
           <div className="w-full flex justify-end px-5">
             <div className="flex items-center gap-2 bg-green-700 text-white px-6 py-2 rounded shadow-md">
-              <FiMenu />
-              <span className="font-semibold">Pilih Lokasi</span>
+              <span className="font-semibold">Lokasi</span>
               <select
-                className="border border-gray-300 rounded px-3 py-2 text-black"
+                className="border-none rounded-md px-3 py-2 text-black cursor-pointer shadow-sm transition duration-200 focus:outline-none focus:ring-2 focus:ring-green-500"
                 value={selectedProvince}
-                onChange={(e) => {
-                  setSelectedProvince(e.target.value);
-                }}
+                onChange={(e) => setSelectedProvince(e.target.value)}
               >
-                <option value="All">All</option>
+                <option value="" disabled hidden>
+                  Pilih Provinsi
+                </option>
                 {provinces.map((province) => (
                   <option key={province} value={province}>
                     {province}
@@ -143,7 +144,7 @@ export default function HomePageUser() {
           </div>
         )}
 
-        <div className="p-6 rounded-lg shadow-l grid grid-rows-2 gap-20">
+        <div className="p-6 rounded-lg shadow-l flex flex-col gap-20">
           <Icons />
           <div>
             <h2 className="text-2xl font-bold mb-4 text-green-900">
@@ -151,38 +152,46 @@ export default function HomePageUser() {
             </h2>
 
             {isGeoActive && stores.length > 0 && (
-              <div className="mb-2 text-green-900 font-semibold">
+              <div className="mb-2 text-xl text-green-900 font-semibold">
                 <strong>Toko terdekat:</strong> {stores.join(", ")}
               </div>
             )}
 
             {products.length === 0 && (
-              <p className="text-green-100">Belum ada produk yang ditemukan.</p>
+              <p className="text-green-600">Belum ada produk yang ditemukan.</p>
             )}
-
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
               {products.map((product) => (
                 <div
                   key={product.id}
-                  className="bg-green-900 text-white border border-green-700 p-4 rounded-lg shadow transition-all duration-500 transform hover:scale-105 hover:shadow-2xl hover:bg-green-800"
+                  className="bg-white border rounded-lg shadow hover:shadow-lg transition-transform transform hover:scale-105 p-4"
                 >
-                  <h3 className="text-lg font-semibold text-white">
-                    {product.name}
-                  </h3>
                   <Image
                     src={product.imagePreview?.[0]?.imageUrl ?? "/default.jpg"}
                     alt={product.name}
                     width={250}
                     height={250}
-                    className="mx-auto mb-4"
+                    className="mx-auto mb-4 rounded"
                   />
-                  <p className="text-green-200">{product.description}</p>
-                  <p className="font-bold text-lime-300 pt-2">
+
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2 text-center">
+                    {product.name}
+                  </h3>
+
+                  <p className="text-xl font-bold text-green-700 text-center mb-2">
                     Rp {product.price.toLocaleString()}
                   </p>
-                  <p className="text-sm text-green-300">
+
+                  <p className="text-sm text-gray-600 text-center mb-4">
                     Stok: {product.stock}
                   </p>
+
+                  <Link
+                    href={`/products/${product.id}`}
+                    className="block w-full bg-green-600 text-white text-center py-2 rounded-lg hover:bg-green-700 transition"
+                  >
+                    View product
+                  </Link>
                 </div>
               ))}
             </div>

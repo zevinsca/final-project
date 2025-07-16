@@ -1,23 +1,42 @@
 import { Request, Response } from "express";
 import prisma from "../config/prisma-client.js";
 import { CustomJwtPayload } from "../types/express.js";
-
-// export async function createProduct() {}
+import cloudinary from "../config/cloudinary-config.js";
+import fs from "fs/promises";
 
 // GET ALL PRODUCT
 export async function getAllProduct(req: Request, res: Response) {
   try {
     const search = req.query.search as string | undefined;
+    const category = req.query.category as string | undefined;
 
-    const products = await prisma.product.findMany({
-      where: search
-        ? {
+    const where: any = {
+      deletedAt: null,
+    };
+
+    if (search) {
+      where.name = {
+        contains: search,
+        mode: "insensitive",
+      };
+    }
+
+    if (category) {
+      where.ProductCategory = {
+        some: {
+          Category: {
             name: {
-              contains: search,
+              equals: category,
               mode: "insensitive",
             },
-          }
-        : undefined,
+          },
+        },
+      };
+    }
+
+    // ✅ Query prisma
+    const products = await prisma.product.findMany({
+      where,
       include: {
         ProductCategory: { include: { Category: true } },
         User: true,
@@ -31,6 +50,7 @@ export async function getAllProduct(req: Request, res: Response) {
       },
     });
 
+    // ✅ Mapping
     const finalResult = products.map((item) => {
       const storeProduct = item.StoreProduct?.[0];
 
@@ -95,160 +115,175 @@ export async function getProductById(req: Request, res: Response) {
   }
 }
 
-// export async function updateProduct() {}
-
-// export async function deleteProduct() {}
-
-// POST
+// CREATE PRODUCT
 export async function createProduct(
   req: Request,
   res: Response
 ): Promise<void> {
   try {
-    const { name, description, price, weight, stock, categoryIds, storeId } =
-      req.body;
+    const { name, description, price, weight, storeStocks } = req.body;
 
     const user = req.user as CustomJwtPayload;
-    const userId = user.id;
+    // Ambil dari req.body
+    let { categoryIds } = req.body;
 
-    // Check if name is provided and not undefined
-    if (!name || name === undefined) {
-      res.status(400).json({ message: "Product name is required." });
+    // Ubah ke array
+    if (typeof categoryIds === "string") {
+      categoryIds = [categoryIds];
+    }
+
+    if (!user) {
+      res.status(401).json({ message: "Unauthorized" });
       return;
     }
 
-    // Check if product name already exists
-    const existingProduct = await prisma.product.findUnique({
-      where: {
-        name: name, // Ensure name is properly provided here
-      },
-    });
-
-    if (existingProduct) {
-      res.status(400).json({ message: "Product name must be unique." });
-      return;
-    }
-
-    // Validate required fields
     if (
+      !name ||
       !description ||
       !price ||
       !weight ||
-      !stock ||
       !categoryIds ||
-      categoryIds.length === 0 ||
-      !storeId
+      !storeStocks
     ) {
-      res.status(400).json({
-        message: "Missing required fields or no categories selected.",
-      });
+      res.status(400).json({ message: "Missing required fields" });
       return;
     }
+    const parsedStoreStocks = JSON.parse(storeStocks);
 
-    // Create the product in the database
+    // Create the Product first
     const newProduct = await prisma.product.create({
       data: {
         name,
-        userId,
+        userId: user.id,
         description,
-        price,
-        weight,
-        // stock,
+        price: parseFloat(price),
+        weight: parseFloat(weight),
         ProductCategory: {
-          create: categoryIds.map((categoryId: string) => ({
-            categoryId,
-          })),
-        },
-      },
-      include: {
-        ProductCategory: {
-          include: {
-            Category: true,
-          },
+          create: categoryIds.map((categoryId: string) => ({ categoryId })),
         },
       },
     });
-    if (!newProduct) {
-      res.status(500).json({ message: "Failed to create product." });
-      return;
+
+    // ✅ Upload Images if provided
+    const files = req.files as {
+      imagePreview?: Express.Multer.File[];
+      imageContent?: Express.Multer.File[];
+    };
+
+    if (files?.imagePreview?.[0]) {
+      const result = await cloudinary.uploader.upload(
+        files.imagePreview[0].path,
+        {
+          folder: "final-project/products",
+        }
+      );
+      await prisma.image.create({
+        data: {
+          imageUrl: result.secure_url,
+          previewProductId: newProduct.id,
+        },
+      });
+      await fs.unlink(files.imagePreview[0].path);
     }
-    // Create the StoreProduct entry to link the product to the store
-    const storeProduct = await prisma.storeProduct.create({
-      data: {
-        productId: newProduct.id,
-        storeId: storeId,
-        stock, // Link product to store
-      },
-    });
-    if (!storeProduct) {
-      res.status(500).json({ message: "Failed to link product to store." });
-      return;
+
+    if (files?.imageContent?.[0]) {
+      const result = await cloudinary.uploader.upload(
+        files.imageContent[0].path,
+        {
+          folder: "final-project/products",
+        }
+      );
+      await prisma.image.create({
+        data: {
+          imageUrl: result.secure_url,
+          contentProductId: newProduct.id,
+        },
+      });
+      await fs.unlink(files.imageContent[0].path);
     }
+
+    // ✅ Link product to store
+    for (const item of parsedStoreStocks) {
+      await prisma.storeProduct.create({
+        data: {
+          productId: newProduct.id,
+          storeId: item.storeId,
+          stock: parseInt(item.stock),
+        },
+      });
+    }
+
     res.status(201).json({
-      message: "Product created successfully and linked to the store",
-      data: {
-        product: newProduct,
-        storeProduct: storeProduct,
-      },
+      message: "Product created successfully with images",
+      data: newProduct,
     });
   } catch (error) {
     console.error("Error creating product:", error);
-    res.status(500).json({
-      message: "Internal server error",
-    });
+    res.status(500).json({ message: "Internal server error" });
   }
 }
 
 export async function getAllProductsByCity(req: Request, res: Response) {
-  const { province } = req.query;
+  const { province, category } = req.query;
 
   if (!province || typeof province !== "string") {
-    res.status(400).json({ message: "City parameter is required." });
+    res.status(400).json({ message: "Province parameter is required." });
     return;
   }
 
   try {
-    // Get all addresses in the given city
+    // Step 1: Get all addresses in that province
     const addresses = await prisma.address.findMany({
       where: {
         province: {
           equals: province,
-          mode: "insensitive", // optional: make case-insensitive
+          mode: "insensitive",
         },
-        storeAddressId: {
-          not: null,
-        },
+        storeAddressId: { not: null },
       },
-      select: {
-        storeAddressId: true,
-      },
+      select: { storeAddressId: true },
     });
 
     const storeAddressIds = addresses.map((addr) => addr.storeAddressId!);
 
-    // Get all store IDs connected to those store addresses
+    // Step 2: Get store IDs connected to those addresses
     const storeAddresses = await prisma.storeAddress.findMany({
       where: {
-        id: {
-          in: storeAddressIds,
-        },
+        id: { in: storeAddressIds },
       },
-      select: {
-        storeId: true,
-      },
+      select: { storeId: true },
     });
 
     const storeIds = storeAddresses.map((sa) => sa.storeId);
 
-    // Get all products from those stores
-    const storeProducts = await prisma.storeProduct.findMany({
-      where: {
-        storeId: {
-          in: storeIds,
+    // Step 3: Build dynamic WHERE for storeProduct
+    const where: any = {
+      storeId: { in: storeIds },
+      deletedAt: null,
+    };
+
+    if (category && typeof category === "string") {
+      where.Product = {
+        ProductCategory: {
+          some: {
+            Category: {
+              name: { equals: category, mode: "insensitive" },
+            },
+          },
         },
-      },
+      };
+    }
+
+    // Step 4: Get store products with optional category filter
+    const storeProducts = await prisma.storeProduct.findMany({
+      where,
       include: {
-        Product: true,
+        Product: {
+          include: {
+            imagePreview: true,
+            ProductCategory: { include: { Category: true } },
+          },
+        },
         Store: {
           include: {
             StoreAddress: {
@@ -262,11 +297,150 @@ export async function getAllProductsByCity(req: Request, res: Response) {
     });
 
     res.status(200).json({
-      message: `Products in city: ${province}`,
+      message: `Products in province: ${province}`,
       data: storeProducts,
     });
   } catch (error) {
-    console.error("Error fetching products by city:", error);
+    console.error("Error fetching products by province:", error);
     res.status(500).json({ message: "Error fetching products." });
+  }
+}
+
+export async function getAllProductsByStore(
+  req: Request,
+  res: Response
+): Promise<void> {
+  try {
+    const storeId = req.query.storeId as string;
+
+    if (!storeId) {
+      res.status(400).json({ message: "storeId is required" });
+      return;
+    }
+
+    const storeProducts = await prisma.storeProduct.findMany({
+      where: {
+        storeId,
+        deletedAt: null,
+      },
+      include: {
+        Product: {
+          include: {
+            ProductCategory: { include: { Category: true } },
+            User: true,
+            imageContent: true,
+            imagePreview: true,
+          },
+        },
+        Store: true,
+      },
+    });
+
+    const result = storeProducts.map((item) => ({
+      ...item.Product,
+      stock: item.stock,
+      storeName: item.Store?.name ?? null,
+    }));
+
+    res.status(200).json({ data: result });
+    return;
+  } catch (error) {
+    console.error("Error fetching products by store:", error);
+    res.status(500).json({ message: "Failed to fetch products by store" });
+    return;
+  }
+}
+
+// DELETE PRODUCT
+export async function deleteProduct(
+  req: Request,
+  res: Response
+): Promise<void> {
+  try {
+    const { id } = req.params;
+
+    const product = await prisma.product.findUnique({ where: { id } });
+    if (!product || product.deletedAt) {
+      res.status(404).json({ message: "Product not found" });
+      return;
+    }
+
+    await prisma.product.update({
+      where: { id },
+      data: { deletedAt: new Date() },
+    });
+
+    await prisma.productCategory.updateMany({
+      where: { productId: id },
+      data: { deletedAt: new Date() },
+    });
+
+    await prisma.storeProduct.updateMany({
+      where: { productId: id },
+      data: { deletedAt: new Date() },
+    });
+
+    res.status(200).json({ message: "Product deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting product:", error);
+    res.status(500).json({ message: "Failed to delete product" });
+  }
+}
+
+// UPDATE PRODUCT
+export async function updateProduct(
+  req: Request,
+  res: Response
+): Promise<void> {
+  try {
+    const { id } = req.params;
+    const { name, description, price, weight, stock, categoryIds } = req.body;
+
+    const product = await prisma.product.findUnique({ where: { id } });
+    if (!product || product.deletedAt) {
+      res.status(404).json({ message: "Product not found" });
+      return;
+    }
+
+    await prisma.product.update({
+      where: { id },
+      data: {
+        name,
+        description,
+        price: price ? parseFloat(price) : undefined,
+        weight: weight ? parseFloat(weight) : undefined,
+      },
+    });
+
+    if (stock !== undefined) {
+      await prisma.storeProduct.updateMany({
+        where: { productId: id, deletedAt: null },
+        data: { stock: parseInt(stock) },
+      });
+    }
+
+    if (categoryIds) {
+      let newCategoryIds = categoryIds;
+      if (typeof newCategoryIds === "string") {
+        newCategoryIds = [newCategoryIds];
+      }
+
+      await prisma.productCategory.updateMany({
+        where: { productId: id, deletedAt: null },
+        data: { deletedAt: new Date() },
+      });
+
+      await prisma.productCategory.createMany({
+        data: newCategoryIds.map((categoryId: string) => ({
+          productId: id,
+          categoryId,
+        })),
+      });
+    }
+
+    res.status(200).json({ message: "Product updated successfully" });
+  } catch (error) {
+    console.error("Error updating product:", error);
+    res.status(500).json({ message: "Failed to update product" });
   }
 }

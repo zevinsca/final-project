@@ -8,7 +8,7 @@ import EditStoreSection from "./edit-store";
 interface StoreAddress {
   id: string;
   latitude: number;
-  longtitude: number;
+  longitude: number;
   Address: {
     id: string;
     address: string;
@@ -37,7 +37,7 @@ export default function StoreList() {
   const [postalCode, setPostalCode] = useState<string>("");
   const [destination, setDestination] = useState<string>("");
   const [latitude, setLatitude] = useState<number>(0);
-  const [longtitude, setLongtitude] = useState<number>(0);
+  const [longitude, setlongitude] = useState<number>(0);
 
   useEffect(() => {
     fetchStores();
@@ -76,7 +76,7 @@ export default function StoreList() {
     setPostalCode(addr?.postalCode || "");
     setDestination(addr?.destination || "");
     setLatitude(store.StoreAddress[0]?.latitude || 0);
-    setLongtitude(store.StoreAddress[0]?.longtitude || 0);
+    setlongitude(store.StoreAddress[0]?.longitude || 0);
     setShowEditModal(true);
   };
 
@@ -100,7 +100,7 @@ export default function StoreList() {
             postalCode,
             destination,
             latitude,
-            longtitude,
+            longitude,
           }),
         }
       );
@@ -212,8 +212,8 @@ export default function StoreList() {
           setDestination={setDestination}
           latitude={latitude}
           setLatitude={setLatitude}
-          longtitude={longtitude}
-          setLongtitude={setLongtitude}
+          longitude={longitude}
+          setlongitude={setlongitude}
           handleUpdateStore={handleUpdateStore}
           setShowEditModal={setShowEditModal}
         />

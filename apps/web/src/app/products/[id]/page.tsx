@@ -18,7 +18,7 @@ interface ProductType {
 export default function ProductCatalogId({
   params,
 }: {
-  params: Promise<{ productId: string }>;
+  params: Promise<{ id: string }>;
 }) {
   /* ----------------------------------------------------------------------------
    *  component state
@@ -38,13 +38,32 @@ export default function ProductCatalogId({
 
     async function getProduct() {
       try {
-        const { productId } = await params;
-        const res = await fetch(
-          `http://localhost:8000/api/v1/products/${productId}`,
-          { credentials: "include" }
-        );
+        const { id } = await params;
+        const res = await fetch(`http://localhost:8000/api/v1/products/${id}`, {
+          credentials: "include",
+        });
         const json = await res.json();
-        if (isMounted) setProduct(json?.data);
+
+        if (isMounted) {
+          const raw = json?.data;
+
+          // Ambil StoreProduct[0]?.stock
+          const storeProduct = (raw.StoreProduct ?? [])[0];
+          const stock = storeProduct?.stock ?? 0;
+
+          // Normalisasi sesuai ProductType
+          const normalized: ProductType = {
+            id: raw.id,
+            name: raw.name,
+            description: raw.description,
+            price: raw.price,
+            imagePreview: raw.imagePreview ?? [],
+            imageContent: raw.imageContent ?? [],
+            stock,
+          };
+
+          setProduct(normalized);
+        }
       } catch (err) {
         console.error("Error fetching product:", err);
       }
@@ -54,8 +73,8 @@ export default function ProductCatalogId({
     return () => {
       isMounted = false;
     };
-    // eslint‑disable‑next‑line react-hooks/exhaustive-deps
-  });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   /* ----------------------------------------------------------------------------
    *  helpers
@@ -100,7 +119,7 @@ export default function ProductCatalogId({
    * --------------------------------------------------------------------------*/
   return (
     <MenuNavbarUser>
-      <div className="p-4">
+      <div className="p-4 max-w-5xl mx-auto">
         {notification && (
           <div className="absolute top-0 left-0 right-0 bg-green-100 text-green-800 text-sm text-center p-2 shadow z-50">
             {notification}
@@ -108,62 +127,75 @@ export default function ProductCatalogId({
         )}
 
         {product && (
-          <article
-            key={product.id}
-            className="max-w-md mx-auto border rounded shadow p-4 space-y-3"
-          >
-            <Image
-              src={product.imagePreview[0].imageUrl}
-              alt={product.name}
-              width={250}
-              height={250}
-              className="mx-auto mb-4"
-            />
-
-            <h2 className="text-xl font-bold">{product.name}</h2>
-            <p>{product.description}</p>
-            <p className="font-semibold">
-              Price:&nbsp;Rp{product.price.toLocaleString()}
-            </p>
-            <p>Stock:&nbsp;{product.stock}</p>
-
-            {/* quantity selector */}
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => changeQty(-1)}
-                className="px-3 py-1 border rounded disabled:opacity-50"
-                disabled={qty === 1}
-              >
-                −
-              </button>
-              <span className="min-w-[2rem] text-center">{qty}</span>
-              <button
-                onClick={() => changeQty(1)}
-                className="px-3 py-1 border rounded disabled:opacity-50"
-                disabled={product.stock === 0 || qty === product.stock}
-              >
-                +
-              </button>
+          <div className="flex flex-col md:flex-row gap-8 border rounded-lg shadow p-6 bg-white">
+            {/* LEFT: Image */}
+            <div className="flex justify-center md:w-1/2">
+              <Image
+                src={product.imagePreview?.[0]?.imageUrl ?? "/placeholder.jpg"}
+                alt={product.name}
+                width={300}
+                height={300}
+                className="rounded-lg border"
+              />
             </div>
 
-            {/* action buttons */}
-            <div className="flex gap-3 pt-2">
-              <button
-                onClick={handleAddToCart}
-                className="flex-1 px-4 py-2 rounded bg-gray-800 text-white disabled:opacity-50"
-                disabled={product.stock === 0}
-              >
-                Add to Cart
-              </button>
-              <button
-                onClick={handleBuyNow}
-                className="flex-1 px-4 py-2 rounded bg-blue-600 text-white disabled:opacity-50"
-                disabled={product.stock === 0}
-              >
-                Buy Now
-              </button>
+            {/* RIGHT: Details */}
+            <div className="flex flex-col md:w-1/2 space-y-4">
+              <h1 className="text-2xl font-bold text-green-800">
+                {product.name}
+              </h1>
+              <p className="text-gray-700">{product.description}</p>
+
+              <div className="space-y-1">
+                {/* <p className="text-sm text-gray-400 line-through">
+                  Rp {(product.price * 1.1).toLocaleString()}
+                </p> */}
+                <p className="text-2xl font-bold text-green-700">
+                  Rp {product.price.toLocaleString()}
+                </p>
+                <p className="text-sm text-gray-600">
+                  Available Stock: {product.stock}
+                </p>
+              </div>
+
+              {/* quantity selector */}
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => changeQty(-1)}
+                  className="px-3 py-1 border rounded disabled:opacity-50"
+                  disabled={qty === 1}
+                >
+                  −
+                </button>
+                <span className="min-w-[2rem] text-center">{qty}</span>
+                <button
+                  onClick={() => changeQty(1)}
+                  className="px-3 py-1 border rounded disabled:opacity-50"
+                  disabled={product.stock === 0 || qty === product.stock}
+                >
+                  +
+                </button>
+              </div>
+
+              {/* action buttons */}
+              <div className="flex flex-col gap-3 pt-2">
+                <button
+                  onClick={handleAddToCart}
+                  className="w-full px-4 py-2 rounded bg-green-600 hover:bg-green-700 text-white disabled:opacity-50"
+                  disabled={product.stock === 0}
+                >
+                  Add to Cart
+                </button>
+                <button
+                  onClick={handleBuyNow}
+                  className="w-full px-4 py-2 rounded bg-gray-800 text-white disabled:opacity-50"
+                  disabled={product.stock === 0}
+                >
+                  Buy Now
+                </button>
+              </div>
             </div>
-          </article>
+          </div>
         )}
       </div>
     </MenuNavbarUser>
