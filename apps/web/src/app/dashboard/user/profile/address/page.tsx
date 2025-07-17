@@ -16,6 +16,15 @@ interface Address {
   isPrimary: boolean;
 }
 
+interface UserAddress {
+  id: string;
+  userId: string;
+  recipient: string;
+  isPrimary: boolean;
+  addressId: string;
+  Address: Address; // ← this includes the full address object
+}
+
 interface DestinationOption {
   label: string;
   city_name: string;
@@ -178,9 +187,10 @@ export default function AddressPage() {
                       }`}
                     >
                       <p className="font-semibold">{address.recipient}</p>
-                      <p>{address.address}</p>
+                      <p>{address.Address.address}</p>
                       <p>
-                        {address.city}, {address.province}, {address.postalCode}
+                        {address.Address.city}, {address.Address.province},{" "}
+                        {address.Address.postalCode}
                       </p>
                       <p className="text-sm">
                         {address.isPrimary

@@ -163,46 +163,71 @@ export default function CheckoutPage() {
       return alert("Please complete your shipping address.");
     if (!shippingId) return alert("Please select a shipping method.");
 
-    try {
-      const res = await fetch("http://localhost:8000/api/v1/checkout", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: "include",
-        body: JSON.stringify({
-          address,
-          shippingId,
-          cartItems,
-        }),
-      });
-
-      const data = await res.json();
-
-      if (data && data.data && data.data.midtransTransaction?.token) {
-        window.snap.pay(data.data.midtransTransaction.token, {
-          onSuccess: function (result) {
-            console.log("Success:", result);
-            router.push("/success");
+    if (paymentMethod === "epayment") {
+      // Midtrans checkout
+      try {
+        const res = await fetch("http://localhost:8000/api/v1/checkout", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
           },
-          onPending: function (result) {
-            console.log("Pending:", result);
-            router.push("/pending");
-          },
-          onError: function (result) {
-            console.error("Error:", result);
-            alert("Payment failed.");
-          },
-          onClose: function () {
-            console.log("Payment popup closed without finishing.");
-          },
+          credentials: "include",
+          body: JSON.stringify({
+            address,
+            shippingId,
+            cartItems,
+          }),
         });
-      } else {
-        alert("Failed to get Midtrans token.");
+
+        const data = await res.json();
+
+        if (data?.data?.midtransTransaction?.token) {
+          window.snap.pay(data.data.midtransTransaction.token, {
+            onSuccess: () => router.push("/success"),
+            onPending: () => router.push("/pending"),
+            onError: () => alert("Payment failed."),
+            onClose: () =>
+              console.log("Payment popup closed without finishing."),
+          });
+        } else {
+          alert("Failed to get Midtrans token.");
+        }
+      } catch (err) {
+        console.error("Checkout error:", err);
+        alert("Something went wrong during checkout.");
       }
-    } catch (err) {
-      console.error("Checkout error:", err);
-      alert("Something went wrong during checkout.");
+    } else if (paymentMethod === "manual") {
+      // Manual payment with proof
+      if (!manualPaymentProof)
+        return alert("Please upload your payment proof.");
+
+      const formData = new FormData();
+      formData.append("address", JSON.stringify(address));
+      formData.append("shippingId", shippingId);
+      formData.append("cartItems", JSON.stringify(cartItems));
+      formData.append("paymentProof", manualPaymentProof);
+
+      try {
+        const res = await fetch(
+          "http://localhost:8000/api/v1/checkout/manual",
+          {
+            method: "POST",
+            credentials: "include",
+            body: formData,
+          }
+        );
+
+        const data = await res.json();
+        if (res.ok) {
+          router.push("/pending"); // Or success page if you prefer
+        } else {
+          console.error(data);
+          alert("Failed to submit manual payment.");
+        }
+      } catch (err) {
+        console.error("Manual payment error:", err);
+        alert("Error during manual payment.");
+      }
     }
   };
 
@@ -313,38 +338,50 @@ export default function CheckoutPage() {
               <p className="text-sm text-gray-500">No saved addresses</p>
             ) : (
               <div className="space-y-2">
-                {userAddresses.map((addr) => (
-                  <label
-                    key={addr.id}
-                    className={`block p-2 border rounded cursor-pointer ${
-                      selectedAddressId === addr.id
-                        ? "border-green-600 bg-green-50"
-                        : ""
+                {userAddresses.map((address) => (
+                  <div
+                    key={address.id}
+                    className={`p-4 bg-white border rounded-lg cursor-pointer ${
+                      selectedAddressId === address.id
+                        ? "border-green-700 bg-green-50 text-green-700"
+                        : "border-gray-300"
                     }`}
+                    onClick={() => {
+                      setSelectedAddressId(address.id);
+                      setAddress({
+                        fullName: address.recipient,
+                        phone: "", // update this if you have phone support
+                        address: address.Address.address,
+                        city: address.Address.city,
+                        province: address.Address.province,
+                        postalCode: address.Address.postalCode,
+                      });
+                    }}
                   >
-                    <input
-                      type="radio"
-                      className="mr-2"
-                      name="selected-address"
-                      value={addr.id}
-                      checked={selectedAddressId === addr.id}
-                      onChange={() => {
-                        setSelectedAddressId(addr.id);
-                        setAddress({
-                          fullName: addr.recipient,
-                          phone: "", // or fetch from addr if you add phone support
-                          address: addr.address,
-                          city: addr.city,
-                          province: addr.province,
-                          postalCode: addr.postalCode,
-                        });
-                      }}
-                    />
-                    <span>
-                      {addr.recipient}, {addr.address}, {addr.city},{" "}
-                      {addr.province}, {addr.postalCode}
-                    </span>
-                  </label>
+                    <label className="flex items-start gap-3 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="selected-address"
+                        value={address.id}
+                        checked={selectedAddressId === address.id}
+                        onChange={() => {}} // handled by the parent <li> onClick
+                        className="mt-1"
+                      />
+                      <div>
+                        <p className="font-semibold">{address.recipient}</p>
+                        <p>{address.Address.address}</p>
+                        <p>
+                          {address.Address.city}, {address.Address.province},{" "}
+                          {address.Address.postalCode}
+                        </p>
+                        <p className="text-sm">
+                          {address.isPrimary
+                            ? "Primary Address"
+                            : "Secondary Address"}
+                        </p>
+                      </div>
+                    </label>
+                  </div>
                 ))}
               </div>
             )}
@@ -360,25 +397,6 @@ export default function CheckoutPage() {
           {/* Shipping options & totals */}
           <div className="bg-gray-100 p-4 rounded h-fit md:col-span-2">
             <h2 className="text-lg font-semibold mb-4">Shipping Method</h2>
-            {/* <div className="space-y-2 mb-4">
-            {SHIPPING_OPTIONS.map((opt) => (
-              <label
-                key={opt.id}
-                className="flex items-center justify-between border p-2 rounded cursor-pointer"
-              >
-                <div className="flex items-center gap-2">
-                  <input
-                    type="radio"
-                    name="shipping"
-                    checked={shippingId === opt.id}
-                    onChange={() => setShippingId(opt.id)}
-                  />
-                  <span>{opt.label}</span>
-                </div>
-                <span>Rp. {formatRp(opt.cost)}</span>
-              </label>
-            ))}
-          </div> */}
 
             {Object.keys(shippingCosts).map((type) => {
               const shippingMethods = shippingCosts[type];
@@ -429,6 +447,49 @@ export default function CheckoutPage() {
                 </div>
               );
             })}
+
+            {/* Payment Method Selection */}
+            <div className="mt-6">
+              <h3 className="text-lg font-semibold mb-2">Payment Method</h3>
+              <div className="space-y-2">
+                <label className="flex items-center gap-2">
+                  <input
+                    type="radio"
+                    name="payment-method"
+                    value="epayment"
+                    checked={paymentMethod === "epayment"}
+                    onChange={() => setPaymentMethod("epayment")}
+                  />
+                  GoPay / E-Payment (Midtrans)
+                </label>
+                <label className="flex items-center gap-2">
+                  <input
+                    type="radio"
+                    name="payment-method"
+                    value="manual"
+                    checked={paymentMethod === "manual"}
+                    onChange={() => setPaymentMethod("manual")}
+                  />
+                  Manual Bank Transfer
+                </label>
+              </div>
+
+              {paymentMethod === "manual" && (
+                <div className="mt-4">
+                  <label className="block mb-2 font-medium">
+                    Upload Payment Proof
+                  </label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) =>
+                      setManualPaymentProof(e.target.files?.[0] || null)
+                    }
+                    className="block w-full border rounded p-2"
+                  />
+                </div>
+              )}
+            </div>
 
             {/* Totals */}
             <h3 className="text-lg font-semibold mb-2">Totals</h3>

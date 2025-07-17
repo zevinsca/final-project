@@ -90,6 +90,11 @@ export default function CartPage() {
       <section className="p-4 max-w-7xl mx-auto">
         <h1 className="text-2xl font-semibold mb-6 text-center">Cart</h1>
 
+        {/* Empty cart message */}
+        {cartItems.length === 0 && (
+          <p className="text-center text-gray-500 mb-6">Your cart is empty.</p>
+        )}
+
         {/* Cart table */}
         <div className="overflow-x-auto w-full mb-6">
           <table className="min-w-full text-left border-collapse">
@@ -197,7 +202,12 @@ export default function CartPage() {
           </div>
           <button
             onClick={() => router.push("/checkout")}
-            className="bg-green-600 w-full text-white py-2 rounded"
+            disabled={cartItems.length === 0}
+            className={`w-full py-2 rounded text-white transition ${
+              cartItems.length === 0
+                ? "bg-gray-400 cursor-not-allowed"
+                : "bg-green-600 hover:bg-green-700"
+            }`}
           >
             Proceed to checkout
           </button>

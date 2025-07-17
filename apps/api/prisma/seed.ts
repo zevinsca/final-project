@@ -95,10 +95,10 @@ async function seed() {
       data: {
         name: "SuperMart",
         userId: superAdmin.id, // Super Admin creates the store
-        address: "123 Main Street",
-        city: "Metropolis",
-        province: "Central Province",
-        postalCode: "12345",
+        // address: "123 Main Street",
+        // city: "Metropolis",
+        // province: "Central Province",
+        // postalCode: "12345",
       },
     });
 
@@ -144,14 +144,14 @@ async function seed() {
       data: [
         {
           // John Doe
-          recipient: "John",
+          // recipient: "John",
           address: "kelapa gading",
           destination: "kelapa gading",
           destinationId: 17641,
           city: "Jakarta",
           province: "DKI Jakarta",
           postalCode: "14240",
-          userId: user1.id,
+          // userId: user1.id,
         },
       ],
     });

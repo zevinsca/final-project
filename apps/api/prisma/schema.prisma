@@ -55,39 +55,36 @@ model User {
   Order            Order[]
   Product          Product[]
   UserAddress      UserAddress[]
+  Payment          Payment[]
 }
 
 model UserAddress {
   id        String  @id @default(uuid())
   userId    String
+  addressId String
   recipient String
   isPrimary Boolean @default(false)
 
-  User    User      @relation(fields: [userId], references: [id])
-  Address Address[]
+  User    User    @relation(fields: [userId], references: [id])
+  Address Address @relation(fields: [addressId], references: [id])
 }
 
 model Address {
   id             String   @id @default(uuid())
-  userAddressId  String?
-  storeAddressId String?
-  recipient      String
   address        String
   destination    String
   destinationId  Int?
   city           String
   province       String
   postalCode     String
+  storeAddressId String?
   storeId        String?
-  isPrimary      Boolean  @default(false) // <--- ini dia
-  createdAt      DateTime @default(now()) // Foreign key ke User
-  user           User?    @relation(fields: [userId], references: [id]) // Relasi ke User
-  store          Store?   @relation(fields: [storeId], references: [id]) // Relasi ke Store, opsional // Relasi ke User
+  isPrimary      Boolean  @default(false) // Optional: could be removed
+  createdAt      DateTime @default(now())
 
-  StoreAddress StoreAddress? @relation(fields: [storeAddressId], references: [id])
-  UserAddress  UserAddress?  @relation(fields: [userAddressId], references: [id])
-  Order        Order[]
-  Payment      Payment[]
+  StoreAddress  StoreAddress? @relation(fields: [storeAddressId], references: [id])
+  UserAddresses UserAddress[] // <-- many userAddresses refer to this Address
+  Order         Order[]
 }
 
 model StoreAddress {

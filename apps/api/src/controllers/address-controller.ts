@@ -54,45 +54,29 @@ export async function addAddress(req: Request, res: Response) {
     !province ||
     !postalCode
   ) {
-    res.status(400).json({ message: "All fields are required" });
-    return;
+    return res.status(400).json({ message: "All fields are required" });
   }
 
-  // const destinationId = await getSubdistrictIdFromName(destination, city);
-
-  // if (!destinationId) {
-  //   return res.status(400).json({
-  //     message:
-  //       "Could not resolve destinationId from provided city/destination.",
-  //   });
-  // }
-
   try {
-    // Create Address first
+    // 1. Create Address
     const newAddress = await prisma.address.create({
       data: {
-        userId: userId,
         address,
         destination,
         destinationId,
         city,
         province,
         postalCode,
-        isPrimary,
       },
     });
 
-    // Create UserAddress with reference to Address
+    // 2. Create UserAddress linking to Address via addressId
     const userAddress = await prisma.userAddress.create({
       data: {
-        userId: userId,
+        userId,
         recipient,
         isPrimary,
-        Address: {
-          connect: {
-            id: newAddress.id,
-          },
-        },
+        addressId: newAddress.id,
       },
       include: {
         Address: true,
@@ -104,7 +88,7 @@ export async function addAddress(req: Request, res: Response) {
       data: userAddress,
     });
   } catch (error) {
-    console.error(error);
+    console.error("Add address error:", error);
     res.status(500).json({ message: "Error creating address" });
   }
 }
