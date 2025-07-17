@@ -71,12 +71,14 @@ export async function addAddress(req: Request, res: Response) {
     // Create Address first
     const newAddress = await prisma.address.create({
       data: {
+        userId: userId,
         address,
         destination,
         destinationId,
         city,
         province,
         postalCode,
+        isPrimary,
       },
     });
 
