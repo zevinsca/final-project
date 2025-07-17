@@ -22,7 +22,7 @@ router
   .get(getAllProduct)
   .post(
     verifyToken,
-    roleGuard("SUPER_ADMIN"),
+    roleGuard("SUPER_ADMIN", "STORE_ADMIN"),
     upload.fields([
       { name: "imagePreview", maxCount: 1 },
       { name: "imageContent", maxCount: 3 },
@@ -40,7 +40,7 @@ router
   .get(getProductById)
   .patch(
     verifyToken,
-    roleGuard("SUPER_ADMIN"),
+    roleGuard("SUPER_ADMIN", "STORE_ADMIN"),
     upload.fields([
       { name: "imagePreview", maxCount: 1 },
       { name: "imageContent", maxCount: 3 },

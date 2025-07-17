@@ -20,6 +20,8 @@ interface Product {
 export default function ProductAdminPage() {
   const router = useRouter();
   const [products, setProducts] = useState<Product[]>([]);
+  const [showModal, setShowModal] = useState(false);
+  const [productToDelete, setProductToDelete] = useState<Product | null>(null);
 
   useEffect(() => {
     async function fetchProducts() {
@@ -36,16 +38,29 @@ export default function ProductAdminPage() {
     fetchProducts();
   }, []);
 
-  const handleDeleteProduct = async (id: string) => {
+  const confirmDeleteProduct = (product: Product) => {
+    setProductToDelete(product);
+    setShowModal(true);
+  };
+
+  const handleDeleteConfirmed = async () => {
+    if (!productToDelete) return;
+
     try {
-      await axios.delete(`http://localhost:8000/api/v1/products/${id}`, {
-        withCredentials: true,
-      });
+      await axios.delete(
+        `http://localhost:8000/api/v1/products/${productToDelete.id}`,
+        {
+          withCredentials: true,
+        }
+      );
       alert("Product deleted successfully.");
-      setProducts((prev) => prev.filter((p) => p.id !== id));
+      setProducts((prev) => prev.filter((p) => p.id !== productToDelete.id));
     } catch (error) {
       console.error("Error deleting product:", error);
       alert("Failed to delete product.");
+    } finally {
+      setShowModal(false);
+      setProductToDelete(null);
     }
   };
 
@@ -97,7 +112,9 @@ export default function ProductAdminPage() {
                   </td>
                   <td className="border px-4 py-2">{product.name}</td>
                   <td className="border px-4 py-2">{product.description}</td>
-                  <td className="border px-4 py-2">${product.price}</td>
+                  <td className="border px-4 py-2">
+                    Rp{product.price.toLocaleString()}
+                  </td>
                   <td className="border px-4 py-2">
                     {product.category.join(", ")}
                   </td>
@@ -110,7 +127,7 @@ export default function ProductAdminPage() {
                         Edit
                       </button>
                       <button
-                        onClick={() => handleDeleteProduct(product.id)}
+                        onClick={() => confirmDeleteProduct(product)}
                         className="bg-red-500 hover:bg-red-600 text-white font-medium px-3 py-1 rounded"
                       >
                         Delete
@@ -121,6 +138,36 @@ export default function ProductAdminPage() {
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* Modal */}
+      {showModal && productToDelete && (
+        <div className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none">
+          <div className="bg-white p-6 rounded-lg shadow-lg max-w-sm w-full pointer-events-auto border border-gray-300">
+            <h2 className="text-xl font-semibold mb-4">Confirm Deletion</h2>
+            <p className="mb-6">
+              Are you sure you want to delete{" "}
+              <span className="font-bold">{productToDelete.name}</span>?
+            </p>
+            <div className="flex justify-end space-x-2">
+              <button
+                className="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400"
+                onClick={() => {
+                  setShowModal(false);
+                  setProductToDelete(null);
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+                onClick={handleDeleteConfirmed}
+              >
+                Delete
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </section>

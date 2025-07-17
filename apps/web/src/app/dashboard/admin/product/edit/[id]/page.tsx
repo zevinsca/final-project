@@ -15,12 +15,34 @@ interface Store {
   name: string;
 }
 
+interface ProductCategory {
+  categoryId: string;
+}
+
+interface ImageObject {
+  imageUrl: string;
+}
+
+interface StoreProduct {
+  storeId: string;
+  stock: number;
+}
+
+interface ProductResponse {
+  name: string;
+  description: string;
+  price: number;
+  weight: number;
+  ProductCategory?: ProductCategory[];
+  StoreProduct?: StoreProduct[];
+  imagePreview?: ImageObject[];
+}
+
 export default function EditProductPage() {
   const router = useRouter();
   const params = useParams();
   const { id } = params;
 
-  // Form states
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState<number>(0);
@@ -33,14 +55,10 @@ export default function EditProductPage() {
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [stores, setStores] = useState<Store[]>([]);
-  const [storeStocks, setStoreStocks] = useState<
-    { storeId: string; stock: number }[]
-  >([]);
+  const [storeStocks, setStoreStocks] = useState<StoreProduct[]>([]);
 
-  // Loading
   const [loading, setLoading] = useState(true);
 
-  // Fetch data
   useEffect(() => {
     if (!id || Array.isArray(id)) return;
 
@@ -48,7 +66,6 @@ export default function EditProductPage() {
       try {
         setLoading(true);
 
-        // ✅ paralel fetch
         const [productRes, categoriesRes, storesRes] = await Promise.all([
           axios.get(`http://localhost:8000/api/v1/products/${id}`, {
             withCredentials: true,
@@ -61,17 +78,16 @@ export default function EditProductPage() {
           }),
         ]);
 
-        const product = productRes.data.data;
+        const product: ProductResponse = productRes.data.data;
         setCategories(categoriesRes.data.data);
         setStores(storesRes.data.data);
 
-        // ✅ setelah categories dan stores siap → set form
         setName(product.name);
         setDescription(product.description);
         setPrice(product.price);
         setWeight(product.weight);
-        setCategoryId(product.categoryIds?.[0] ?? "");
-        setStoreStocks(product.storeStocks ?? []);
+        setCategoryId(product.ProductCategory?.[0]?.categoryId ?? "");
+        setStoreStocks(product.StoreProduct ?? []);
         setImagePreviewUrl(product.imagePreview?.[0]?.imageUrl ?? "");
 
         setLoading(false);
@@ -84,19 +100,18 @@ export default function EditProductPage() {
     fetchAllData();
   }, [id]);
 
-  // Handle update
   const handleUpdateProduct = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (
       !name ||
       !description ||
-      !price ||
-      !weight ||
+      price <= 0 ||
+      weight <= 0 ||
       !categoryId ||
       storeStocks.length === 0
     ) {
-      alert("Missing required fields.");
+      alert("Missing or invalid fields.");
       return;
     }
 
@@ -108,8 +123,14 @@ export default function EditProductPage() {
       formData.append("weight", String(weight));
       formData.append("storeStocks", JSON.stringify(storeStocks));
       formData.append("categoryIds", categoryId);
-      if (imagePreviewFile) formData.append("imagePreview", imagePreviewFile);
-      if (imageContentFile) formData.append("imageContent", imageContentFile);
+
+      if (imagePreviewFile) {
+        formData.append("imagePreview", imagePreviewFile);
+      }
+
+      if (imageContentFile) {
+        formData.append("imageContent", imageContentFile);
+      }
 
       await axios.patch(
         `http://localhost:8000/api/v1/products/${id}`,
@@ -143,6 +164,7 @@ export default function EditProductPage() {
         className="max-w-2xl w-full bg-white p-6 rounded shadow space-y-4 overflow-y-auto max-h-[90vh]"
       >
         <h1 className="text-2xl font-bold mb-4">Edit Product</h1>
+
         <div>
           <label className="block mb-1 font-medium">Product Name</label>
           <input
@@ -153,6 +175,7 @@ export default function EditProductPage() {
             className="w-full border rounded px-3 py-2"
           />
         </div>
+
         <div>
           <label className="block mb-1 font-medium">Description</label>
           <textarea
@@ -162,6 +185,7 @@ export default function EditProductPage() {
             className="w-full border rounded px-3 py-2"
           />
         </div>
+
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block mb-1 font-medium">Price</label>
