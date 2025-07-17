@@ -145,11 +145,12 @@ async function seed() {
         {
           // John Doe
           recipient: "John",
-          address: "456 Elm Street",
+          address: "kelapa gading",
           destination: "kelapa gading",
+          destinationId: 17641,
           city: "Jakarta",
           province: "DKI Jakarta",
-          postalCode: "10120",
+          postalCode: "14240",
           userId: user1.id,
         },
       ],

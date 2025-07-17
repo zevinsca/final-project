@@ -54,22 +54,24 @@ model User {
   storesCreated    Store[]
 
   // Relasi: stores yang dimiliki user ini sebagai STORE_ADMIN
+  Payment Payment[]
 }
 
 model Address {
-  id          String   @id @default(uuid())
-  userId      String?
-  recipient   String
-  address     String
-  destination String
-  city        String
-  province    String
-  postalCode  String
-  storeId     String?
-  isPrimary   Boolean  @default(false) // <--- ini dia
-  createdAt   DateTime @default(now()) // Foreign key ke User
-  user        User?    @relation(fields: [userId], references: [id]) // Relasi ke User
-  store       Store?   @relation(fields: [storeId], references: [id]) // Relasi ke Store, opsional // Relasi ke User
+  id            String   @id @default(uuid())
+  userId        String?
+  recipient     String
+  address       String
+  destination   String
+  destinationId Int?
+  city          String
+  province      String
+  postalCode    String
+  storeId       String?
+  isPrimary     Boolean  @default(false) // <--- ini dia
+  createdAt     DateTime @default(now()) // Foreign key ke User
+  user          User?    @relation(fields: [userId], references: [id]) // Relasi ke User
+  store         Store?   @relation(fields: [storeId], references: [id]) // Relasi ke Store, opsional // Relasi ke User
 
   Order Order[]
 }
@@ -222,6 +224,17 @@ enum OrderStatus {
   CANCELLED
 }
 
+enum PaymentMethod {
+  MIDTRANS
+  MANUAL
+}
+
+enum PaymentStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
 model Cart {
   id        String   @id @default(uuid())
   userId    String
@@ -245,6 +258,21 @@ model CartItem {
   Product Product @relation(fields: [productId], references: [id])
 }
 
+model Payment {
+  id            String        @id @default(uuid())
+  orderId       String        @unique
+  method        PaymentMethod
+  status        PaymentStatus @default(PENDING)
+  proofImageUrl String?
+  verifiedById  String? // Admin user who verified it
+  verifiedAt    DateTime?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  Order      Order @relation(fields: [orderId], references: [id])
+  verifiedBy User? @relation(fields: [verifiedById], references: [id])
+}
+
 model Order {
   id            String      @id @default(uuid())
   userId        String
@@ -262,6 +290,7 @@ model Order {
   OrderItem          OrderItem[]
   InventoryJournal   InventoryJournal? @relation(fields: [inventoryJournalId], references: [id])
   inventoryJournalId String?
+  Payment            Payment?
 }
 
 model OrderItem {

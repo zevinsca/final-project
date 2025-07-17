@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import prisma from "../config/prisma-client.js";
 import { CustomJwtPayload } from "../types/express.js";
+// import { getSubdistrictIdFromName } from "../utils/rajaongkir.js";
 
 // GET semua alamat milik user saat ini
 
@@ -32,6 +33,7 @@ export async function addAddress(req: Request, res: Response) {
     recipient,
     address,
     destination,
+    destinationId,
     city,
     province,
     postalCode,
@@ -43,6 +45,7 @@ export async function addAddress(req: Request, res: Response) {
     !recipient ||
     !address ||
     !destination ||
+    !destinationId ||
     !city ||
     !province ||
     !postalCode
@@ -51,6 +54,15 @@ export async function addAddress(req: Request, res: Response) {
     return;
   }
 
+  // const destinationId = await getSubdistrictIdFromName(destination, city);
+
+  // if (!destinationId) {
+  //   return res.status(400).json({
+  //     message:
+  //       "Could not resolve destinationId from provided city/destination.",
+  //   });
+  // }
+
   try {
     const newAddress = await prisma.address.create({
       data: {
@@ -58,6 +70,7 @@ export async function addAddress(req: Request, res: Response) {
         recipient,
         address,
         destination,
+        destinationId,
         city,
         province,
         postalCode,
@@ -81,6 +94,7 @@ export async function updateAddress(req: Request, res: Response) {
     recipient,
     address,
     destination,
+    destinationId,
     city,
     province,
     postalCode,
@@ -94,6 +108,7 @@ export async function updateAddress(req: Request, res: Response) {
         recipient,
         address,
         destination,
+        destinationId,
         city,
         province,
         postalCode,
