@@ -9,6 +9,7 @@ interface Address {
   recipient: string;
   address: string;
   destination: string;
+  destinationId: string;
   city: string;
   province: string;
   postalCode: string;
@@ -19,6 +20,7 @@ interface DestinationOption {
   label: string;
   city_name: string;
   province_name: string;
+  id: string;
   zip_code: string;
 }
 
@@ -37,6 +39,7 @@ export default function AddressPage() {
     city: "",
     province: "",
     postalCode: "",
+    destinationId: "",
     isPrimary: false,
   });
 
@@ -115,6 +118,7 @@ export default function AddressPage() {
           city: "",
           province: "",
           postalCode: "",
+          destinationId: "",
           isPrimary: false,
         });
 
@@ -260,24 +264,30 @@ export default function AddressPage() {
                       required
                     />
                     {/* Optional: tampilkan list suggestion */}
-                    {destinationOptions.map((opt, index) => (
-                      <li
-                        key={index}
-                        className="p-2 hover:bg-gray-100 cursor-pointer"
-                        onClick={() => {
-                          setNewAddress({
-                            ...newAddress,
-                            destination: opt.label, // ✅ isi destination dengan label lengkap
-                            city: opt.city_name,
-                            province: opt.province_name,
-                            postalCode: opt.zip_code,
-                          });
-                          setDestinationOptions([]);
-                        }}
-                      >
-                        {opt.label}
-                      </li>
-                    ))}
+                    {destinationOptions.length > 0 && (
+                      <ul className="border border-gray-300 rounded-lg max-h-40 overflow-y-auto mt-2 bg-white shadow-md z-10 relative">
+                        {destinationOptions.map((opt, index) => (
+                          <li
+                            key={index}
+                            className="p-2 hover:bg-gray-100 cursor-pointer"
+                            onClick={() => {
+                              setNewAddress({
+                                ...newAddress,
+
+                                destination: opt.label,
+                                city: opt.city_name,
+                                province: opt.province_name,
+                                postalCode: opt.zip_code,
+                                destinationId: opt.id,
+                              });
+                              setDestinationOptions([]);
+                            }}
+                          >
+                            {opt.label}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
                   </div>
 
                   <div className="mb-4">
@@ -324,6 +334,23 @@ export default function AddressPage() {
                         setNewAddress({
                           ...newAddress,
                           postalCode: e.target.value,
+                        })
+                      }
+                      className="w-full p-2 border border-gray-300 rounded-lg"
+                      required
+                    />
+                  </div>
+                  <div className="mb-4">
+                    <label className="block mb-2 text-sm font-medium">
+                      Destination ID
+                    </label>
+                    <input
+                      type="text"
+                      value={newAddress.destinationId}
+                      onChange={(e) =>
+                        setNewAddress({
+                          ...newAddress,
+                          destinationId: e.target.value,
                         })
                       }
                       className="w-full p-2 border border-gray-300 rounded-lg"

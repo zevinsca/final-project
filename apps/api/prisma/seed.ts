@@ -144,30 +144,14 @@ async function seed() {
       data: [
         {
           // John Doe
-          street: "456 Elm Street",
+          recipient: "John",
+          address: "kelapa gading",
+          destination: "kelapa gading",
+          destinationId: 17641,
           city: "Jakarta",
-          state: "DKI Jakarta",
-          postalCode: "10120",
-          country: "Indonesia",
+          province: "DKI Jakarta",
+          postalCode: "14240",
           userId: user1.id,
-        },
-        {
-          // Alice Smith (store admin)
-          street: "789 Pine Road",
-          city: "Bandung",
-          state: "West Java",
-          postalCode: "40181",
-          country: "Indonesia",
-          userId: storeAdmin.id,
-        },
-        {
-          // Bob Taylor (super admin)
-          street: "123 Orchard Lane",
-          city: "Surabaya",
-          state: "East Java",
-          postalCode: "60241",
-          country: "Indonesia",
-          userId: superAdmin.id,
         },
       ],
     });
@@ -313,25 +297,6 @@ async function seed() {
         ],
       },
       {
-        name: "Cheddar Cheese 200g",
-        description: "Premium quality cheddar cheese block.",
-        stock: 30,
-        price: 45000,
-        weight: 0.2,
-        storeId: store.id,
-        userId: "1",
-        imagePreview: [
-          {
-            url: "https://res.cloudinary.com/dwu9rmlyv/image/upload/v1751867365/cheese23_pzp0hm.jpg",
-          },
-        ],
-        imageContent: [
-          {
-            url: "https://res.cloudinary.com/dwu9rmlyv/image/upload/v1751867365/cheese23_pzp0hm.jpg",
-          },
-        ],
-      },
-      {
         name: "Whole Wheat Bread",
         description: "Soft and healthy whole wheat bread loaf.",
         stock: 60,
@@ -350,15 +315,7 @@ async function seed() {
           },
         ],
       },
-      {
-        name: "Mineral Water 600ml",
-        description: "Clean and fresh bottled mineral water.",
-        stock: 500,
-        price: 4000,
-        weight: 0.6,
-        storeId: store.id,
-        userId: "1",
-      },
+
       {
         name: "Cheddar Cheese 200g",
         description: "Premium quality cheddar cheese block.",

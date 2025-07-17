@@ -45,10 +45,12 @@
     "handlebars": "^4.7.8",
     "haversine-distance": "^1.2.4",
     "jsonwebtoken": "^9.0.2",
+    "midtrans-node-client": "^0.0.6",
     "multer": "^2.0.1",
     "passport": "^0.7.0",
     "passport-google-oauth20": "^2.0.0",
     "resend": "^4.6.0",
+    "uuid": "^11.1.0",
     "zod": "^3.25.67"
   }
 }

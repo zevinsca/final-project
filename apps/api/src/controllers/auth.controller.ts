@@ -412,9 +412,7 @@ export async function loginGoogle(req: Request, res: Response) {
       { expiresIn: "1d" }
     );
 
-    res
-      .cookie("accessToken", accesstoken, { httpOnly: true })
-      .redirect("http://localhost:3000");
+    res.cookie("accessToken", accesstoken, { httpOnly: true });
 
     return;
   } catch (error) {

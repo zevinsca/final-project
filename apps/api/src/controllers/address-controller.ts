@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import prisma from "../config/prisma-client.js";
 import { CustomJwtPayload } from "../types/express.js";
+// import { getSubdistrictIdFromName } from "../utils/rajaongkir.js";
 
 // GET semua alamat milik user saat ini
 
@@ -35,18 +36,21 @@ export async function addAddress(req: Request, res: Response) {
   const {
     recipient,
     address,
+    destination,
+    destinationId,
     city,
     province,
-    destination,
     postalCode,
     isPrimary,
   } = req.body;
 
   if (
+    !userId ||
     !recipient ||
     !address ||
-    !city ||
     !destination ||
+    !destinationId ||
+    !city ||
     !province ||
     !postalCode
   ) {
@@ -54,15 +58,25 @@ export async function addAddress(req: Request, res: Response) {
     return;
   }
 
+  // const destinationId = await getSubdistrictIdFromName(destination, city);
+
+  // if (!destinationId) {
+  //   return res.status(400).json({
+  //     message:
+  //       "Could not resolve destinationId from provided city/destination.",
+  //   });
+  // }
+
   try {
     // Create Address first
     const newAddress = await prisma.address.create({
       data: {
         address,
+        destination,
+        destinationId,
         city,
         province,
         postalCode,
-        destination,
       },
     });
 
@@ -96,8 +110,16 @@ export async function addAddress(req: Request, res: Response) {
 // Update address
 export async function updateAddress(req: Request, res: Response) {
   const { id } = req.params;
-  const { recipient, address, city, province, postalCode, isPrimary } =
-    req.body;
+  const {
+    recipient,
+    address,
+    destination,
+    destinationId,
+    city,
+    province,
+    postalCode,
+    isPrimary,
+  } = req.body;
 
   try {
     // Update the Address
@@ -105,6 +127,8 @@ export async function updateAddress(req: Request, res: Response) {
       where: { id },
       data: {
         address,
+        destination,
+        destinationId,
         city,
         province,
         postalCode,
