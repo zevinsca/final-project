@@ -301,7 +301,10 @@ export async function createStoreProduct(req: Request, res: Response) {
 }
 
 // Fungsi untuk menghitung jarak antara dua titik koordinat
-export async function getNearbyProducts(req: Request, res: Response) {
+export async function getNearbyProducts(
+  req: Request,
+  res: Response
+): Promise<void> {
   const { latitude, longitude, radius = 5000, category } = req.query;
 
   const search = req.query.search as string | undefined;
@@ -344,7 +347,7 @@ export async function getNearbyProducts(req: Request, res: Response) {
       );
 
     if (nearbyStores.length === 0) {
-      return res.json({
+      res.json({
         nearbyStores: [],
         products: [],
         pagination: {

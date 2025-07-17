@@ -38,7 +38,16 @@ router.route("/by-store").get(getAllProductsByStore);
 router
   .route("/:id")
   .get(getProductById)
-  .patch(verifyToken, roleGuard("SUPER_ADMIN"), updateProduct)
+  .patch(
+    verifyToken,
+    roleGuard("SUPER_ADMIN"),
+    upload.fields([
+      { name: "imagePreview", maxCount: 1 },
+      { name: "imageContent", maxCount: 3 },
+    ]),
+    updateProduct
+  )
+
   .delete(verifyToken, roleGuard("SUPER_ADMIN"), deleteProduct);
 
 export default router;
