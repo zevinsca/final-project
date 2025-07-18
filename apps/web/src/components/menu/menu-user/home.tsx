@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import Icons from "./icons";
 import Image from "next/image";
 import Link from "next/link";
+
 interface Product {
   id: string;
   name: string;
@@ -24,6 +25,7 @@ interface StoreProductResponse {
   Store: Store;
   stock: number;
 }
+
 const domain = process.env.NEXT_PUBLIC_DOMAIN;
 const DEFAULT_STORE_ID = "f96bdf49-a653-44f9-bcb8-39432ff738c1";
 
@@ -37,16 +39,62 @@ export default function HomePageUser() {
   const [error, setError] = useState<string | null>(null);
   const [isGeoActive, setIsGeoActive] = useState<boolean>(false);
 
+  // 🔥 PERBAIKAN 1: Load initial data dari localStorage
+  useEffect(() => {
+    // Load saved location data
+    const savedLat = localStorage.getItem("lat");
+    const savedLng = localStorage.getItem("lng");
+    const savedProvince = localStorage.getItem("province");
+    const savedIsGeoActive = localStorage.getItem("isGeoActive");
+
+    if (savedLat && savedLng && savedIsGeoActive === "true") {
+      setLatitude(parseFloat(savedLat));
+      setLongitude(parseFloat(savedLng));
+      setIsGeoActive(true);
+      console.log("🔄 Loaded location from localStorage:", {
+        lat: savedLat,
+        lng: savedLng,
+      });
+    } else if (savedProvince && savedProvince !== "All") {
+      setSelectedProvince(savedProvince);
+      console.log("🔄 Loaded province from localStorage:", savedProvince);
+    }
+  }, []);
+
+  // 🔥 PERBAIKAN 2: Geolocation dengan localStorage sync
   useEffect(() => {
     if ("geolocation" in navigator) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
-          setLatitude(position.coords.latitude);
-          setLongitude(position.coords.longitude);
+          const lat = position.coords.latitude;
+          const lng = position.coords.longitude;
+
+          setLatitude(lat);
+          setLongitude(lng);
           setIsGeoActive(true);
+
+          // 🔥 SIMPAN KE LOCALSTORAGE
+          localStorage.setItem("lat", lat.toString());
+          localStorage.setItem("lng", lng.toString());
+          localStorage.setItem("isGeoActive", "true");
+
+          // Clear province selection karena geo aktif
+          localStorage.removeItem("province");
+          setSelectedProvince("All");
+
+          console.log("📍 Geolocation active, saved to localStorage:", {
+            lat,
+            lng,
+          });
         },
-        () => {
+        (error) => {
+          console.log("❌ Geolocation failed:", error.message);
           setIsGeoActive(false);
+
+          // 🔥 BERSIHKAN LOCALSTORAGE
+          localStorage.removeItem("lat");
+          localStorage.removeItem("lng");
+          localStorage.setItem("isGeoActive", "false");
         }
       );
     }
@@ -61,10 +109,16 @@ export default function HomePageUser() {
 
         if (isGeoActive && latitude !== null && longitude !== null) {
           url = `${domain}/api/v1/products/nearby?latitude=${latitude}&longitude=${longitude}&radius=20000`;
+          console.log("🔍 Fetching products by geolocation:", {
+            latitude,
+            longitude,
+          });
         } else if (selectedProvince !== "All") {
           url = `${domain}/api/v1/products/by-province?province=${selectedProvince}`;
+          console.log("🔍 Fetching products by province:", selectedProvince);
         } else {
           url = `${domain}/api/v1/products/by-store?storeId=${DEFAULT_STORE_ID}`;
+          console.log("🔍 Fetching products by default store");
         }
 
         const res = await fetch(url);
@@ -77,9 +131,7 @@ export default function HomePageUser() {
 
         const normalized: Product[] = rawData.map(
           (item: Product | StoreProductResponse) =>
-            "Product" in item
-              ? { ...item.Product, stock: item.stock } // inject stock dari StoreProduct
-              : item
+            "Product" in item ? { ...item.Product, stock: item.stock } : item
         );
 
         const nearbyStoreNames: string[] = (data.nearbyStores ?? []).map(
@@ -112,6 +164,26 @@ export default function HomePageUser() {
     fetchProvinces();
   }, []);
 
+  // 🔥 PERBAIKAN 3: Handler untuk province change
+  const handleProvinceChange = (province: string) => {
+    setSelectedProvince(province);
+
+    // 🔥 SIMPAN KE LOCALSTORAGE
+    localStorage.setItem("province", province);
+
+    // Clear geolocation data karena user pilih province manual
+    if (province !== "All") {
+      setIsGeoActive(false);
+      setLatitude(null);
+      setLongitude(null);
+      localStorage.removeItem("lat");
+      localStorage.removeItem("lng");
+      localStorage.setItem("isGeoActive", "false");
+    }
+
+    console.log("🌍 Province changed to:", province);
+  };
+
   return (
     <div className="min-h-screen px-6 md:px-20 lg:px-40 py-10 grid grid-rows-[auto_1fr] gap-10">
       <div>
@@ -124,15 +196,15 @@ export default function HomePageUser() {
       <div className="grid grid-rows-[auto_1fr] gap-5">
         {!isGeoActive && (
           <div className="w-full flex justify-end px-5">
-            <div className="flex items-center gap-2 bg-green-700 text-white px-6 py-2 rounded shadow-md opacity-0">
-              <span className="font-semibold">Lokasi</span>
+            <div className="flex items-center gap-2 bg-green-700 text-white px-6 py-2 rounded shadow-md">
+              <span className="font-semibold">Choose Location </span>
               <select
                 className="border-none rounded-md px-3 py-2 text-black cursor-pointer shadow-sm transition duration-200 focus:outline-none focus:ring-2 focus:ring-green-500"
                 value={selectedProvince}
-                onChange={(e) => setSelectedProvince(e.target.value)}
+                onChange={(e) => handleProvinceChange(e.target.value)}
               >
                 <option value="" disabled hidden>
-                  Pilih Provinsi
+                  Choose Location
                 </option>
                 {provinces.map((province) => (
                   <option key={province} value={province}>
@@ -147,18 +219,28 @@ export default function HomePageUser() {
         <div className="p-6 rounded-lg shadow-l flex flex-col gap-20">
           <Icons />
           <div>
-            <h2 className="text-2xl font-bold mb-4 text-green-900">
-              Produk dari Toko
-            </h2>
+            <h2 className="text-2xl font-bold mb-4 text-green-900">Products</h2>
+
+            {/* 🔥 PERBAIKAN 4: Status indicator */}
+            <div className="mb-4 p-3 bg-gray-100 rounded-lg">
+              <p className="text-sm text-gray-600">
+                <strong>Status:</strong>{" "}
+                {isGeoActive
+                  ? `📍 Your nearest location`
+                  : selectedProvince !== "All"
+                    ? `🌍 Province: ${selectedProvince}`
+                    : "🏪 Main store location"}
+              </p>
+            </div>
 
             {isGeoActive && stores.length > 0 && (
               <div className="mb-2 text-xl text-green-900 font-semibold">
-                <strong>Toko terdekat:</strong> {stores.join(", ")}
+                <strong>Nearby stores:</strong> {stores.join(", ")}
               </div>
             )}
 
             {products.length === 0 && (
-              <p className="text-green-600">Belum ada produk yang ditemukan.</p>
+              <p className="text-green-600">No products found.</p>
             )}
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
               {products.map((product) => (
@@ -183,7 +265,7 @@ export default function HomePageUser() {
                   </p>
 
                   <p className="text-sm text-gray-600 text-center mb-4">
-                    Stok: {product.stock}
+                    Stock: {product.stock}
                   </p>
 
                   <Link

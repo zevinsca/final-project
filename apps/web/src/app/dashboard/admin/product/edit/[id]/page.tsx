@@ -1,316 +1,203 @@
 "use client";
+import MenuNavbarUser from "@/components/header/header-user/header";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 
-import { useEffect, useState } from "react";
-import { useRouter, useParams } from "next/navigation";
-import axios from "axios";
 import Image from "next/image";
 
-interface Category {
+interface ProductType {
   id: string;
-  name: string;
-}
-
-interface Store {
-  id: string;
-  name: string;
-}
-
-interface ProductCategory {
-  categoryId: string;
-}
-
-interface ImageObject {
-  imageUrl: string;
-}
-
-interface StoreProduct {
-  storeId: string;
-  stock: number;
-}
-
-interface ProductResponse {
   name: string;
   description: string;
   price: number;
-  weight: number;
-  ProductCategory?: ProductCategory[];
-  StoreProduct?: StoreProduct[];
-  imagePreview?: ImageObject[];
+  stock: number;
+  imagePreview: [{ imageUrl: string }];
+  imageContent: [{ imageUrl: string }];
 }
 
-export default function EditProductPage() {
+export default function ProductCatalogId({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  /* ----------------------------------------------------------------------------
+   *  component state
+   * --------------------------------------------------------------------------*/
+  const [product, setProduct] = useState<ProductType | null>(null);
+  const [qty, setQty] = useState<number>(1);
+
+  const [notification, setNotification] = useState<string | null>(null);
+
   const router = useRouter();
-  const params = useParams();
-  const { id } = params;
 
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
-  const [price, setPrice] = useState<number>(0);
-  const [weight, setWeight] = useState<number>(0);
-  const [categoryId, setCategoryId] = useState<string>("");
-
-  const [imagePreviewUrl, setImagePreviewUrl] = useState<string>("");
-  const [imagePreviewFile, setImagePreviewFile] = useState<File | null>(null);
-  const [imageContentFile, setImageContentFile] = useState<File | null>(null);
-
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [stores, setStores] = useState<Store[]>([]);
-  const [storeStocks, setStoreStocks] = useState<StoreProduct[]>([]);
-
-  const [loading, setLoading] = useState(true);
-
+  /* ----------------------------------------------------------------------------
+   *  fetch product data once on mount
+   * --------------------------------------------------------------------------*/
   useEffect(() => {
-    if (!id || Array.isArray(id)) return;
+    let isMounted = true;
 
-    async function fetchAllData() {
+    async function getProduct() {
       try {
-        setLoading(true);
+        const { id } = await params;
+        const res = await fetch(`http://localhost:8000/api/v1/products/${id}`, {
+          credentials: "include",
+        });
+        const json = await res.json();
 
-        const [productRes, categoriesRes, storesRes] = await Promise.all([
-          axios.get(`http://localhost:8000/api/v1/products/${id}`, {
-            withCredentials: true,
-          }),
-          axios.get("http://localhost:8000/api/v1/categories", {
-            withCredentials: true,
-          }),
-          axios.get("http://localhost:8000/api/v1/stores", {
-            withCredentials: true,
-          }),
-        ]);
+        if (isMounted) {
+          const raw = json?.data;
 
-        const product: ProductResponse = productRes.data.data;
-        setCategories(categoriesRes.data.data);
-        setStores(storesRes.data.data);
+          // Ambil StoreProduct[0]?.stock
+          const storeProduct = (raw.StoreProduct ?? [])[0];
+          const stock = storeProduct?.stock ?? 0;
 
-        setName(product.name);
-        setDescription(product.description);
-        setPrice(product.price);
-        setWeight(product.weight);
-        setCategoryId(product.ProductCategory?.[0]?.categoryId ?? "");
-        setStoreStocks(product.StoreProduct ?? []);
-        setImagePreviewUrl(product.imagePreview?.[0]?.imageUrl ?? "");
+          // Normalisasi sesuai ProductType
+          const normalized: ProductType = {
+            id: raw.id,
+            name: raw.name,
+            description: raw.description,
+            price: raw.price,
+            imagePreview: raw.imagePreview ?? [],
+            imageContent: raw.imageContent ?? [],
+            stock,
+          };
 
-        setLoading(false);
-      } catch (err) {
-        console.error("Error fetching data:", err);
-        setLoading(false);
-      }
-    }
-
-    fetchAllData();
-  }, [id]);
-
-  const handleUpdateProduct = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (
-      !name ||
-      !description ||
-      price <= 0 ||
-      weight <= 0 ||
-      !categoryId ||
-      storeStocks.length === 0
-    ) {
-      alert("Missing or invalid fields.");
-      return;
-    }
-
-    try {
-      const formData = new FormData();
-      formData.append("name", name);
-      formData.append("description", description);
-      formData.append("price", String(price));
-      formData.append("weight", String(weight));
-      formData.append("storeStocks", JSON.stringify(storeStocks));
-      formData.append("categoryIds", categoryId);
-
-      if (imagePreviewFile) {
-        formData.append("imagePreview", imagePreviewFile);
-      }
-
-      if (imageContentFile) {
-        formData.append("imageContent", imageContentFile);
-      }
-
-      await axios.patch(
-        `http://localhost:8000/api/v1/products/${id}`,
-        formData,
-        {
-          withCredentials: true,
-          headers: { "Content-Type": "multipart/form-data" },
+          setProduct(normalized);
         }
-      );
+      } catch (err) {
+        console.error("Error fetching product:", err);
+      }
+    }
 
-      alert("Product updated successfully.");
-      router.push("/dashboard/admin/product");
-    } catch (error) {
-      console.error("Error updating product:", error);
-      alert("Failed to update product.");
+    getProduct();
+    return () => {
+      isMounted = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  /* ----------------------------------------------------------------------------
+   *  helpers
+   * --------------------------------------------------------------------------*/
+  const changeQty = (delta: number) => {
+    if (!product) return;
+    setQty((curr) => {
+      const next = curr + delta;
+      // clamp between 1 and available stock
+      return Math.max(1, Math.min(next, product.stock));
+    });
+  };
+
+  const handleAddToCart = async () => {
+    if (!product) return;
+    try {
+      await fetch("http://localhost:8000/api/v1/cart", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ productId: product.id, quantity: qty }),
+      });
+      // Show success notification
+      setNotification("✅ Successfully added to cart!");
+
+      // Hide notification after 3 seconds
+      setTimeout(() => {
+        setNotification(null);
+      }, 3000);
+    } catch (err) {
+      console.error("Error adding to cart:", err);
     }
   };
 
-  if (loading) {
-    return (
-      <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm z-50">
-        <p className="text-white text-lg">Loading...</p>
-      </div>
-    );
-  }
+  const handleBuyNow = async () => {
+    await handleAddToCart(); // add first…
+    router.push("/checkout"); // …then jump straight to checkout
+  };
 
+  /* ----------------------------------------------------------------------------
+   *  render
+   * --------------------------------------------------------------------------*/
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <form
-        onSubmit={handleUpdateProduct}
-        className="max-w-2xl w-full bg-white p-6 rounded shadow space-y-4 overflow-y-auto max-h-[90vh]"
-      >
-        <h1 className="text-2xl font-bold mb-4">Edit Product</h1>
-
-        <div>
-          <label className="block mb-1 font-medium">Product Name</label>
-          <input
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            required
-            className="w-full border rounded px-3 py-2"
-          />
-        </div>
-
-        <div>
-          <label className="block mb-1 font-medium">Description</label>
-          <textarea
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            required
-            className="w-full border rounded px-3 py-2"
-          />
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block mb-1 font-medium">Price</label>
-            <input
-              type="number"
-              value={price}
-              onChange={(e) => setPrice(Number(e.target.value))}
-              required
-              className="w-full border rounded px-3 py-2"
-            />
+    <MenuNavbarUser>
+      <div className="p-4 max-w-5xl mx-auto">
+        {notification && (
+          <div className="absolute top-0 left-0 right-0 bg-green-100 text-green-800 text-sm text-center p-2 shadow z-50">
+            {notification}
           </div>
-          <div>
-            <label className="block mb-1 font-medium">Weight</label>
-            <input
-              type="number"
-              value={weight}
-              onChange={(e) => setWeight(Number(e.target.value))}
-              required
-              className="w-full border rounded px-3 py-2"
-            />
-          </div>
-        </div>
+        )}
 
-        <div>
-          <label className="block mb-1 font-medium">
-            Current Image Preview
-          </label>
-          {imagePreviewUrl && (
-            <Image
-              src={imagePreviewUrl}
-              alt="Current Preview"
-              width={150}
-              height={150}
-              className="object-contain bg-white border rounded mb-2"
-            />
-          )}
-          <input
-            type="file"
-            accept="image/*"
-            onChange={(e) => setImagePreviewFile(e.target.files?.[0] ?? null)}
-            className="w-full border rounded px-3 py-2"
-          />
-        </div>
+        {product && (
+          <div className="flex flex-col md:flex-row gap-8 border rounded-lg shadow p-6 bg-white">
+            {/* LEFT: Image */}
+            <div className="flex justify-center md:w-1/2">
+              <Image
+                src={product.imagePreview?.[0]?.imageUrl ?? "/placeholder.jpg"}
+                alt={product.name}
+                width={300}
+                height={300}
+                className="rounded-lg border"
+              />
+            </div>
 
-        <div>
-          <label className="block mb-1 font-medium">
-            Image Content (optional)
-          </label>
-          <input
-            type="file"
-            accept="image/*"
-            onChange={(e) => setImageContentFile(e.target.files?.[0] ?? null)}
-            className="w-full border rounded px-3 py-2"
-          />
-        </div>
+            {/* RIGHT: Details */}
+            <div className="flex flex-col md:w-1/2 space-y-4">
+              <h1 className="text-2xl font-bold text-green-800">
+                {product.name}
+              </h1>
+              <p className="text-gray-700">{product.description}</p>
 
-        <div>
-          <label className="block mb-1 font-medium">Category</label>
-          <select
-            value={categoryId}
-            onChange={(e) => setCategoryId(e.target.value)}
-            required
-            className="w-full border rounded px-3 py-2"
-          >
-            <option value="">Select a Category</option>
-            {categories.map((category) => (
-              <option key={category.id} value={category.id}>
-                {category.name}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div>
-          <label className="block mb-1 font-medium">
-            Set Stock for Each Store
-          </label>
-          <div className="space-y-2">
-            {stores.map((store) => (
-              <div key={store.id} className="flex items-center space-x-2">
-                <label className="w-1/3">{store.name}</label>
-                <input
-                  type="number"
-                  className="border rounded px-2 py-1 w-2/3"
-                  value={
-                    storeStocks.find((s) => s.storeId === store.id)?.stock ?? 0
-                  }
-                  onChange={(e) => {
-                    const newStock = Number(e.target.value);
-                    setStoreStocks((prev) => {
-                      const exists = prev.find((s) => s.storeId === store.id);
-                      if (exists) {
-                        return prev.map((s) =>
-                          s.storeId === store.id ? { ...s, stock: newStock } : s
-                        );
-                      } else {
-                        return [
-                          ...prev,
-                          { storeId: store.id, stock: newStock },
-                        ];
-                      }
-                    });
-                  }}
-                />
+              <div className="space-y-1">
+                {/* <p className="text-sm text-gray-400 line-through">
+                  Rp {(product.price * 1.1).toLocaleString()}
+                </p> */}
+                <p className="text-2xl font-bold text-green-700">
+                  Rp {product.price.toLocaleString()}
+                </p>
+                <p className="text-sm text-gray-600">
+                  Available Stock: {product.stock}
+                </p>
               </div>
-            ))}
-          </div>
-        </div>
 
-        <div className="flex justify-between">
-          <button
-            type="button"
-            onClick={() => router.push("/dashboard/admin/product")}
-            className="bg-gray-300 px-4 py-2 rounded hover:bg-gray-400"
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
-          >
-            Update
-          </button>
-        </div>
-      </form>
-    </div>
+              {/* quantity selector */}
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => changeQty(-1)}
+                  className="px-3 py-1 border rounded disabled:opacity-50"
+                  disabled={qty === 1}
+                >
+                  −
+                </button>
+                <span className="min-w-[2rem] text-center">{qty}</span>
+                <button
+                  onClick={() => changeQty(1)}
+                  className="px-3 py-1 border rounded disabled:opacity-50"
+                  disabled={product.stock === 0 || qty === product.stock}
+                >
+                  +
+                </button>
+              </div>
+
+              {/* action buttons */}
+              <div className="flex flex-col gap-3 pt-2">
+                <button
+                  onClick={handleAddToCart}
+                  className="w-full px-4 py-2 rounded bg-green-600 hover:bg-green-700 text-white disabled:opacity-50"
+                  disabled={product.stock === 0}
+                >
+                  Add to Cart
+                </button>
+                <button
+                  onClick={handleBuyNow}
+                  className="w-full px-4 py-2 rounded bg-gray-800 text-white disabled:opacity-50"
+                  disabled={product.stock === 0}
+                >
+                  Buy Now
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </MenuNavbarUser>
   );
 }

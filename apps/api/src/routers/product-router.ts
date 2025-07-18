@@ -1,19 +1,24 @@
 import express from "express";
 import {
-  createProduct,
   getAllProduct,
-  getAllProductsByCity,
-  getAllProductsByStore,
   getProductById,
-  updateProduct,
-  deleteProduct,
 } from "../controllers/product-controller.js";
 import { verifyToken, roleGuard } from "../middleware/auth-middleware.js";
 import {
   createStoreProduct,
   getNearbyProducts,
 } from "../controllers/store-controler.js";
+
 import { upload } from "../middleware/upload-middleware.js";
+import { createProduct } from "../controllers/create-product-controller.js";
+import {
+  getAllProductsByCity,
+  getAllProductsByStore,
+} from "../controllers/get-product-controller.js";
+import {
+  deleteProduct,
+  updateProduct,
+} from "../controllers/update-product-controller.js";
 
 const router = express.Router();
 

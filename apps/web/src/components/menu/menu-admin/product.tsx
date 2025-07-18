@@ -12,14 +12,26 @@ interface Product {
   description: string;
   price: number;
   stock: number;
-  weight: number;
+  weight?: number;
   category: string[];
-  imagePreview: [{ imageUrl: string }];
+  imagePreview: { imageUrl: string }[];
 }
 
 export default function ProductAdminPage() {
   const router = useRouter();
+
   const [products, setProducts] = useState<Product[]>([]);
+  const [totalPages, setTotalPages] = useState(1);
+  const [page, setPage] = useState(1);
+
+  const [search, setSearch] = useState("");
+  const [category, setCategory] = useState("");
+  const [sortBy, setSortBy] = useState("createdAt");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+  const [categories, setCategories] = useState<{ id: string; name: string }[]>(
+    []
+  );
+
   const [showModal, setShowModal] = useState(false);
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
 
@@ -27,15 +39,40 @@ export default function ProductAdminPage() {
     async function fetchProducts() {
       try {
         const res = await axios.get("http://localhost:8000/api/v1/products", {
+          params: {
+            page,
+            limit: 10,
+            search,
+            category,
+            sortBy,
+            sortOrder,
+          },
           withCredentials: true,
         });
+
         setProducts(res.data.data);
+        setTotalPages(res.data.meta.totalPages);
       } catch (err) {
         console.error("Error fetching products:", err);
       }
     }
 
     fetchProducts();
+  }, [page, search, category, sortBy, sortOrder]);
+
+  useEffect(() => {
+    async function fetchCategories() {
+      try {
+        const res = await axios.get("http://localhost:8000/api/v1/categories", {
+          withCredentials: true,
+        });
+        setCategories(res.data.data); // ← pastikan response-nya ada di `data`
+      } catch (err) {
+        console.error("Failed to fetch categories", err);
+      }
+    }
+
+    fetchCategories();
   }, []);
 
   const confirmDeleteProduct = (product: Product) => {
@@ -78,6 +115,61 @@ export default function ProductAdminPage() {
         >
           Create Product
         </Link>
+      </div>
+
+      {/* Filter & Sort */}
+      <div className="flex flex-wrap gap-4 mb-4">
+        <input
+          type="text"
+          placeholder="Search..."
+          value={search}
+          onChange={(e) => {
+            setSearch(e.target.value);
+            setPage(1);
+          }}
+          className="border px-3 py-1 rounded"
+        />
+        <select
+          value={category}
+          onChange={(e) => {
+            setCategory(e.target.value);
+            setPage(1);
+          }}
+          className="border px-3 py-1 rounded"
+        >
+          <option value="">All Categories</option>
+          {categories.map((cat) => (
+            <option key={cat.id} value={cat.name}>
+              {cat.name}
+            </option>
+          ))}
+        </select>
+
+        <select
+          value={sortBy}
+          onChange={(e) => setSortBy(e.target.value)}
+          className="border px-3 py-1 rounded"
+        >
+          <option value="name">Name</option>
+          <option value="price">Price</option>
+        </select>
+        <select
+          value={sortOrder}
+          onChange={(e) => setSortOrder(e.target.value as "asc" | "desc")}
+          className="border px-3 py-1 rounded"
+        >
+          {sortBy === "name" ? (
+            <>
+              <option value="asc">🔤 A to Z</option>
+              <option value="desc">🔡 Z to A</option>
+            </>
+          ) : (
+            <>
+              <option value="asc">💸 Lowest to Highest</option>
+              <option value="desc">💰 Highest to Lowest</option>
+            </>
+          )}
+        </select>
       </div>
 
       {products.length === 0 ? (
@@ -138,6 +230,29 @@ export default function ProductAdminPage() {
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* Pagination */}
+      {totalPages >= 1 && (
+        <div className="flex justify-center mt-4 space-x-2">
+          <button
+            onClick={() => setPage((prev) => Math.max(prev - 1, 1))}
+            disabled={page === 1}
+            className="px-3 py-1 border rounded disabled:opacity-50"
+          >
+            Previous
+          </button>
+          <span className="px-3 py-1">
+            Page {page} of {totalPages}
+          </span>
+          <button
+            onClick={() => setPage((prev) => Math.min(prev + 1, totalPages))}
+            disabled={page === totalPages}
+            className="px-3 py-1 border rounded disabled:opacity-50"
+          >
+            Next
+          </button>
         </div>
       )}
 

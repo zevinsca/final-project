@@ -45,16 +45,62 @@ export default function ProductPage() {
   const [category, setCategory] = useState<string>("");
   const [categories, setCategories] = useState<string[]>([]);
 
+  // 🔥 PERBAIKAN 1: Load initial data dari localStorage
+  useEffect(() => {
+    // Load saved location data
+    const savedLat = localStorage.getItem("lat");
+    const savedLng = localStorage.getItem("lng");
+    const savedProvince = localStorage.getItem("province");
+    const savedIsGeoActive = localStorage.getItem("isGeoActive");
+
+    if (savedLat && savedLng && savedIsGeoActive === "true") {
+      setLatitude(parseFloat(savedLat));
+      setLongitude(parseFloat(savedLng));
+      setIsGeoActive(true);
+      console.log("🔄 Loaded location from localStorage:", {
+        lat: savedLat,
+        lng: savedLng,
+      });
+    } else if (savedProvince && savedProvince !== "All") {
+      setSelectedProvince(savedProvince);
+      console.log("🔄 Loaded province from localStorage:", savedProvince);
+    }
+  }, []);
+
+  // 🔥 PERBAIKAN 2: Geolocation dengan localStorage sync
   useEffect(() => {
     if ("geolocation" in navigator) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
-          setLatitude(position.coords.latitude);
-          setLongitude(position.coords.longitude);
+          const lat = position.coords.latitude;
+          const lng = position.coords.longitude;
+
+          setLatitude(lat);
+          setLongitude(lng);
           setIsGeoActive(true);
+
+          // 🔥 SIMPAN KE LOCALSTORAGE
+          localStorage.setItem("lat", lat.toString());
+          localStorage.setItem("lng", lng.toString());
+          localStorage.setItem("isGeoActive", "true");
+
+          // Clear province selection karena geo aktif
+          localStorage.removeItem("province");
+          setSelectedProvince("All");
+
+          console.log("📍 Geolocation active, saved to localStorage:", {
+            lat,
+            lng,
+          });
         },
-        () => {
+        (error) => {
+          console.log("❌ Geolocation failed:", error.message);
           setIsGeoActive(false);
+
+          // 🔥 BERSIHKAN LOCALSTORAGE
+          localStorage.removeItem("lat");
+          localStorage.removeItem("lng");
+          localStorage.setItem("isGeoActive", "false");
         }
       );
     }
@@ -78,12 +124,18 @@ export default function ProductPage() {
           params.append("longitude", longitude.toString());
           params.append("radius", "20000");
           url = `${domain}/api/v1/products/nearby?${params.toString()}`;
+          console.log("🔍 Fetching products by geolocation:", {
+            latitude,
+            longitude,
+          });
         } else if (selectedProvince !== "All") {
           params.append("province", selectedProvince);
           url = `${domain}/api/v1/products/by-province?${params.toString()}`;
+          console.log("🔍 Fetching products by province:", selectedProvince);
         } else {
           params.append("storeId", DEFAULT_STORE_ID);
           url = `${domain}/api/v1/products/by-store?${params.toString()}`;
+          console.log("🔍 Fetching products by default store");
         }
 
         const res = await fetch(url);
@@ -139,8 +191,6 @@ export default function ProductPage() {
       try {
         const res = await fetch(`${domain}/api/v1/categories`);
         const data = await res.json();
-        console.log("Fetched categories:", data);
-
         // Ambil array nama kategori dari data.data
         const names = (data.data || []).map((c: { name: string }) => c.name);
         setCategories(names);
@@ -153,24 +203,42 @@ export default function ProductPage() {
     fetchCategories();
   }, []);
 
+  // 🔥 PERBAIKAN 3: Handler untuk province change
+  const handleProvinceChange = (province: string) => {
+    setSelectedProvince(province);
+    setPage(1);
+
+    // 🔥 SIMPAN KE LOCALSTORAGE
+    localStorage.setItem("province", province);
+
+    // Clear geolocation data karena user pilih province manual
+    if (province !== "All") {
+      setIsGeoActive(false);
+      setLatitude(null);
+      setLongitude(null);
+      localStorage.removeItem("lat");
+      localStorage.removeItem("lng");
+      localStorage.setItem("isGeoActive", "false");
+    }
+
+    console.log("🌍 Province changed to:", province);
+  };
+
   return (
     <div className="min-h-screen px-6 md:px-20 lg:px-40 py-10 grid grid-rows-[auto_1fr] gap-10">
       <div>{error && <p className="text-red-400 text-center">{error}</p>}</div>
       <div className="grid grid-rows-[auto_1fr] gap-5">
         {!isGeoActive && (
           <div className="w-full flex justify-end px-5">
-            <div className="flex items-center gap-2 bg-green-700 text-white px-6 py-2 rounded shadow-md opacity-0">
-              <span className="font-semibold">Pilih Lokasi</span>
+            <div className="flex items-center gap-2 bg-green-700 text-white px-6 py-2 rounded shadow-md">
+              <span className="font-semibold">Choose Location</span>
               <select
                 className="border-none rounded-md px-3 py-2 text-black cursor-pointer shadow-sm transition duration-200 focus:outline-none focus:ring-2 focus:ring-green-500"
                 value={selectedProvince}
-                onChange={(e) => {
-                  setSelectedProvince(e.target.value);
-                  setPage(1);
-                }}
+                onChange={(e) => handleProvinceChange(e.target.value)}
               >
                 <option value="" disabled hidden>
-                  Pilih Provinsi
+                  Choose Province
                 </option>
                 {provinces.map((province) => (
                   <option key={province} value={province}>
@@ -186,6 +254,18 @@ export default function ProductPage() {
           <div>
             <h2 className="text-2xl font-bold mb-4 text-green-900"></h2>
 
+            {/* 🔥 PERBAIKAN 4: Status indicator */}
+            <div className="mb-4 p-3 bg-gray-100 rounded-lg">
+              <p className="text-sm text-gray-600">
+                <strong>Status:</strong>{" "}
+                {isGeoActive
+                  ? `📍 Your nearest location`
+                  : selectedProvince !== "All"
+                    ? `🌍 Province: ${selectedProvince}`
+                    : "🏪 Default store location"}
+              </p>
+            </div>
+
             <div className="flex flex-wrap gap-4 mb-6 items-center">
               <input
                 type="text"
@@ -194,12 +274,12 @@ export default function ProductPage() {
                 onChange={(e) => setSearch(e.target.value)}
                 className="px-3 py-2 border rounded shadow"
               />
-              <button
+              {/* <button
                 onClick={() => setPage(1)}
                 className="bg-green-700 text-white px-4 py-2 rounded shadow"
               >
                 Search
-              </button>
+              </button> */}
 
               <select
                 value={category}
@@ -220,12 +300,12 @@ export default function ProductPage() {
 
             {isGeoActive && stores.length > 0 && (
               <div className="mb-2 text-green-900 font-semibold">
-                <strong>Toko terdekat:</strong> {stores.join(", ")}
+                <strong>Nearby store:</strong> {stores.join(", ")}
               </div>
             )}
 
             {products.length === 0 && (
-              <p className="text-green-600">Belum ada produk yang ditemukan.</p>
+              <p className="text-green-600">No Products Found</p>
             )}
 
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
@@ -248,8 +328,13 @@ export default function ProductPage() {
                     {product.name}
                   </h3>
 
-                  <p className="text-green-700 font-bold mb-4">
+                  <p className="text-green-700 font-bold mb-2">
                     Rp{product.price.toLocaleString()}
+                  </p>
+
+                  {/* 🔥 PERBAIKAN 5: Tampilkan stock info */}
+                  <p className="text-sm text-gray-600 mb-4">
+                    Stock: {product.stock}
                   </p>
 
                   <Link

@@ -39,29 +39,45 @@ export default function ProductCatalogId({
     async function getProduct() {
       try {
         const { id } = await params;
-        const res = await fetch(`http://localhost:8000/api/v1/products/${id}`, {
+
+        const lat = localStorage.getItem("lat");
+        const lng = localStorage.getItem("lng");
+        const province = localStorage.getItem("province");
+
+        let url = `http://localhost:8000/api/v1/products/${id}`;
+        const query = new URLSearchParams();
+
+        if (lat && lng) {
+          query.append("lat", lat);
+          query.append("lng", lng);
+        } else if (province && province !== "All") {
+          query.append("province", province);
+        }
+
+        if (query.toString()) {
+          url += `?${query.toString()}`;
+        }
+
+        const res = await fetch(url, {
           credentials: "include",
         });
         const json = await res.json();
+        const raw = json?.data;
+
+        const storeProduct = (raw.StoreProduct ?? [])[0];
+        const stock = storeProduct?.stock ?? 0;
+
+        const normalized: ProductType = {
+          id: raw.id,
+          name: raw.name,
+          description: raw.description,
+          price: raw.price,
+          imagePreview: raw.imagePreview ?? [],
+          imageContent: raw.imageContent ?? [],
+          stock,
+        };
 
         if (isMounted) {
-          const raw = json?.data;
-
-          // Ambil StoreProduct[0]?.stock
-          const storeProduct = (raw.StoreProduct ?? [])[0];
-          const stock = storeProduct?.stock ?? 0;
-
-          // Normalisasi sesuai ProductType
-          const normalized: ProductType = {
-            id: raw.id,
-            name: raw.name,
-            description: raw.description,
-            price: raw.price,
-            imagePreview: raw.imagePreview ?? [],
-            imageContent: raw.imageContent ?? [],
-            stock,
-          };
-
           setProduct(normalized);
         }
       } catch (err) {
