@@ -30,28 +30,50 @@ export async function getCurrentUser(
   res: Response
 ): Promise<void> {
   try {
-    // Login biasa (manual)
-    const user = req.user as CustomJwtPayload;
-    const userId = user.id;
-    if (!userId) {
-      res.status(401).json({ message: "Unauthorized" });
+    // Extract the accessToken from cookies
+    const token = req.cookies.accessToken;
+
+    if (!token) {
+      res.status(401).json({ message: "Unauthorized. No token provided." });
       return;
     }
-    // Login Google
 
-    const userData = {
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      photo: user.photo,
-      role: user.role,
-      loginType: user.loginType,
-      isVerified: user.isVerified,
-    };
-    res.status(200).json({ data: userData });
+    // Verify and decode the JWT token to get user data (CustomJwtPayload)
+    const decoded = jwt.verify(
+      token,
+      process.env.JWT_SECRET as string
+    ) as CustomJwtPayload;
+
+    if (!decoded || !decoded.id) {
+      res.status(401).json({ message: "Unauthorized. Invalid token." });
+      return;
+    }
+
+    // Fetch the latest user data from the database using the decoded user ID
+    const user = await prisma.user.findUnique({
+      where: { id: decoded.id },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        username: true,
+        phoneNumber: true,
+        isVerified: true, // Check if the user is verified
+      },
+    });
+
+    // If user is not found
+    if (!user) {
+      res.status(404).json({ message: "User not found." });
+      return;
+    }
+
+    // Return the user data excluding the password
+    res.status(200).json({ data: user });
   } catch (error) {
-    console.error("get User Error:", error);
-    res.status(500).json({ message: "Failed to get User" });
+    console.error("Error fetching current user:", error);
+    res.status(500).json({ message: "Failed to get user data." });
   }
 }
 /* -------------------------------------------------------------------------- */
@@ -65,7 +87,8 @@ export async function updateCurrentUser(req: Request, res: Response) {
 
     // Check if userId exists, meaning the user is authorized
     if (!userId) {
-      return res.status(401).json({ message: "Unauthorized" });
+      res.status(401).json({ message: "Unauthorized" });
+      return;
     }
 
     // Get the data from the request body that the user wants to update
@@ -73,7 +96,8 @@ export async function updateCurrentUser(req: Request, res: Response) {
 
     // Validate if the data is present in the request body
     if (!email && !firstName && !lastName && !phoneNumber) {
-      return res.status(400).json({ message: "No data to update" });
+      res.status(400).json({ message: "No data to update" });
+      return;
     }
 
     // Proceed to update the user's details in the database
@@ -84,7 +108,7 @@ export async function updateCurrentUser(req: Request, res: Response) {
         firstName, // Update first name
         lastName, // Update last name
         phoneNumber, // Update phone number
-        role,
+        role: user.role === "SUPER_ADMIN" ? role : user.role, // Only allow SUPER_ADMIN to change role
       },
     });
 

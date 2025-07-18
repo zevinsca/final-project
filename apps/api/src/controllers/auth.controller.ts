@@ -6,13 +6,9 @@ import { ZodError } from "zod";
 import { Resend } from "resend";
 import fs from "fs/promises";
 import handlebars from "handlebars";
-import {
-  registerSchema,
-  setPasswordSchema,
-  resetPasswordSchema,
-} from "../validations/auth-validation.js";
+import { registerSchema } from "../validations/auth-validation.js";
 import { Profile } from "passport";
-import crypto from "crypto";
+
 import { randomUUID } from "crypto";
 import { CustomJwtPayload } from "../types/express.js";
 
@@ -109,10 +105,16 @@ export async function register(req: Request, res: Response) {
 /* -------------------------------------------------------------------------- */
 export async function login(req: Request, res: Response) {
   try {
-    const { username, password, email } = req.body;
+    const { usernameOrEmail, password } = req.body;
 
+    // Log the incoming data
+    console.log("Login attempt with:", usernameOrEmail);
+
+    // Find the user based on either username or email
     const existingUser = await prisma.user.findFirst({
-      where: { OR: [{ username: username }, { email: email }] },
+      where: {
+        OR: [{ username: usernameOrEmail }, { email: usernameOrEmail }],
+      },
     });
 
     if (!existingUser) {
@@ -426,195 +428,116 @@ export async function loginGoogle(req: Request, res: Response) {
 /* -------------------------------------------------------------------------- */
 /*                               reset Password                               */
 /* -------------------------------------------------------------------------- */
-export async function setPassword(req: Request, res: Response) {
-  const { token } = req.query;
+
+export async function resendSetPasswordLink(req: Request, res: Response) {
+  const { email } = req.body;
 
   try {
-    if (!token || typeof token !== "string") {
-      res.status(400).json({ message: "Token tidak valid." });
+    // Find the user by email
+    const user = await prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (!user) {
+      res.status(404).json({ message: "User not found" });
       return;
     }
 
-    const { password } = setPasswordSchema.parse(req.body);
+    // Generate reset token using JWT
+    const resetToken = jwt.sign(
+      { email: user.email },
+      process.env.JWT_SECRET as string,
+      { expiresIn: "1h" }
+    );
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as {
-      email: string;
-    };
+    // Save the token to a cookie (if needed)
+    res.cookie("resetToken", resetToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      maxAge: 3600000, // 1 hour expiration
+    });
 
+    // Read the Handlebars template for the email
+    const templateSource = await fs.readFile(
+      "src/templates/reset-password.hbs",
+      "utf-8"
+    );
+
+    // Compile the template with Handlebars
+    const compiledTemplate = handlebars.compile(templateSource);
+    const html = compiledTemplate({ resetToken });
+
+    // Send the email using Resend
+    const { error: sendError } = await resend.emails.send({
+      from: "onboarding@resend.dev", // Sender email address
+      to: user.email,
+      subject: "Reset Your Password",
+      html: html, // The HTML content of the email
+    });
+
+    // Handle any errors when sending the email
+    if (sendError) {
+      console.error("Resend error:", sendError);
+      res.status(400).json({ message: "Failed to send email" });
+      return;
+    }
+
+    // Respond with success message
+    res.status(200).json({ message: "Reset password link sent successfully" });
+  } catch (error) {
+    console.error(error);
+    res
+      .status(500)
+      .json({ message: "Something went wrong while sending the reset link" });
+  }
+}
+
+export async function resetPassword(req: Request, res: Response) {
+  const { password, confirmPassword, resetToken } = req.body;
+
+  if (password !== confirmPassword) {
+    res.status(400).json({ message: "Passwords do not match." });
+    return;
+  }
+
+  if (!resetToken) {
+    res.status(400).json({ message: "No reset token found." });
+    return;
+  }
+
+  try {
+    const jwtSecret = process.env.JWT_SECRET;
+    if (!jwtSecret) {
+      throw new Error("JWT_SECRET is missing in the environment variables");
+    }
+
+    // Verify the reset token
+    const decoded = jwt.verify(resetToken, jwtSecret) as { email: string };
+
+    // Find user by email
     const user = await prisma.user.findUnique({
       where: { email: decoded.email },
     });
 
     if (!user) {
-      res.status(404).json({ message: "User tidak ditemukan." });
+      res.status(404).json({ message: "User not found." });
       return;
     }
 
-    if (user.password) {
-      res.status(400).json({ message: "Password sudah diatur sebelumnya." });
-      return;
-    }
-
-    // Hash password baru
+    // Hash the new password
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    // Update the user's password in the database
     await prisma.user.update({
       where: { email: decoded.email },
-      data: {
-        password: hashedPassword,
-      },
+      data: { password: hashedPassword },
     });
 
-    res
-      .status(200)
-      .json({ message: "Password berhasil disimpan dan akun diverifikasi." });
+    res.clearCookie("resetToken"); // Clear the token after the reset
+
+    res.status(200).json({ message: "Password reset successfully." });
   } catch (error) {
-    console.error("Set Password Error:", error);
-    res
-      .status(500)
-      .json({ message: "Gagal menyimpan password atau token tidak valid." });
+    console.error(error);
+    res.status(400).json({ message: "Invalid or expired reset token." });
   }
 }
-
-function generateToken(length: number): string {
-  return crypto.randomBytes(length).toString("hex").slice(0, length);
-}
-
-export async function resetPassword(req: Request, res: Response) {
-  try {
-    const parse = resetPasswordSchema.safeParse(req.body);
-    if (!parse.success) {
-      res.status(400).json({ message: "Email tidak valid." });
-      return;
-    }
-
-    const { email } = parse.data;
-
-    const user = await prisma.user.findUnique({ where: { email } });
-
-    if (!user) {
-      res.status(404).json({ message: "Email tidak ditemukan." });
-      return;
-    }
-
-    const token = generateToken(32);
-    const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 jam
-
-    await prisma.user.update({
-      where: { email },
-      data: {
-        resetToken: token,
-        resetTokenExpiresAt: expiresAt,
-      },
-    });
-
-    const templateSource = await fs.readFile(
-      "src/templates/reset-password.hbs",
-      "utf-8"
-    );
-    const compiledTemplate = handlebars.compile(templateSource);
-    const html = compiledTemplate({
-      resetLink: `http://localhost:3000/auth/set-password?token=${token}`,
-      resendLink: `http://localhost:3000/auth/reset-password`,
-      companyName: "Market Snap",
-      currentYear: new Date().getFullYear(),
-      userName: user.firstName || user.username || "Pengguna",
-    });
-
-    const { error: sendError } = await resend.emails.send({
-      from: "onboarding@resend.dev",
-      to: user.email,
-      subject: "Permintaan Reset Password",
-      html: html,
-    });
-
-    if (sendError) {
-      console.error("Resend error:", sendError);
-      res.status(400).json({ message: "Gagal mengirim email." });
-      return;
-    }
-
-    res.status(200).json({ message: "Link reset password berhasil dikirim." });
-  } catch (err) {
-    console.error("Error reset password:", err);
-    res.status(500).json({ message: "Terjadi kesalahan server." });
-  }
-}
-export const setNewPassword = async (req: Request, res: Response) => {
-  const { token } = req.query;
-
-  if (!token || typeof token !== "string") {
-    res.status(400).json({ message: "Token tidak ditemukan." });
-    return;
-  }
-
-  const parse = setPasswordSchema.safeParse(req.body);
-  if (!parse.success) {
-    const msg = parse.error.errors[0]?.message || "Validasi gagal.";
-    res.status(400).json({ message: msg });
-    return;
-  }
-
-  const { password } = parse.data;
-
-  try {
-    const user = await prisma.user.findFirst({
-      where: {
-        resetToken: token,
-        resetTokenExpiresAt: {
-          gte: new Date(),
-        },
-      },
-    });
-
-    if (!user) {
-      res
-        .status(400)
-        .json({ message: "Token tidak valid atau sudah kadaluarsa." });
-      return;
-    }
-
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    await prisma.user.update({
-      where: { id: user.id },
-      data: {
-        password: hashedPassword,
-        resetToken: null,
-        resetTokenExpiresAt: null,
-      },
-    });
-
-    // Kirim email konfirmasi
-    const templateSource = await fs.readFile(
-      "src/templates/password-updated.hbs",
-      "utf-8"
-    );
-    const compiledTemplate = handlebars.compile(templateSource);
-    const html = compiledTemplate({
-      userName: user.firstName || user.username || "Pengguna",
-      formattedDate: new Date().toLocaleString("id-ID", {
-        dateStyle: "full",
-        timeStyle: "short",
-      }),
-      companyName: "Market Snap",
-      currentYear: new Date().getFullYear(),
-    });
-
-    const { error: sendError } = await resend.emails.send({
-      from: "onboarding@resend.dev", // Ubah ke verified domain saat produksi
-      to: user.email,
-      subject: "Password Anda Telah Diubah",
-      html,
-    });
-
-    if (sendError) {
-      console.error("Gagal kirim email:", sendError);
-    }
-
-    res.status(200).json({ message: "Password berhasil diperbarui." });
-  } catch (err) {
-    console.error("Error atur ulang password:", err);
-    res.status(500).json({ message: "Terjadi kesalahan server." });
-  }
-};

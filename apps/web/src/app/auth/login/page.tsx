@@ -7,17 +7,24 @@ import { FaTwitter } from "react-icons/fa";
 import Link from "next/link";
 
 export default function LoginPage() {
-  const [loginData, setLoginData] = useState({ username: "", password: "" });
+  const [loginData, setLoginData] = useState({
+    usernameOrEmail: "",
+    password: "",
+  });
   const router = useRouter();
 
+  // Handle form submission
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+
+    // Log the submitted data for debugging
+    console.log("Submitted data:", loginData);
 
     try {
       const res = await fetch("http://localhost:8000/api/v1/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(loginData),
+        body: JSON.stringify(loginData), // Send only one field (usernameOrEmail) and password
         credentials: "include",
       });
 
@@ -25,7 +32,7 @@ export default function LoginPage() {
 
       alert("Login success");
 
-      setLoginData({ username: "", password: "" });
+      setLoginData({ usernameOrEmail: "", password: "" });
 
       router.push("/");
       window.location.href = "/";
@@ -43,19 +50,20 @@ export default function LoginPage() {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="text-sm font-medium text-gray-700">
-              Username
+              Username or Email
             </label>
             <input
               type="text"
-              placeholder="Enter your username"
+              placeholder="Enter your username or email"
               className="w-full mt-1 px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-900"
-              value={loginData.username}
+              value={loginData.usernameOrEmail}
               onChange={(e) =>
-                setLoginData({ ...loginData, username: e.target.value })
+                setLoginData({ ...loginData, usernameOrEmail: e.target.value })
               }
               required
             />
           </div>
+
           <div>
             <label className="text-sm font-medium text-gray-700">
               Password

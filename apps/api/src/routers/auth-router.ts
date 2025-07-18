@@ -9,10 +9,10 @@ import {
   sendVerificationEmail,
   VerifySuccess,
   loginGoogle,
-  setPassword,
   resetPassword,
-  setNewPassword,
+  resendSetPasswordLink,
   confirmEmail,
+  // setPassword
 } from "../controllers/auth.controller.js";
 
 import { changePassword } from "../controllers/user-controller.js";
@@ -60,10 +60,12 @@ router.route("/login").post(login); // Logout khusus JWT
 /*                          Reser and change Password                         */
 /* -------------------------------------------------------------------------- */
 
-router.route("/reset-password").post(resetPassword);
-router.route("/set-new-password").post(setNewPassword);
+router.post("/reset-password", resendSetPasswordLink);
+
+// Route to handle the actual password reset using the token
+router.post("/set-password", resetPassword);
 
 // Change password harus login
 router.route("/change-password").post(authMiddleware, changePassword);
-router.route("/set-password").post(setPassword);
+// router.route("/set-password").post(setPassword);
 export default router;

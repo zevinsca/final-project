@@ -1,118 +1,115 @@
 "use client";
 
-import { useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
-export default function SetNewPasswordForm() {
-  const searchParams = useSearchParams();
-  const token = searchParams.get("token");
-
+export default function SetPasswordForm() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [message, setMessage] = useState("");
   const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
+  const [resetToken, setResetToken] = useState<string | null>(null);
+
+  // Extract resetToken from the URL
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const token = urlParams.get("token");
+    console.log("Token from URL:", token); // Debug: Log token to see if it is correctly retrieved.
+    setResetToken(token); // Set resetToken state
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setMessage("");
     setError("");
-    setLoading(true);
+    setSuccessMessage("");
+
+    // Ensure password and confirmation match
+    if (password !== confirmPassword) {
+      setError("Passwords do not match.");
+      return;
+    }
+
+    // Ensure resetToken is available
+    if (!resetToken) {
+      setError("Invalid or expired reset link.");
+      return;
+    }
 
     try {
       const res = await fetch(
-        `http://localhost:8000/api/v1/auth/set-new-password?token=${token}`,
+        "http://localhost:8000/api/v1/auth/set-password",
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ password, confirmPassword }),
+          body: JSON.stringify({ password, confirmPassword, resetToken }), // Send resetToken to the backend
+          credentials: "include", // Include cookies for token verification
         }
       );
 
       const data = await res.json();
 
-      if (!res.ok) {
-        setError(data.message || "Terjadi kesalahan.");
+      if (res.ok) {
+        setSuccessMessage(data.message || "Password successfully reset.");
+        // Redirect to the login page after a successful reset
+        setTimeout(() => {
+          window.location.href = "/auth/login"; // Redirect to login page
+        }, 1000); // Wait for 1 second before redirecting
       } else {
-        setMessage(data.message || "Password berhasil diubah.");
-        setPassword("");
-        setConfirmPassword("");
-        setSuccess(true);
+        setError(data.message || "Something went wrong.");
       }
-    } catch (error) {
-      console.error("🛑 Error atur ulang password:", error);
-      setError("Gagal menghubungi server.");
-    } finally {
-      setLoading(false);
+    } catch (err) {
+      console.error(err);
+      setError("Failed to contact the server.");
     }
   };
 
   return (
-    <div className="min-h-screen bg-green-50 flex items-center justify-center px-4">
-      <div className="w-full max-w-md bg-white rounded-xl shadow-lg p-8 border border-green-900 relative">
-        {success && (
-          <div className="absolute inset-0 bg-green-900 bg-opacity-90 flex items-center justify-center text-white text-center p-6 rounded-xl z-10">
-            <div>
-              <h2 className="text-2xl font-bold mb-2">🎉 Berhasil!</h2>
-              <p>Password Anda telah berhasil diperbarui.</p>
-              <p className="text-sm mt-2">
-                Anda dapat langsung login dengan password baru Anda.
-              </p>
-            </div>
-          </div>
-        )}
+    <div className="min-h-screen bg-gradient-to-br from-green-900 to-green-600 flex justify-center items-center px-4">
+      <div className="w-full max-w-md bg-white p-8 rounded-xl shadow-lg transform transition duration-300 hover:scale-105">
+        <h2 className="text-3xl font-semibold text-green-900 text-center mb-6">
+          Set New Password
+        </h2>
 
-        <h1 className="text-3xl font-extrabold text-green-900 mb-6 text-center">
-          Reset Password
-        </h1>
+        {error && <p className="text-red-500 text-center mb-4">{error}</p>}
+        {successMessage && (
+          <p className="text-green-500 text-center mb-4">{successMessage}</p>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-semibold text-green-900 mb-1">
-              Password Baru
+            <label className="text-sm font-medium text-gray-700">
+              New Password
             </label>
             <input
               type="password"
-              required
+              placeholder="Enter new password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-2 border border-green-900 rounded-md focus:outline-none focus:ring-2 focus:ring-green-800"
+              className="w-full mt-2 px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-900"
+              required
             />
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-green-900 mb-1">
-              Konfirmasi Password
+            <label className="text-sm font-medium text-gray-700">
+              Confirm Password
             </label>
             <input
               type="password"
-              required
+              placeholder="Confirm your password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              className="w-full px-4 py-2 border border-green-900 rounded-md focus:outline-none focus:ring-2 focus:ring-green-800"
+              className="w-full mt-2 px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-900"
+              required
             />
           </div>
 
           <button
             type="submit"
-            disabled={loading}
-            className="w-full bg-green-900 text-white font-semibold py-2 rounded-md hover:bg-green-800 transition disabled:opacity-50"
+            className="w-full py-2 bg-green-900 text-white font-semibold rounded-md hover:bg-green-800 focus:outline-none focus:ring-2 focus:ring-green-400 transition duration-300"
           >
-            {loading ? "Memproses..." : "Reset Password"}
+            Set Password
           </button>
         </form>
-
-        {error && (
-          <div className="mt-4 text-sm text-red-600 bg-red-100 px-4 py-2 rounded">
-            {error}
-          </div>
-        )}
-        {message && (
-          <div className="mt-4 text-sm text-green-800 bg-green-100 px-4 py-2 rounded">
-            {message}
-          </div>
-        )}
       </div>
     </div>
   );

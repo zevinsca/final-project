@@ -5,13 +5,17 @@ import {
   getCurrentUser,
   getUsersByRole,
   sendVerificationEmail,
+  updateCurrentUser,
   // updateUserImage,
 } from "../controllers/user-controller.js";
 import { verifyToken } from "../middleware/auth-middleware.js";
 
 const router = express.Router();
 
-router.route("/current-user").get(verifyToken, getCurrentUser);
+router
+  .route("/current-user")
+  .get(verifyToken, getCurrentUser)
+  .put(verifyToken, updateCurrentUser);
 /* -------------------------------------------------------------------------- */
 /*                       GET ALL USER HANYA SUPER ADMIN                       */
 /* -------------------------------------------------------------------------- */
