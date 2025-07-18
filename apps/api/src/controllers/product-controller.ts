@@ -159,7 +159,7 @@ export async function getAllProduct(req: Request, res: Response) {
 export async function getProductById(req: Request, res: Response) {
   try {
     const id = req.params.id;
-    const { lat, lng, province } = req.query;
+    const { lat, lng, province, includeAllStores } = req.query; // ← TAMBAHAN parameter
 
     const product = await prisma.product.findFirst({
       where: { id, deletedAt: null },
@@ -172,6 +172,22 @@ export async function getProductById(req: Request, res: Response) {
 
     if (!product) return res.status(404).json({ message: "Product not found" });
 
+    // ✅ TAMBAHAN: Jika admin butuh semua stores (untuk edit page)
+    if (includeAllStores === "true") {
+      const allStoreProducts = await prisma.storeProduct.findMany({
+        where: { productId: id, deletedAt: null },
+        include: { Store: true },
+      });
+
+      return res.status(200).json({
+        data: {
+          ...product,
+          StoreProduct: allStoreProducts,
+        },
+      });
+    }
+
+    // ✅ LOGIC LAMA TETAP SAMA - untuk customer/user
     let storeProduct;
 
     // Prioritas 1: Jika lat & lng tersedia, cari toko terdekat (simple Euclidean)
