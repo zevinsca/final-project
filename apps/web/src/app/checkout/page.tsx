@@ -15,12 +15,13 @@ interface CartItem {
     title: string;
     image: string;
     price: number;
+    weight: number;
   };
 }
 
 interface Address {
   fullName: string;
-  phone: string;
+  // phone: string;
   address: string;
   city: string;
   province: string;
@@ -30,35 +31,38 @@ interface Address {
 interface UserAddress {
   id: string;
   recipient: string;
-  address: string;
-  city: string;
-  province: string;
-  postalCode: string;
   isPrimary: boolean;
+  Address: {
+    address: string;
+    city: string;
+    province: string;
+    postalCode: string;
+    destinationId: string;
+  };
 }
 
 interface ShippingOption {
-  id: string;
-  label: string;
-  cost: number;
+  shippingName: string;
+  serviceName: string;
 }
 
 export default function CheckoutPage() {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [address, setAddress] = useState<Address>({
     fullName: "",
-    phone: "",
+    // phone: "",
     address: "",
     city: "",
     province: "",
     postalCode: "",
   });
-  const [shippingId, setShippingId] = useState<string | null>(null);
+
   const router = useRouter();
   const [userAddresses, setUserAddresses] = useState<UserAddress[]>([]);
   const [selectedAddressId, setSelectedAddressId] = useState<string | null>(
     null
   );
+  const [shippingId, setShippingId] = useState<string | null>(null);
 
   const [shippingCosts, setShippingCosts] = useState<any | null>({});
 
@@ -69,6 +73,45 @@ export default function CheckoutPage() {
   const [manualPaymentProof, setManualPaymentProof] = useState<File | null>(
     null
   );
+  const [selectedShippingOption, setSelectedShippingOption] =
+    useState<ShippingOption | null>(null);
+
+  const calculateShippingCost = (selectedAddress: UserAddress) => {
+    let totalWeight = cartItems.reduce(
+      (sum, item) => sum + item.Product.weight * item.quantity,
+      0
+    );
+
+    let subtotal = cartItems.reduce(
+      (sum, item) => sum + parseFloat(item.Product.price) * item.quantity,
+      0
+    );
+
+    const queryParams = new URLSearchParams({
+      shipper_destination_id: "501", // your warehouse
+      receiver_destination_id: selectedAddress.Address.destinationId,
+      weight: totalWeight.toString(),
+      item_value: subtotal.toString(),
+      cod: "false",
+    });
+
+    fetch(`http://localhost:8000/api/v1/rajaongkir/calculate?${queryParams}`)
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error(`Response status: ${res.status}`);
+        } else {
+          return res.json();
+        }
+      })
+      .then((body) => {
+        if (body) {
+          setShippingCosts(body.data);
+        }
+      })
+      .catch((error) => {
+        console.error("Shipping calculation failed:", error);
+      });
+  };
 
   /* -------------------- Fetch cart once on mount ------------------------- */
   useEffect(() => {
@@ -108,11 +151,11 @@ export default function CheckoutPage() {
             setSelectedAddressId(primary.id);
             setAddress({
               fullName: primary.recipient,
-              phone: "", // phone not in model? Add it if needed
-              address: primary.address,
-              city: primary.city,
-              province: primary.province,
-              postalCode: primary.postalCode,
+              // phone: "",
+              address: primary.Address.address,
+              city: primary.Address.city,
+              province: primary.Address.province,
+              postalCode: primary.Address.postalCode,
             });
           }
         } else {
@@ -124,23 +167,62 @@ export default function CheckoutPage() {
     })();
   }, []);
 
+  // useEffect(() => {
+  //   (async () => {
+  //     try {
+  //       const res = await fetch(
+  //         "http://localhost:8000/api/v1/rajaongkir/shippingDetail",
+  //         {
+  //           credentials: "include",
+  //         }
+  //       );
+  //       const json = await res.json();
+  //       if (res.ok) setSelectedShippingOption(json);
+  //       else console.error("Failed to load shipping", json.message);
+  //     } catch (err) {
+  //       console.error("Error fetching shipping details:", err);
+  //     }
+  //   })();
+  // }, []);
+
+  // useEffect(() => {
+  //   const clientKey = process.env.NEXT_PUBLIC_MIDTRANS_SANDBOX_CLIENT_KEY;
+
+  //   if (
+  //     document.querySelector(
+  //       'script[src="https://app.sandbox.midtrans.com/snap/snap.js"]'
+  //     )
+  //   ) {
+  //     return; // already loaded
+  //   }
+
+  //   const script = document.createElement("script");
+  //   script.src = "https://app.sandbox.midtrans.com/snap/snap.js";
+  //   script.setAttribute("data-client-key", clientKey || "");
+  //   script.async = true;
+  //   document.body.appendChild(script);
+  // }, []);
+
   useEffect(() => {
-    const clientKey = process.env.NEXT_PUBLIC_MIDTRANS_SANDBOX_CLIENT_KEY;
+    if (!selectedAddressId) return;
 
-    if (
-      document.querySelector(
-        'script[src="https://app.sandbox.midtrans.com/snap/snap.js"]'
-      )
-    ) {
-      return; // already loaded
+    const selectedAddress = userAddresses.find(
+      (s) => s.id === selectedAddressId
+    );
+
+    if (selectedAddress && cartItems.length > 0) {
+      setAddress({
+        fullName: selectedAddress.recipient,
+        // phone: "", // update if your data includes phone
+        address: selectedAddress.Address.address,
+        city: selectedAddress.Address.city,
+        province: selectedAddress.Address.province,
+        postalCode: selectedAddress.Address.postalCode,
+      });
+
+      calculateShippingCost(selectedAddress);
     }
-
-    const script = document.createElement("script");
-    script.src = "https://app.sandbox.midtrans.com/snap/snap.js";
-    script.setAttribute("data-client-key", clientKey || "");
-    script.async = true;
-    document.body.appendChild(script);
-  }, []);
+  }, [selectedAddressId, userAddresses, cartItems]);
 
   /* -------------------- Derived values ---------------------------------- */
   const subtotal = cartItems.reduce(
@@ -162,72 +244,38 @@ export default function CheckoutPage() {
     if (!allAddressFilled)
       return alert("Please complete your shipping address.");
     if (!shippingId) return alert("Please select a shipping method.");
+    if (!manualPaymentProof) return alert("Please upload your payment proof.");
 
-    if (paymentMethod === "epayment") {
-      // Midtrans checkout
-      try {
-        const res = await fetch("http://localhost:8000/api/v1/checkout", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          credentials: "include",
-          body: JSON.stringify({
-            address,
-            shippingId,
-            cartItems,
-          }),
-        });
+    const selectedAddress = userAddresses.find(
+      (s) => s.id === selectedAddressId
+    );
 
-        const data = await res.json();
+    const formData = new FormData();
+    formData.append("paymentProof", manualPaymentProof);
+    formData.append("address", JSON.stringify(selectedAddress));
+    formData.append("shippingOptions", JSON.stringify(selectedShippingOption));
+    formData.append("cartItems", JSON.stringify(cartItems));
 
-        if (data?.data?.midtransTransaction?.token) {
-          window.snap.pay(data.data.midtransTransaction.token, {
-            onSuccess: () => router.push("/success"),
-            onPending: () => router.push("/pending"),
-            onError: () => alert("Payment failed."),
-            onClose: () =>
-              console.log("Payment popup closed without finishing."),
-          });
-        } else {
-          alert("Failed to get Midtrans token.");
-        }
-      } catch (err) {
-        console.error("Checkout error:", err);
-        alert("Something went wrong during checkout.");
+    try {
+      const res = await fetch("http://localhost:8000/api/v1/checkout/manual", {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          // "Content-Type": "application/json",
+        },
+        body: formData,
+      });
+
+      const json = await res.json();
+      if (res.ok) {
+        router.push("/pending");
+      } else {
+        console.error(json);
+        alert("Failed to submit manual payment.");
       }
-    } else if (paymentMethod === "manual") {
-      // Manual payment with proof
-      if (!manualPaymentProof)
-        return alert("Please upload your payment proof.");
-
-      const formData = new FormData();
-      formData.append("address", JSON.stringify(address));
-      formData.append("shippingId", shippingId);
-      formData.append("cartItems", JSON.stringify(cartItems));
-      formData.append("paymentProof", manualPaymentProof);
-
-      try {
-        const res = await fetch(
-          "http://localhost:8000/api/v1/checkout/manual",
-          {
-            method: "POST",
-            credentials: "include",
-            body: formData,
-          }
-        );
-
-        const data = await res.json();
-        if (res.ok) {
-          router.push("/pending"); // Or success page if you prefer
-        } else {
-          console.error(data);
-          alert("Failed to submit manual payment.");
-        }
-      } catch (err) {
-        console.error("Manual payment error:", err);
-        alert("Error during manual payment.");
-      }
+    } catch (err) {
+      console.error("Manual payment error:", err);
+      alert("Error during manual payment.");
     }
   };
 
@@ -249,27 +297,33 @@ export default function CheckoutPage() {
               </tr>
             </thead>
             <tbody>
-              {cartItems.map((item) => (
-                <tr key={item.id} className="border-b ">
-                  <td className="p-2 flex items-center gap-2 ">
-                    <Image
-                      src={item.Product.image}
-                      alt={item.Product.title}
-                      width={60}
-                      height={60}
-                      className="rounded"
-                    />
-                    <span>{item.Product.title}</span>
-                  </td>
-                  <td className="p-2 text-center">
-                    Rp. {formatRp(item.Product.price)}
-                  </td>
-                  <td className="p-2 text-center">{item.quantity}</td>
-                  <td className="p-2 text-center">
-                    Rp. {formatRp(item.Product.price * item.quantity)}
-                  </td>
-                </tr>
-              ))}
+              {cartItems.map((item) => {
+                // 👈 LOG HERE
+
+                return (
+                  <tr key={item.id} className="border-b ">
+                    <td className="p-2 flex items-center gap-2 ">
+                      {item.Product?.image && (
+                        <Image
+                          src={item.Product.image}
+                          alt={item.Product.title}
+                          width={60}
+                          height={60}
+                          className="rounded"
+                        />
+                      )}
+                      <span>{item.Product.title}</span>
+                    </td>
+                    <td className="p-2 text-center">
+                      Rp. {formatRp(item.Product.price)}
+                    </td>
+                    <td className="p-2 text-center">{item.quantity}</td>
+                    <td className="p-2 text-center">
+                      Rp. {formatRp(item.Product.price * item.quantity)}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -280,63 +334,84 @@ export default function CheckoutPage() {
           <div className="space-y-3">
             <h2 className="text-lg font-semibold mb-2">Shipping Address</h2>
 
-            {(
-              [
-                ["fullName", "Full name"],
-                ["phone", "Phone"],
-                ["address", "Address"],
-                ["city", "City"],
-                ["province", "Province"],
-                ["postalCode", "Postal code"],
-              ] as [keyof Address, string][]
-            ).map(([key, label]) => (
-              <input
-                key={key}
-                placeholder={label}
-                value={address[key]}
-                onChange={(e) =>
-                  setAddress({ ...address, [key]: e.target.value })
-                }
-                className="border p-2 rounded w-full"
-              />
-            ))}
-            <button
+            {userAddresses.length === 0 ? (
+              <div className="text-sm bg-yellow-50 border border-yellow-300 p-4 rounded">
+                <p className="mb-2">You don't have any saved address yet.</p>
+                <Link
+                  href="/dashboard/user/profile/address"
+                  className="inline-block bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+                >
+                  Add New Address
+                </Link>
+              </div>
+            ) : selectedAddressId ? (
+              <div className="space-y-1 text-sm">
+                <p>
+                  <strong>Full name:</strong> {address.fullName}
+                </p>
+                {/* <p>
+                  <strong>Phone:</strong> {address.phone || "—"}
+                </p> */}
+                <p>
+                  <strong>Address:</strong> {address.address}
+                </p>
+                <p>
+                  <strong>City:</strong> {address.city}
+                </p>
+                <p>
+                  <strong>Province:</strong> {address.province}
+                </p>
+                <p>
+                  <strong>Postal Code:</strong> {address.postalCode}
+                </p>
+              </div>
+            ) : null}
+
+            {/* <button
               onClick={() => {
                 const selectedAddress = userAddresses.find(
-                  (s) => s.id == selectedAddressId
+                  (s) => s.id === selectedAddressId
                 );
 
+                if (!selectedAddress) {
+                  console.warn("No address selected");
+                  return;
+                }
+
                 console.log(selectedAddress);
-                let response = fetch(
-                  `http://localhost:8000/api/v1/rajaongkir/calculate?${new URLSearchParams(
-                    {
-                      shipper_destination_id: "501", // your warehouse
-                      receiver_destination_id: selectedAddress?.destinationId,
-                      weight: 1,
-                      item_value: 10000,
-                      cod: false,
-                    }
-                  ).toString()}`
-                );
-                response.then((res) => {
-                  console.log(res);
-                  res.json().then((body) => {
+
+                const queryParams = new URLSearchParams({
+                  shipper_destination_id: "501", // your warehouse
+                  receiver_destination_id:
+                    selectedAddress.Address.destinationId,
+                  weight: "1",
+                  item_value: "10000",
+                  cod: "false",
+                });
+
+                fetch(
+                  `http://localhost:8000/api/v1/rajaongkir/calculate?${queryParams}`
+                )
+                  .then((res) => res.json())
+                  .then((body) => {
                     console.log(body);
                     setShippingCosts(body.data);
+                  })
+                  .catch((error) => {
+                    console.error("Shipping calculation failed:", error);
                   });
-                });
               }}
               className="p-3 bg-green-600 text-white rounded-md"
             >
               <div>Calculate Shipping Cost</div>
-            </button>
+            </button> */}
           </div>
 
-          <div className="mb-4">
-            <h2 className="text-lg font-semibold mb-2">Select Saved Address</h2>
-            {userAddresses.length === 0 ? (
-              <p className="text-sm text-gray-500">No saved addresses</p>
-            ) : (
+          {userAddresses.length > 0 && (
+            <div className="mb-4">
+              <h2 className="text-lg font-semibold mb-2">
+                Select Saved Address
+              </h2>
               <div className="space-y-2">
                 {userAddresses.map((address) => (
                   <div
@@ -350,7 +425,7 @@ export default function CheckoutPage() {
                       setSelectedAddressId(address.id);
                       setAddress({
                         fullName: address.recipient,
-                        phone: "", // update this if you have phone support
+                        // phone: "", // update this if you have phone support
                         address: address.Address.address,
                         city: address.Address.city,
                         province: address.Address.province,
@@ -364,7 +439,7 @@ export default function CheckoutPage() {
                         name="selected-address"
                         value={address.id}
                         checked={selectedAddressId === address.id}
-                        onChange={() => {}} // handled by the parent <li> onClick
+                        onChange={() => {}} // handled by the parent <div> onClick
                         className="mt-1"
                       />
                       <div>
@@ -384,14 +459,14 @@ export default function CheckoutPage() {
                   </div>
                 ))}
               </div>
-            )}
-            <Link
-              href="/dashboard/user/profile/address"
-              className="text-sm text-blue-500 underline"
-            >
-              Manage saved addresses
-            </Link>
-          </div>
+              <Link
+                href="/dashboard/user/profile/address"
+                className="text-sm text-blue-500 underline"
+              >
+                Manage saved addresses
+              </Link>
+            </div>
+          )}
         </div>
         <div className="grid md:grid-cols-2 gap-8">
           {/* Shipping options & totals */}
@@ -425,6 +500,10 @@ export default function CheckoutPage() {
                                 shippingMethod.service_name
                             );
                             setSelectedShippingCost(shippingMethod.grandtotal);
+                            setSelectedShippingOption({
+                              shippingName: shippingMethod.shipping_name,
+                              serviceName: shippingMethod.service_name,
+                            });
                           }}
                           checked={
                             shippingId ===
@@ -449,7 +528,7 @@ export default function CheckoutPage() {
             })}
 
             {/* Payment Method Selection */}
-            <div className="mt-6">
+            {/* <div className="mt-6">
               <h3 className="text-lg font-semibold mb-2">Payment Method</h3>
               <div className="space-y-2">
                 <label className="flex items-center gap-2">
@@ -489,6 +568,29 @@ export default function CheckoutPage() {
                   />
                 </div>
               )}
+            </div> */}
+            <div className="mt-6">
+              <h3 className="text-lg font-semibold mb-2">Payment Method</h3>
+              <div className="space-y-2">
+                <label className="flex items-center gap-2">
+                  <input type="radio" checked readOnly />
+                  Manual Bank Transfer
+                </label>
+              </div>
+
+              <div className="mt-4">
+                <label className="block mb-2 font-medium">
+                  Upload Payment Proof
+                </label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) =>
+                    setManualPaymentProof(e.target.files?.[0] || null)
+                  }
+                  className="block w-full border rounded p-2"
+                />
+              </div>
             </div>
 
             {/* Totals */}

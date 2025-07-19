@@ -16,15 +16,6 @@ interface Address {
   isPrimary: boolean;
 }
 
-interface UserAddress {
-  id: string;
-  userId: string;
-  recipient: string;
-  isPrimary: boolean;
-  addressId: string;
-  Address: Address; // ← this includes the full address object
-}
-
 interface DestinationOption {
   label: string;
   city_name: string;

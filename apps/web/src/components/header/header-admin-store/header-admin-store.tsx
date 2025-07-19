@@ -139,7 +139,7 @@ export default function MenuNavbarStoreAdmin({
                   <span>Kategori Produk</span>
                 </Link>
                 <Link
-                  href="/store/orders"
+                  href="/dashboard/admin-store/manage-order"
                   className="flex items-center space-x-2 hover:bg-green-700 px-2 py-1 rounded"
                 >
                   <FiShoppingCart />

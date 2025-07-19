@@ -294,16 +294,17 @@ model Payment {
 }
 
 model Order {
-  id            String      @id @default(uuid())
-  userId        String
-  orderNumber   String      @unique
-  status        OrderStatus @default(PENDING)
-  subTotal      Float
-  shippingTotal Float
-  totalPrice    Float
-  addressId     String
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
+  id              String      @id @default(uuid())
+  userId          String
+  orderNumber     String      @unique
+  status          OrderStatus @default(PENDING)
+  subTotal        Float
+  shippingTotal   Float
+  totalPrice      Float
+  shippingOptions Json
+  addressId       String
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
 
   Address            Address           @relation(fields: [addressId], references: [id])
   User               User              @relation(fields: [userId], references: [id])

@@ -74,13 +74,14 @@ router.get("/calculate", async (req: Request, res: Response) => {
       cod,
     } = req.query;
 
+    console.log(JSON.stringify(req.query));
+
     // Basic validation
     if (
       !shipper_destination_id ||
       !receiver_destination_id ||
       !weight ||
-      !item_value ||
-      !cod
+      !item_value
     ) {
       res.status(400).json({ message: "Missing required query parameters" });
       return;

@@ -13,6 +13,7 @@ async function seed() {
     /* -------------------------------------------------------------------------- */
     console.info("⚡ Cleaning old data...");
 
+    await prisma.userAddress.deleteMany(); // or the correct relation model name
     await prisma.address.deleteMany();
     await prisma.cartItem.deleteMany();
     await prisma.cart.deleteMany();
@@ -140,23 +141,40 @@ async function seed() {
     /* -------------------------------------------------------------------------- */
     console.info("⚡ Creating addresses...");
 
-    await prisma.address.createMany({
-      data: [
-        {
-          // John Doe
-          // recipient: "John",
-          address: "kelapa gading",
-          destination: "kelapa gading",
-          destinationId: 17641,
-          city: "Jakarta",
-          province: "DKI Jakarta",
-          postalCode: "14240",
-          // userId: user1.id,
-        },
-      ],
-    });
+    // await prisma.address.createMany({
+    //   data: [
+    //     {
+    //       // John Doe
+    //       // recipient: "John",
+    //       address: "kelapa gading",
+    //       destination: "kelapa gading",
+    //       destinationId: 17641,
+    //       city: "Jakarta",
+    //       province: "DKI Jakarta",
+    //       postalCode: "14240",
+    //       // userId: user1.id,
+    //     },
+    //   ],
+    // });
+    // const johnAddress = await prisma.address.create({
+    //   data: {
+    //     address: "kelapa gading",
+    //     destination: "kelapa gading",
+    //     destinationId: 17641,
+    //     city: "Jakarta",
+    //     province: "DKI Jakarta",
+    //     postalCode: "14240",
+    //   },
+    // });
 
-    console.info("✅ 3 addresses created");
+    // await prisma.userAddress.create({
+    //   data: {
+    //     userId: user1.id,
+    //     addressId: johnAddress.id,
+    //     isPrimary: true,
+    //     recipient: "John",
+    //   },
+    // });
 
     /* -------------------------------------------------------------------------- */
     /*                               CREATE PRODUCTS                               */
