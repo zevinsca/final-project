@@ -97,13 +97,13 @@ model StoreAddress {
 model Store {
   id        String    @id @default(uuid())
   name      String    @unique
-  userId    String
+  userId    String?
   // Added: longitude for geographical location
   createdAt DateTime  @default(now())
   updatedAt DateTime? @updatedAt
   distance  Float?
 
-  User User @relation(fields: [userId], references: [id])
+  User User? @relation(fields: [userId], references: [id])
 
   Discounts    Discount[]
   Inventory    InventoryJournal[]

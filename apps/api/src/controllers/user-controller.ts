@@ -224,7 +224,7 @@ export async function changePassword(
   try {
     const { oldPassword, newPassword } = req.body;
     const user = req.user as CustomJwtPayload;
-    const userId = user.ud; // Diambil dari auth middleware
+    const userId = user.id; // Diambil dari auth middleware
 
     if (!oldPassword || !newPassword) {
       res

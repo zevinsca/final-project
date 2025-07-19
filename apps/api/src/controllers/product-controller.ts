@@ -169,8 +169,10 @@ export async function getProductById(req: Request, res: Response) {
         ProductCategory: { include: { Category: true } },
       },
     });
-
-    if (!product) return res.status(404).json({ message: "Product not found" });
+    if (!product) {
+      res.status(404).json({ message: "Product not found" });
+      return;
+    }
 
     // ✅ TAMBAHAN: Jika admin butuh semua stores (untuk edit page)
     if (includeAllStores === "true") {
@@ -179,7 +181,7 @@ export async function getProductById(req: Request, res: Response) {
         include: { Store: true },
       });
 
-      return res.status(200).json({
+      res.status(200).json({
         data: {
           ...product,
           StoreProduct: allStoreProducts,

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, use } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
@@ -9,50 +9,113 @@ interface Store {
   name: string;
 }
 
-export default function CreateStoreAdminPage() {
+interface StoreAdmin {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  username: string;
+  phoneNumber: string;
+  role: string;
+  createdAt: string;
+  Store: Store[];
+}
+
+export default function EditStoreAdminPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
   const router = useRouter();
+  const { id } = use(params);
 
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
     email: "",
     username: "",
-    password: "",
     phoneNumber: "",
     storeId: "",
   });
 
   const [stores, setStores] = useState<Store[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [adminData, setAdminData] = useState<StoreAdmin | null>(null);
 
   useEffect(() => {
-    async function fetchStores() {
+    async function fetchData() {
       setLoading(true);
       try {
-        // Fetch available stores - adjust endpoint as needed
-        const response = await fetch("http://localhost:8000/api/v1/stores", {
-          credentials: "include",
-        });
-        if (response.ok) {
-          const data = await response.json();
-          setStores(data.data || []);
+        // Fetch store admin data
+        const adminResponse = await fetch(
+          `http://localhost:8000/api/v1/user/store-admins/${id}`,
+          {
+            credentials: "include",
+          }
+        );
+
+        if (adminResponse.ok) {
+          const adminResult = await adminResponse.json();
+          const admin = adminResult.data;
+          setAdminData(admin);
+
+          console.log("Fetched admin data:", admin); // Debug log
+          console.log("Admin stores:", admin.Store); // Debug log
+
+          // Populate form with existing data
+          const currentStoreId =
+            admin.Store && admin.Store.length > 0 ? admin.Store[0].id : "";
+          console.log("Current store ID:", currentStoreId); // Debug log
+
+          setFormData({
+            firstName: admin.firstName || "",
+            lastName: admin.lastName || "",
+            email: admin.email || "",
+            username: admin.username || "",
+            phoneNumber: admin.phoneNumber || "",
+            storeId: currentStoreId,
+          });
+        } else {
+          alert("Failed to fetch store admin data.");
+          router.push("/dashboard/admin/user-store");
+          return;
+        }
+
+        // Fetch available stores
+        const storesResponse = await fetch(
+          "http://localhost:8000/api/v1/stores",
+          {
+            credentials: "include",
+          }
+        );
+
+        if (storesResponse.ok) {
+          const storesResult = await storesResponse.json();
+          console.log("Fetched stores:", storesResult.data); // Debug log
+          setStores(storesResult.data || []);
+        } else {
+          console.error("Failed to fetch stores"); // Debug log
         }
       } catch (err) {
-        console.error("Error fetching stores:", err);
-        // Continue without stores if endpoint doesn't exist
+        console.error("Error fetching data:", err);
+        alert("Failed to load data.");
+        router.push("/dashboard/admin/user-store");
       } finally {
         setLoading(false);
       }
     }
 
-    fetchStores();
-  }, []);
+    if (id) {
+      fetchData();
+    }
+  }, [id, router]);
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
+    console.log(`Form field changed: ${name} = ${value}`); // Debug log
     setFormData((prev) => ({
       ...prev,
       [name]: value,
@@ -62,12 +125,7 @@ export default function CreateStoreAdminPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (
-      !formData.firstName ||
-      !formData.lastName ||
-      !formData.email ||
-      !formData.password
-    ) {
+    if (!formData.firstName || !formData.lastName || !formData.email) {
       alert("Please fill in all required fields.");
       return;
     }
@@ -75,14 +133,20 @@ export default function CreateStoreAdminPage() {
     setSubmitting(true);
     try {
       const payload = {
-        ...formData,
-        storeId: formData.storeId || undefined, // Don't send empty string
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        email: formData.email,
+        username: formData.username,
+        phoneNumber: formData.phoneNumber,
+        storeId: formData.storeId || null, // Send null instead of undefined for empty store
       };
 
+      console.log("Sending payload:", payload); // Debug log
+
       const response = await fetch(
-        "http://localhost:8000/api/v1/user/store-admins",
+        `http://localhost:8000/api/v1/user/store-admins/${id}`,
         {
-          method: "POST",
+          method: "PUT",
           headers: {
             "Content-Type": "application/json",
           },
@@ -91,22 +155,35 @@ export default function CreateStoreAdminPage() {
         }
       );
 
+      const responseData = await response.json();
+      console.log("Response:", responseData); // Debug log
+
       if (response.ok) {
-        alert("Store admin created successfully!");
-        router.push("/dashboard/admin/usser-store");
+        alert("Store admin updated successfully!");
+        router.push("/dashboard/admin/user-store");
       } else {
-        const errorData = await response.json();
         const errorMessage =
-          errorData.message || "Failed to create store admin.";
-        alert(errorMessage);
+          responseData.message || "Failed to update store admin.";
+        alert(`Error: ${errorMessage}`);
+        console.error("Update failed:", responseData);
       }
     } catch (error) {
-      console.error("Error creating store admin:", error);
-      alert("Failed to create store admin.");
+      console.error("Error updating store admin:", error);
+      alert("Failed to update store admin. Check console for details.");
     } finally {
       setSubmitting(false);
     }
   };
+
+  if (loading) {
+    return (
+      <section className="p-4">
+        <div className="flex justify-center py-8">
+          <div className="text-gray-500">Loading store admin data...</div>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="p-4">
@@ -117,8 +194,22 @@ export default function CreateStoreAdminPage() {
         >
           ← Back to Store Admin List
         </Link>
-        <h1 className="text-2xl font-bold">Create Store Admin</h1>
+        <h1 className="text-2xl font-bold">Edit Store Admin</h1>
       </div>
+
+      {adminData && (
+        <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded">
+          <h3 className="font-semibold text-blue-800">Current Admin Info</h3>
+          <p className="text-sm text-blue-700">
+            Editing: {adminData.firstName} {adminData.lastName} (
+            {adminData.email})
+          </p>
+          <p className="text-sm text-blue-700">
+            Role: {adminData.role} | Created:{" "}
+            {new Date(adminData.createdAt).toLocaleDateString("id-ID")}
+          </p>
+        </div>
+      )}
 
       <div className="max-w-2xl">
         <div className="space-y-6">
@@ -204,43 +295,22 @@ export default function CreateStoreAdminPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-              <div>
-                <label
-                  htmlFor="password"
-                  className="block text-sm font-medium text-gray-700 mb-1"
-                >
-                  Password *
-                </label>
-                <input
-                  type="password"
-                  id="password"
-                  name="password"
-                  value={formData.password}
-                  onChange={handleInputChange}
-                  required
-                  className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Enter password"
-                />
-              </div>
-
-              <div>
-                <label
-                  htmlFor="phoneNumber"
-                  className="block text-sm font-medium text-gray-700 mb-1"
-                >
-                  Phone Number
-                </label>
-                <input
-                  type="tel"
-                  id="phoneNumber"
-                  name="phoneNumber"
-                  value={formData.phoneNumber}
-                  onChange={handleInputChange}
-                  className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Enter phone number"
-                />
-              </div>
+            <div className="mt-4">
+              <label
+                htmlFor="phoneNumber"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
+                Phone Number
+              </label>
+              <input
+                type="tel"
+                id="phoneNumber"
+                name="phoneNumber"
+                value={formData.phoneNumber}
+                onChange={handleInputChange}
+                className="w-full md:w-1/2 border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Enter phone number"
+              />
             </div>
           </div>
 
@@ -260,22 +330,36 @@ export default function CreateStoreAdminPage() {
                 value={formData.storeId}
                 onChange={handleInputChange}
                 className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                disabled={loading}
               >
-                <option value="">Select a store (optional)</option>
+                <option value="">No store assignment</option>
                 {stores.map((store) => (
                   <option key={store.id} value={store.id}>
                     {store.name}
                   </option>
                 ))}
               </select>
-              {loading && (
-                <p className="text-sm text-gray-500 mt-1">Loading stores...</p>
-              )}
               <p className="text-sm text-gray-500 mt-1">
-                You can assign this admin to a store later if needed.
+                Change the store assignment for this admin.
               </p>
             </div>
+
+            {adminData?.Store && adminData.Store.length > 0 && (
+              <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded">
+                <p className="text-sm text-yellow-800">
+                  <strong>Currently assigned to:</strong>{" "}
+                  {adminData.Store[0].name}
+                </p>
+              </div>
+            )}
+          </div>
+
+          <div className="bg-white p-6 border border-gray-300 rounded">
+            <h2 className="text-lg font-semibold mb-2">Password</h2>
+            <p className="text-sm text-gray-600 mb-4">
+              Password cannot be changed from this form. If you need to change
+              the password, please contact the system administrator or use the
+              password reset feature.
+            </p>
           </div>
 
           <div className="flex justify-end space-x-4">
@@ -291,7 +375,7 @@ export default function CreateStoreAdminPage() {
               disabled={submitting}
               className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {submitting ? "Creating..." : "Create Store Admin"}
+              {submitting ? "Updating..." : "Update Store Admin"}
             </button>
           </div>
         </div>
