@@ -9,6 +9,13 @@ interface Product {
   name: string;
   description: string;
   price: number;
+  totalStock: number;
+  stockPerStore: {
+    storeId: string;
+    storeName: string;
+    stock: number;
+  }[];
+
   stock: number;
   imagePreview: [{ imageUrl: string }];
   imageContent: [{ imageUrl: string }];
@@ -75,7 +82,7 @@ export default function ProductCatalog() {
 
             {/* Image */}
             <Image
-              src={product.imagePreview[0].imageUrl}
+              src={product.imagePreview?.[0]?.imageUrl ?? "/placeholder.jpg"}
               alt={product.name}
               width={150}
               height={150}
@@ -108,6 +115,29 @@ export default function ProductCatalog() {
             >
               View Product
             </Link>
+
+            {/* Total stock */}
+            <p className="text-gray-400 text-sm mb-2">
+              {product.totalStock > 0
+                ? `${product.totalStock} pcs available`
+                : "Out of Stock"}
+            </p>
+
+            {/* Stock per store */}
+            {product.totalStock > 0 && (
+              <div className="text-xs text-gray-500 text-left mt-2">
+                <p className="font-semibold mb-1">Available in stores:</p>
+                <ul className="list-disc list-inside">
+                  {product.stockPerStore
+                    .filter((store) => store.stock > 0)
+                    .map((store) => (
+                      <li key={store.storeId}>
+                        {store.storeName}: {store.stock} pcs
+                      </li>
+                    ))}
+                </ul>
+              </div>
+            )}
           </div>
         ))}
       </div>

@@ -1,14 +1,16 @@
 import express from "express";
+
+import { verifyToken } from "../middleware/auth-middleware.js";
 import {
-  confirmVerificationToken,
   getAllUser,
   getCurrentUser,
   getUsersByRole,
+} from "../controllers/user-controller/get/get-user.js";
+import { updateCurrentUser } from "../controllers/user-controller/update/update-user.js";
+import {
+  confirmVerificationToken,
   sendVerificationEmail,
-  updateCurrentUser,
-  // updateUserImage,
-} from "../controllers/user-controller.js";
-import { verifyToken } from "../middleware/auth-middleware.js";
+} from "../controllers/user-controller/update/verification.js";
 
 const router = express.Router();
 

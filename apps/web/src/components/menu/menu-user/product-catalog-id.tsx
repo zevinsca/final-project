@@ -61,9 +61,6 @@ export default function ProductCatalogId({
           <p>{products.description}</p>
           <p>Price: Rp{products.price}</p>
           <p>Stock: {products.stock}</p>
-          {/* {product.ProductImage?.[0]?.Image?.imageUrl && (
-            
-          )} */}
         </article>
       )}
     </div>

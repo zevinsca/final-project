@@ -1,15 +1,15 @@
 import express from "express";
+
+import { verifyToken, roleGuard } from "../middleware/auth-middleware.js";
+
 import {
-  createProduct,
   getAllProduct,
   getAllProductsByCity,
-  getProductById,
-} from "../controllers/product-controller.js";
-import { verifyToken, roleGuard } from "../middleware/auth-middleware.js";
-import {
-  createStoreProduct,
   getNearbyProducts,
-} from "../controllers/store-controler.js";
+  getProductById,
+} from "../controllers/product-controller/get/get-product.js";
+import { createProduct } from "../controllers/product-controller/create/create-product.js";
+import { createStoreProduct } from "../controllers/store-controller/create/create-store.js";
 
 const router = express.Router();
 

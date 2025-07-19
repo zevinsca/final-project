@@ -3,11 +3,12 @@ import express from "express";
 import { verifyToken, roleGuard } from "../middleware/auth-middleware.js";
 import {
   getAllCategories,
-  createCategory,
-  updateCategory,
-  deleteCategory,
   getCategoryById,
-} from "../controllers/category-controller.js";
+} from "../controllers/category-controller/get/get-category.js";
+import { createCategory } from "../controllers/category-controller/create/create-category.js";
+import { updateCategory } from "../controllers/category-controller/update/update-category.js";
+import { deleteCategory } from "../controllers/category-controller/delete/delete-category.js";
+
 const router = express.Router();
 
 // Route for getting all categories and creating a new category

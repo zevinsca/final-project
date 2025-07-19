@@ -13,31 +13,43 @@ export default function LoginPage() {
   });
   const router = useRouter();
 
-  // Handle form submission
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-
-    // Log the submitted data for debugging
-    console.log("Submitted data:", loginData);
 
     try {
       const res = await fetch("http://localhost:8000/api/v1/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(loginData), // Send only one field (usernameOrEmail) and password
+        body: JSON.stringify(loginData),
         credentials: "include",
       });
 
       if (!res.ok) throw new Error("Login gagal");
 
+      const data = await res.json();
+
+      // Optional: alert login sukses
       alert("Login success");
 
       setLoginData({ usernameOrEmail: "", password: "" });
 
-      router.push("/");
-      window.location.href = "/";
+      // Redirect berdasarkan role
+      switch (data.role) {
+        case "USER":
+          router.push("/");
+          break;
+        case "STORE_ADMIN":
+          router.push("/dashboard/admin-store");
+          break;
+        case "SUPER_ADMIN":
+          router.push("/dashboard/admin");
+          break;
+        default:
+          router.push("/");
+      }
     } catch (error) {
-      console.error(error);
+      console.error("Login error:", error);
+      alert("Login gagal. Periksa kembali email/username dan password.");
     }
   }
 

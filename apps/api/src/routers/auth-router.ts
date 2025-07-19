@@ -1,22 +1,25 @@
 import express from "express";
 import passport from "passport";
+
+import { authMiddleware, verifyToken } from "../middleware/auth-middleware.js";
 import {
-  login,
-  logout,
-  register,
-  loginSuccess,
   loginFailed,
+  loginGoogle,
+  loginSuccess,
+} from "../controllers/auth-controller/login/login-google.js";
+import { logout } from "../controllers/auth-controller/logout/logout.js";
+import {
+  confirmEmail,
   sendVerificationEmail,
   VerifySuccess,
-  loginGoogle,
-  resetPassword,
+} from "../controllers/auth-controller/verification/verification.js";
+import { register } from "../controllers/auth-controller/register/register.js";
+import { login } from "../controllers/auth-controller/login/login-market-snap.js";
+import {
   resendSetPasswordLink,
-  confirmEmail,
-  // setPassword
-} from "../controllers/auth.controller.js";
-
-import { changePassword } from "../controllers/user-controller.js";
-import { authMiddleware, verifyToken } from "../middleware/auth-middleware.js";
+  resetPassword,
+} from "../controllers/auth-controller/set-password/set-password.js";
+import { changePassword } from "../controllers/user-controller/update/change-password.js";
 
 const router = express.Router();
 

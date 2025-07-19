@@ -1,8 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-
-import Icons from "./icons";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -29,7 +27,7 @@ interface StoreProductResponse {
 const domain = process.env.NEXT_PUBLIC_DOMAIN;
 const DEFAULT_STORE_ID = "f96bdf49-a653-44f9-bcb8-39432ff738c1";
 
-export default function HomePageUser() {
+export default function ProductPage() {
   const [provinces, setProvinces] = useState<string[]>([]);
   const [latitude, setLatitude] = useState<number | null>(null);
   const [longitude, setLongitude] = useState<number | null>(null);
@@ -38,6 +36,14 @@ export default function HomePageUser() {
   const [stores, setStores] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isGeoActive, setIsGeoActive] = useState<boolean>(false);
+
+  const [search, setSearch] = useState<string>("");
+  const [page, setPage] = useState<number>(1);
+  const [limit] = useState<number>(12);
+
+  // ✅ NEW: Filter by category
+  const [category, setCategory] = useState<string>("");
+  const [categories, setCategories] = useState<string[]>([]);
 
   // 🔥 PERBAIKAN 1: Load initial data dari localStorage
   useEffect(() => {
@@ -105,19 +111,30 @@ export default function HomePageUser() {
       try {
         if (isGeoActive && (latitude === null || longitude === null)) return;
 
+        const params = new URLSearchParams();
+        if (search) params.append("search", search);
+        if (category) params.append("category", category);
+        params.append("page", page.toString());
+        params.append("limit", limit.toString());
+
         let url = "";
 
         if (isGeoActive && latitude !== null && longitude !== null) {
-          url = `${domain}/api/v1/products/nearby?latitude=${latitude}&longitude=${longitude}&radius=20000`;
+          params.append("latitude", latitude.toString());
+          params.append("longitude", longitude.toString());
+          params.append("radius", "20000");
+          url = `${domain}/api/v1/products/nearby?${params.toString()}`;
           console.log("🔍 Fetching products by geolocation:", {
             latitude,
             longitude,
           });
         } else if (selectedProvince !== "All") {
-          url = `${domain}/api/v1/products/by-province?province=${selectedProvince}`;
+          params.append("province", selectedProvince);
+          url = `${domain}/api/v1/products/by-province?${params.toString()}`;
           console.log("🔍 Fetching products by province:", selectedProvince);
         } else {
-          url = `${domain}/api/v1/products/by-store?storeId=${DEFAULT_STORE_ID}`;
+          params.append("storeId", DEFAULT_STORE_ID);
+          url = `${domain}/api/v1/products/by-store?${params.toString()}`;
           console.log("🔍 Fetching products by default store");
         }
 
@@ -146,7 +163,16 @@ export default function HomePageUser() {
     };
 
     fetchProducts();
-  }, [latitude, longitude, selectedProvince, isGeoActive]);
+  }, [
+    latitude,
+    longitude,
+    selectedProvince,
+    isGeoActive,
+    search,
+    page,
+    limit,
+    category,
+  ]);
 
   useEffect(() => {
     const fetchProvinces = async () => {
@@ -161,12 +187,26 @@ export default function HomePageUser() {
       }
     };
 
+    const fetchCategories = async () => {
+      try {
+        const res = await fetch(`${domain}/api/v1/categories`);
+        const data = await res.json();
+        // Ambil array nama kategori dari data.data
+        const names = (data.data || []).map((c: { name: string }) => c.name);
+        setCategories(names);
+      } catch (err) {
+        console.error("Gagal mengambil kategori", err);
+      }
+    };
+
     fetchProvinces();
+    fetchCategories();
   }, []);
 
   // 🔥 PERBAIKAN 3: Handler untuk province change
   const handleProvinceChange = (province: string) => {
     setSelectedProvince(province);
+    setPage(1);
 
     // 🔥 SIMPAN KE LOCALSTORAGE
     localStorage.setItem("province", province);
@@ -186,25 +226,19 @@ export default function HomePageUser() {
 
   return (
     <div className="min-h-screen px-6 md:px-20 lg:px-40 py-10 grid grid-rows-[auto_1fr] gap-10">
-      <div>
-        <h1 className="text-3xl font-bold text-center">
-          Selamat Datang di Market Snap
-        </h1>
-
-        {error && <p className="text-red-400 text-center">{error}</p>}
-      </div>
+      <div>{error && <p className="text-red-400 text-center">{error}</p>}</div>
       <div className="grid grid-rows-[auto_1fr] gap-5">
         {!isGeoActive && (
           <div className="w-full flex justify-end px-5">
             <div className="flex items-center gap-2 bg-green-700 text-white px-6 py-2 rounded shadow-md">
-              <span className="font-semibold">Choose Location </span>
+              <span className="font-semibold">Choose Location</span>
               <select
                 className="border-none rounded-md px-3 py-2 text-black cursor-pointer shadow-sm transition duration-200 focus:outline-none focus:ring-2 focus:ring-green-500"
                 value={selectedProvince}
                 onChange={(e) => handleProvinceChange(e.target.value)}
               >
                 <option value="" disabled hidden>
-                  Choose Location
+                  Choose Province
                 </option>
                 {provinces.map((province) => (
                   <option key={province} value={province}>
@@ -216,10 +250,9 @@ export default function HomePageUser() {
           </div>
         )}
 
-        <div className="p-6 rounded-lg shadow-l flex flex-col gap-20">
-          <Icons />
+        <div className="p-6 rounded-lg shadow-l grid grid-rows-2 gap-10">
           <div>
-            <h2 className="text-2xl font-bold mb-4 text-green-900">Products</h2>
+            <h2 className="text-2xl font-bold mb-4 text-green-900"></h2>
 
             {/* 🔥 PERBAIKAN 4: Status indicator */}
             <div className="mb-4 p-3 bg-gray-100 rounded-lg">
@@ -229,53 +262,107 @@ export default function HomePageUser() {
                   ? `📍 Your nearest location`
                   : selectedProvince !== "All"
                     ? `🌍 Province: ${selectedProvince}`
-                    : "🏪 Main store location"}
+                    : "🏪 Default store location"}
               </p>
             </div>
 
+            <div className="flex flex-wrap gap-4 mb-6 items-center">
+              <input
+                type="text"
+                placeholder="Search products..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="px-3 py-2 border rounded shadow"
+              />
+              {/* <button
+                onClick={() => setPage(1)}
+                className="bg-green-700 text-white px-4 py-2 rounded shadow"
+              >
+                Search
+              </button> */}
+
+              <select
+                value={category}
+                onChange={(e) => {
+                  setCategory(e.target.value);
+                  setPage(1);
+                }}
+                className="border rounded px-3 py-2 shadow"
+              >
+                <option value="">All Categories</option>
+                {categories.map((cat) => (
+                  <option key={cat} value={cat}>
+                    {cat}
+                  </option>
+                ))}
+              </select>
+            </div>
+
             {isGeoActive && stores.length > 0 && (
-              <div className="mb-2 text-xl text-green-900 font-semibold">
-                <strong>Nearby stores:</strong> {stores.join(", ")}
+              <div className="mb-2 text-green-900 font-semibold">
+                <strong>Nearby store:</strong> {stores.join(", ")}
               </div>
             )}
 
             {products.length === 0 && (
-              <p className="text-green-600">No products found.</p>
+              <p className="text-green-600">No Products Found</p>
             )}
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
               {products.map((product) => (
                 <div
                   key={product.id}
-                  className="bg-white border rounded-lg shadow hover:shadow-lg transition-transform transform hover:scale-105 p-4"
+                  className="bg-white border border-gray-300 rounded-lg p-4 shadow hover:shadow-lg transition duration-300 text-center"
                 >
                   <Image
-                    src={product.imagePreview?.[0]?.imageUrl ?? "/default.jpg"}
+                    src={
+                      product.imagePreview?.[0]?.imageUrl ?? "/placeholder.jpg"
+                    }
                     alt={product.name}
-                    width={250}
-                    height={250}
-                    className="mx-auto mb-4 rounded"
+                    width={150}
+                    height={150}
+                    className="mx-auto mb-4"
                   />
 
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2 text-center">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-1">
                     {product.name}
                   </h3>
 
-                  <p className="text-xl font-bold text-green-700 text-center mb-2">
-                    Rp {product.price.toLocaleString()}
+                  <p className="text-green-700 font-bold mb-2">
+                    Rp{product.price.toLocaleString()}
                   </p>
 
-                  <p className="text-sm text-gray-600 text-center mb-4">
+                  {/* 🔥 PERBAIKAN 5: Tampilkan stock info */}
+                  <p className="text-sm text-gray-600 mb-4">
                     Stock: {product.stock}
                   </p>
 
                   <Link
                     href={`/products/${product.id}`}
-                    className="block w-full bg-green-600 text-white text-center py-2 rounded-lg hover:bg-green-700 transition"
+                    className="inline-block bg-green-700 text-white px-4 py-1 rounded hover:bg-green-800 transition"
                   >
-                    View product
+                    View Product
                   </Link>
                 </div>
               ))}
+            </div>
+
+            <div className="flex justify-center mt-8 gap-3">
+              <button
+                onClick={() => setPage((prev) => Math.max(prev - 1, 1))}
+                className="px-4 py-2 bg-green-700 text-white rounded shadow"
+              >
+                Prev
+              </button>
+              <span className="px-4 py-2 border rounded shadow">
+                Page {page}
+              </span>
+              <button
+                onClick={() => setPage((prev) => prev + 1)}
+                className="px-4 py-2 bg-green-700 text-white rounded shadow"
+              >
+                Next
+              </button>
             </div>
           </div>
         </div>
