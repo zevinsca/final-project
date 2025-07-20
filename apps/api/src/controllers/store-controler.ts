@@ -340,16 +340,13 @@ export async function getNearbyProducts(
       return;
     }
 
-    // Validate sortBy to prevent SQL injection
     const allowedSortFields = ["name", "price", "createdAt", "updatedAt"];
     const finalSortBy = allowedSortFields.includes(sortBy)
       ? sortBy
       : "createdAt";
 
-    // Validate sortOrder
     const finalSortOrder = sortOrder.toLowerCase() === "asc" ? "asc" : "desc";
 
-    // 2. GET NEARBY STORES
     const stores = await prisma.store.findMany({
       include: {
         StoreAddress: {
@@ -360,7 +357,6 @@ export async function getNearbyProducts(
       },
     });
 
-    // Filter stores by distance and calculate distances
     const nearbyStores = stores
       .map((store) => {
         const addr = store.StoreAddress[0];
@@ -376,7 +372,7 @@ export async function getNearbyProducts(
           ? {
               id: store.id,
               name: store.name,
-              distance: Math.round(distance * 100) / 100, // Round to 2 decimal places
+              distance: Math.round(distance * 100) / 100,
               address: addr.Address,
             }
           : null;
@@ -392,7 +388,6 @@ export async function getNearbyProducts(
         } => s !== null
       );
 
-    // Sort nearby stores by distance if needed
     if (sortByDistance) {
       nearbyStores.sort((a, b) => a.distance - b.distance);
     }
@@ -422,12 +417,10 @@ export async function getNearbyProducts(
 
     const nearbyStoreIds = nearbyStores.map((s) => s.id);
 
-    // 3. BUILD PRODUCT FILTER
     const productFilter: any = {
       deletedAt: null,
     };
 
-    // Search filter (name contains)
     if (search) {
       productFilter.name = {
         contains: search,
@@ -435,7 +428,6 @@ export async function getNearbyProducts(
       };
     }
 
-    // Category filter
     if (category && typeof category === "string") {
       productFilter.ProductCategory = {
         some: {
@@ -446,35 +438,28 @@ export async function getNearbyProducts(
       };
     }
 
-    // 4. BUILD STORE PRODUCT WHERE CLAUSE
     const storeProductWhere = {
       storeId: { in: nearbyStoreIds },
       deletedAt: null,
       Product: productFilter,
     };
 
-    // 5. GET TOTAL COUNT (for pagination info)
     const totalProducts = await prisma.storeProduct.count({
       where: storeProductWhere,
     });
 
-    // 6. BUILD ORDER BY CLAUSE
     let orderBy: any = {};
 
     if (sortByDistance) {
-      // For distance sorting, we'll sort in memory after fetching
-      // Use a secondary sort for database query
       orderBy = {
         Product: { [finalSortBy]: finalSortOrder },
       };
     } else {
-      // Normal sorting by product fields
       orderBy = {
         Product: { [finalSortBy]: finalSortOrder },
       };
     }
 
-    // 7. QUERY STORE PRODUCTS WITH PAGINATION AND SORTING
     const storeProducts = await prisma.storeProduct.findMany({
       where: storeProductWhere,
       include: {
@@ -486,6 +471,16 @@ export async function getNearbyProducts(
               include: { Category: true },
             },
             User: true,
+            Discount: {
+              where: {
+                storeId: { in: nearbyStoreIds },
+                deletedAt: null,
+                startDate: { lte: new Date() },
+                endDate: { gte: new Date() },
+              },
+              orderBy: { value: "desc" },
+              take: 1,
+            },
           },
         },
         Store: {

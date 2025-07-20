@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import prisma from "../config/prisma-client.js";
 
-// getAllProductsByCity with Pagination & Sort
+// getAllProductsByCity
 export async function getAllProductsByCity(req: Request, res: Response) {
   try {
     const { province, category: rawCategory, search: rawSearch } = req.query;
@@ -42,7 +42,6 @@ export async function getAllProductsByCity(req: Request, res: Response) {
       : "createdAt";
     const finalSortOrder = sortOrder.toLowerCase() === "asc" ? "asc" : "desc";
 
-    // Step 1: Get all addresses in that province
     const addresses = await prisma.address.findMany({
       where: {
         province: {
@@ -56,7 +55,6 @@ export async function getAllProductsByCity(req: Request, res: Response) {
 
     const storeAddressIds = addresses.map((addr) => addr.storeAddressId!);
 
-    // Step 2: Get store IDs connected to those addresses
     const storeAddresses = await prisma.storeAddress.findMany({
       where: {
         id: { in: storeAddressIds },
@@ -66,7 +64,6 @@ export async function getAllProductsByCity(req: Request, res: Response) {
 
     const storeIds = storeAddresses.map((sa) => sa.storeId);
 
-    // Step 3: Filter by category and/or search if provided
     let productIds: string[] | undefined = undefined;
 
     if (category || search) {
@@ -99,24 +96,20 @@ export async function getAllProductsByCity(req: Request, res: Response) {
       productIds = products.map((p) => p.id);
     }
 
-    // Step 4: Build WHERE clause
     const where: any = {
       storeId: { in: storeIds },
       deletedAt: null,
       ...(productIds && { productId: { in: productIds } }),
     };
 
-    // Step 5: Get total count
     const totalProducts = await prisma.storeProduct.count({
       where,
     });
 
-    // Step 6: Build orderBy for nested Product relation
     const orderBy: any = {
       Product: { [finalSortBy]: finalSortOrder },
     };
 
-    // Step 7: Get storeProducts with pagination
     const storeProducts = await prisma.storeProduct.findMany({
       where,
       include: {
@@ -124,6 +117,16 @@ export async function getAllProductsByCity(req: Request, res: Response) {
           include: {
             imagePreview: true,
             ProductCategory: { include: { Category: true } },
+            Discount: {
+              where: {
+                storeId: { in: storeIds }, // Only get discounts for current stores
+                deletedAt: null,
+                startDate: { lte: new Date() },
+                endDate: { gte: new Date() },
+              },
+              orderBy: { value: "desc" },
+              take: 1,
+            },
           },
         },
         Store: {
@@ -141,7 +144,6 @@ export async function getAllProductsByCity(req: Request, res: Response) {
       take: limit,
     });
 
-    // Step 8: Calculate pagination info
     const totalPages = Math.ceil(totalProducts / limit);
     const hasNextPage = page < totalPages;
     const hasPrevPage = page > 1;
@@ -171,7 +173,7 @@ export async function getAllProductsByCity(req: Request, res: Response) {
   }
 }
 
-// getAllProductsByStore with Pagination & Sort
+// getAllProductsByStore
 export async function getAllProductsByStore(
   req: Request,
   res: Response

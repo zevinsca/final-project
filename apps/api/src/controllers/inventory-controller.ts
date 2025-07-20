@@ -337,8 +337,6 @@ export async function deleteStockEntry(
 /* -------------------------------------------------------------------------- */
 /*                            GET INVENTORY HISTORY                           */
 /* -------------------------------------------------------------------------- */
-// GANTI function getInventoryHistory di inventory-controller.ts dengan ini:
-
 export async function getInventoryHistory(
   req: Request,
   res: Response

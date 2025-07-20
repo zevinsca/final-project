@@ -28,11 +28,10 @@ export default function CreateDiscount() {
     endDate: "",
   });
 
-  // Fetch user store info first
+  // Fetch user store info
   useEffect(() => {
     const fetchUserStore = async () => {
       try {
-        console.log("🔄 Fetching user store...");
         const response = await fetch(
           "http://localhost:8000/api/v1/auth/profile",
           {
@@ -40,68 +39,44 @@ export default function CreateDiscount() {
           }
         );
 
-        console.log("📋 Profile response status:", response.status);
-
         if (response.ok) {
           const data = await response.json();
-          console.log("👤 User data:", data);
-
           if (data.user?.Store && data.user.Store.length > 0) {
             setUserStore(data.user.Store[0]);
-            console.log("🏪 User store set:", data.user.Store[0]);
-          } else {
-            console.warn("⚠️ No store found for user");
           }
-        } else {
-          console.error("❌ Failed to fetch profile:", response.statusText);
         }
       } catch (error) {
-        console.error("🚨 Error fetching user store:", error);
+        console.error("Error fetching user store:", error);
       }
     };
     fetchUserStore();
   }, []);
 
-  // Fetch products from current store only
+  // Fetch products from current store
   useEffect(() => {
     const fetchProducts = async () => {
-      if (!userStore?.id) {
-        console.log("⏳ Waiting for store ID...");
-        return;
-      }
+      if (!userStore?.id) return;
 
       try {
-        console.log("🔄 Fetching products for store:", userStore.id);
         const url = new URL("http://localhost:8000/api/v1/products/by-store");
         url.searchParams.append("storeId", userStore.id);
-
-        console.log("🌐 Request URL:", url.toString());
 
         const response = await fetch(url.toString(), {
           credentials: "include",
         });
 
-        console.log("📦 Products response status:", response.status);
-
         if (response.ok) {
           const data = await response.json();
-          console.log("📦 Products data:", data);
           setProducts(data.data || []);
-        } else {
-          console.error("❌ Failed to fetch products:", response.statusText);
         }
       } catch (error) {
-        console.error("🚨 Error fetching products:", error);
+        console.error("Error fetching products:", error);
       }
     };
     fetchProducts();
   }, [userStore?.id]);
 
-  // Validation function
   const validateForm = () => {
-    console.log("🔍 Validating form:", form);
-    console.log("🏪 User store:", userStore);
-
     if (!userStore?.id) {
       alert("Store information not loaded. Please refresh the page.");
       return false;
@@ -130,117 +105,49 @@ export default function CreateDiscount() {
       alert("Start date cannot be in the past");
       return false;
     }
-
-    console.log("✅ Form validation passed");
     return true;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!validateForm()) {
-      return;
-    }
+    if (!validateForm()) return;
 
     setLoading(true);
-    console.log("🚀 Starting discount creation...");
 
     try {
-      // Try different date formats
-      const startDateISO = new Date(form.startDate).toISOString();
-      const endDateISO = new Date(form.endDate).toISOString();
-
       const requestData = {
         storeId: userStore?.id,
         productId: form.productId,
         value: parseFloat(form.value),
         discountType: form.discountType,
-        startDate: startDateISO, // Send as ISO string
-        endDate: endDateISO, // Send as ISO string
+        startDate: new Date(form.startDate).toISOString(),
+        endDate: new Date(form.endDate).toISOString(),
       };
-
-      console.log("📤 Request data:", requestData);
-      console.log("📅 Original form dates:", {
-        start: form.startDate,
-        end: form.endDate,
-      });
-      console.log("📅 ISO dates:", { start: startDateISO, end: endDateISO });
-      console.log("📅 Start Date as Date object:", new Date(form.startDate));
-      console.log("📅 End Date as Date object:", new Date(form.endDate));
-      console.log("🕐 Current time:", new Date());
-      console.log("⏰ Current timestamp:", Date.now());
-      console.log("📅 Start timestamp:", new Date(form.startDate).getTime());
-      console.log("📅 End timestamp:", new Date(form.endDate).getTime());
-
-      console.log("📤 Request data:", requestData);
-      console.log("🌐 Request URL: http://localhost:8000/api/v1/discounts");
 
       const response = await fetch("http://localhost:8000/api/v1/discounts", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify(requestData),
       });
 
-      console.log("📥 Response status:", response.status);
-      console.log(
-        "📥 Response headers:",
-        Object.fromEntries(response.headers.entries())
-      );
-
       if (response.ok) {
-        const result = await response.json();
-        console.log("✅ Success response:", result);
         alert("Discount created successfully!");
         router.push("/dashboard/admin-store/discount");
       } else {
-        // Get error details
-        const errorText = await response.text();
-        console.error("❌ Error response status:", response.status);
-        console.error("❌ Error response body:", errorText);
-
-        try {
-          const errorData = JSON.parse(errorText);
-          console.error("❌ Parsed error data:", errorData);
-          alert(
-            `Failed to create discount: ${errorData.message || errorData.error || "Unknown error"}`
-          );
-        } catch {
-          alert(
-            `Failed to create discount (Status: ${response.status}): ${errorText}`
-          );
-        }
+        const errorData = await response.json();
+        alert(
+          `Failed to create discount: ${errorData.message || "Unknown error"}`
+        );
       }
     } catch (error) {
-      console.error("🚨 Network/JS error:", error);
-      alert(`Network error`);
+      console.error("Error:", error);
+      alert("Network error creating discount");
     } finally {
       setLoading(false);
-      console.log("🔄 Request completed");
     }
   };
-
-  // Debug info display
-  const debugInfo = (
-    <div className="bg-gray-100 p-4 rounded mb-4 text-sm">
-      <h3 className="font-bold mb-2">🐛 Debug Info:</h3>
-      <p>
-        <strong>User Store:</strong>{" "}
-        {userStore ? `${userStore.name} (${userStore.id})` : "Not loaded"}
-      </p>
-      <p>
-        <strong>Products Count:</strong> {products.length}
-      </p>
-      <p>
-        <strong>Form Valid:</strong>{" "}
-        {form.productId && form.value && form.startDate && form.endDate
-          ? "✅"
-          : "❌"}
-      </p>
-    </div>
-  );
 
   return (
     <MenuNavbarStoreAdmin>
@@ -256,9 +163,6 @@ export default function CreateDiscount() {
           <h1 className="text-2xl font-bold">Create New Discount</h1>
         </div>
 
-        {/* Debug Info - Remove this in production */}
-        {debugInfo}
-
         {/* Form */}
         <div className="bg-white rounded-lg shadow p-6">
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -269,10 +173,9 @@ export default function CreateDiscount() {
               </label>
               <select
                 value={form.productId}
-                onChange={(e) => {
-                  console.log("🎯 Product selected:", e.target.value);
-                  setForm({ ...form, productId: e.target.value });
-                }}
+                onChange={(e) =>
+                  setForm({ ...form, productId: e.target.value })
+                }
                 required
                 className="w-full border rounded px-3 py-2 focus:ring-2 focus:ring-blue-500"
               >
@@ -296,13 +199,12 @@ export default function CreateDiscount() {
                 <label className="block text-sm font-medium mb-1">Type *</label>
                 <select
                   value={form.discountType}
-                  onChange={(e) => {
-                    console.log("💰 Discount type changed:", e.target.value);
+                  onChange={(e) =>
                     setForm({
                       ...form,
                       discountType: e.target.value as "PERCENTAGE" | "FIXED",
-                    });
-                  }}
+                    })
+                  }
                   className="w-full border rounded px-3 py-2 focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="PERCENTAGE">Percentage (%)</option>
@@ -317,10 +219,7 @@ export default function CreateDiscount() {
                 <input
                   type="number"
                   value={form.value}
-                  onChange={(e) => {
-                    console.log("💲 Value changed:", e.target.value);
-                    setForm({ ...form, value: e.target.value });
-                  }}
+                  onChange={(e) => setForm({ ...form, value: e.target.value })}
                   required
                   min="0"
                   max={form.discountType === "PERCENTAGE" ? "100" : undefined}
@@ -342,10 +241,9 @@ export default function CreateDiscount() {
                 <input
                   type="datetime-local"
                   value={form.startDate}
-                  onChange={(e) => {
-                    console.log("📅 Start date changed:", e.target.value);
-                    setForm({ ...form, startDate: e.target.value });
-                  }}
+                  onChange={(e) =>
+                    setForm({ ...form, startDate: e.target.value })
+                  }
                   required
                   min={new Date().toISOString().slice(0, 16)}
                   className="w-full border rounded px-3 py-2 focus:ring-2 focus:ring-blue-500"
@@ -359,10 +257,9 @@ export default function CreateDiscount() {
                 <input
                   type="datetime-local"
                   value={form.endDate}
-                  onChange={(e) => {
-                    console.log("📅 End date changed:", e.target.value);
-                    setForm({ ...form, endDate: e.target.value });
-                  }}
+                  onChange={(e) =>
+                    setForm({ ...form, endDate: e.target.value })
+                  }
                   required
                   min={form.startDate || new Date().toISOString().slice(0, 16)}
                   className="w-full border rounded px-3 py-2 focus:ring-2 focus:ring-blue-500"

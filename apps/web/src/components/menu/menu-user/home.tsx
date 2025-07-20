@@ -6,6 +6,14 @@ import Icons from "./icons";
 import Image from "next/image";
 import Link from "next/link";
 
+interface DiscountType {
+  id: string;
+  value: number;
+  discountType: "PERCENTAGE" | "FIXED";
+  minPurchase: number;
+  maxDiscount: number;
+}
+
 interface Product {
   id: string;
   name: string;
@@ -14,6 +22,7 @@ interface Product {
   stock: number;
   imagePreview: { imageUrl: string }[];
   storeName?: string | null;
+  Discount?: DiscountType[];
 }
 
 interface Store {
@@ -25,6 +34,28 @@ interface StoreProductResponse {
   Store: Store;
   stock: number;
 }
+
+// Helper untuk menghitung diskon
+const calculateDiscount = (price: number, discount: DiscountType | null) => {
+  if (!discount) return { finalPrice: price, discountAmount: 0, label: null };
+
+  let discountAmount = 0;
+  if (discount.discountType === "PERCENTAGE") {
+    discountAmount = (price * discount.value) / 100;
+    if (discount.maxDiscount > 0)
+      discountAmount = Math.min(discountAmount, discount.maxDiscount);
+  } else {
+    discountAmount = discount.value;
+  }
+
+  const finalPrice = Math.max(0, price - discountAmount);
+  const label =
+    discount.discountType === "PERCENTAGE"
+      ? `${discount.value}% OFF`
+      : `Rp ${discount.value.toLocaleString()} OFF`;
+
+  return { finalPrice, discountAmount, label };
+};
 
 const domain = process.env.NEXT_PUBLIC_DOMAIN;
 const DEFAULT_STORE_ID = "f96bdf49-a653-44f9-bcb8-39432ff738c1";
@@ -243,39 +274,85 @@ export default function HomePageUser() {
               <p className="text-green-600">No products found.</p>
             )}
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-              {products.map((product) => (
-                <div
-                  key={product.id}
-                  className="bg-white border rounded-lg shadow hover:shadow-lg transition-transform transform hover:scale-105 p-4"
-                >
-                  <Image
-                    src={product.imagePreview?.[0]?.imageUrl ?? "/default.jpg"}
-                    alt={product.name}
-                    width={250}
-                    height={250}
-                    className="mx-auto mb-4 rounded"
-                  />
+              {products.map((product) => {
+                // Ambil diskon aktif pertama
+                const activeDiscount = product.Discount?.[0] || null;
+                const { finalPrice, discountAmount, label } = calculateDiscount(
+                  product.price,
+                  activeDiscount
+                );
 
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2 text-center">
-                    {product.name}
-                  </h3>
-
-                  <p className="text-xl font-bold text-green-700 text-center mb-2">
-                    Rp {product.price.toLocaleString()}
-                  </p>
-
-                  <p className="text-sm text-gray-600 text-center mb-4">
-                    Stock: {product.stock}
-                  </p>
-
-                  <Link
-                    href={`/products/${product.id}`}
-                    className="block w-full bg-green-600 text-white text-center py-2 rounded-lg hover:bg-green-700 transition"
+                return (
+                  <div
+                    key={product.id}
+                    className="bg-white border rounded-lg shadow hover:shadow-lg transition-transform transform hover:scale-105 p-4 relative"
                   >
-                    View product
-                  </Link>
-                </div>
-              ))}
+                    {/* Discount Badge */}
+                    {activeDiscount && (
+                      <div className="absolute top-2 left-2 bg-red-500 text-white px-2 py-1 rounded-md text-xs font-bold z-10">
+                        {label}
+                      </div>
+                    )}
+
+                    {/* Hot Deal Badge */}
+                    {activeDiscount &&
+                      ((activeDiscount.discountType === "PERCENTAGE" &&
+                        activeDiscount.value >= 30) ||
+                        (activeDiscount.discountType === "FIXED" &&
+                          activeDiscount.value >= 50000)) && (
+                        <div className="absolute top-2 right-2 bg-orange-500 text-white px-2 py-1 rounded-md text-xs font-bold animate-pulse z-10">
+                          🔥
+                        </div>
+                      )}
+
+                    <Image
+                      src={
+                        product.imagePreview?.[0]?.imageUrl ?? "/default.jpg"
+                      }
+                      alt={product.name}
+                      width={200}
+                      height={150}
+                      className="mx-auto mb-4 rounded object-contain"
+                    />
+
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2 text-center">
+                      {product.name}
+                    </h3>
+
+                    {/* Price with Discount */}
+                    <div className="text-center mb-2 min-h-[72px]">
+                      {activeDiscount ? (
+                        <>
+                          <p className="text-sm text-gray-400 line-through">
+                            Rp {product.price.toLocaleString()}
+                          </p>
+                          <p className="text-xl font-bold text-green-700">
+                            Rp {finalPrice.toLocaleString()}
+                          </p>
+                          <p className="text-xs text-red-600">
+                            Save Rp {discountAmount.toLocaleString()}
+                          </p>
+                        </>
+                      ) : (
+                        <p className="text-xl font-bold text-green-700">
+                          Rp {product.price.toLocaleString()}
+                        </p>
+                      )}
+                    </div>
+
+                    <p className="text-sm text-gray-600 text-center mb-4">
+                      Stock: {product.stock}
+                    </p>
+
+                    <Link
+                      href={`/products/${product.id}`}
+                      className="block w-full bg-green-600 text-white text-center py-2 rounded-lg hover:bg-green-700 transition"
+                    >
+                      View product
+                    </Link>
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>

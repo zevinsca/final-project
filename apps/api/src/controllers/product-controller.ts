@@ -4,20 +4,15 @@ import prisma from "../config/prisma-client.js";
 // GET ALL PRODUCT
 export async function getAllProduct(req: Request, res: Response) {
   try {
-    // 1. EXTRACT QUERY PARAMETERS
     const search = req.query.search as string | undefined;
     const category = req.query.category as string | undefined;
 
-    // Pagination parameters
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
     const skip = (page - 1) * limit;
-
-    // Sort parameters
     const sortBy = (req.query.sortBy as string) || "createdAt"; // default sort by createdAt
     const sortOrder = (req.query.sortOrder as string) || "desc"; // default desc
 
-    // Validate sortBy to prevent SQL injection - TAMBAHKAN "stock" di sini
     const allowedSortFields = [
       "name",
       "price",
@@ -29,15 +24,12 @@ export async function getAllProduct(req: Request, res: Response) {
       ? sortBy
       : "createdAt";
 
-    // Validate sortOrder
     const finalSortOrder = sortOrder.toLowerCase() === "asc" ? "asc" : "desc";
 
-    // 2. BUILD WHERE CLAUSE
     const where: any = {
       deletedAt: null,
     };
 
-    // Search filter (name contains)
     if (search) {
       where.name = {
         contains: search,
@@ -45,7 +37,6 @@ export async function getAllProduct(req: Request, res: Response) {
       };
     }
 
-    // Category filter
     if (category) {
       where.ProductCategory = {
         some: {
@@ -58,27 +49,21 @@ export async function getAllProduct(req: Request, res: Response) {
         },
       };
     }
-
-    // 3. BUILD ORDER BY CLAUSE - MODIFIKASI untuk handle sorting by stock
     let orderBy: any = {};
 
     if (finalSortBy === "stock") {
-      // Untuk sorting stock, kita perlu join dengan StoreProduct
       orderBy = {
         StoreProduct: {
-          _count: finalSortOrder, // atau bisa pakai cara lain tergantung kebutuhan
+          _count: finalSortOrder,
         },
       };
     } else {
       orderBy[finalSortBy] = finalSortOrder;
     }
 
-    // 4. GET TOTAL COUNT (for pagination info)
     const totalProducts = await prisma.product.count({
       where,
     });
-
-    // 5. QUERY PRODUCTS WITH PAGINATION AND SORTING
     const products = await prisma.product.findMany({
       where,
       include: {
@@ -91,13 +76,21 @@ export async function getAllProduct(req: Request, res: Response) {
             Store: true,
           },
         },
+        Discount: {
+          where: {
+            deletedAt: null,
+            startDate: { lte: new Date() },
+            endDate: { gte: new Date() },
+          },
+          orderBy: { value: "desc" },
+          take: 1,
+        },
       },
       orderBy,
       skip,
       take: limit,
     });
 
-    // 6. MAPPING RESULTS - Jika sort by stock, kita bisa sort di memory sebagai fallback
     let finalResult = products.map((item) => {
       const storeProduct = item.StoreProduct?.[0];
 
@@ -115,7 +108,6 @@ export async function getAllProduct(req: Request, res: Response) {
       };
     });
 
-    // Fallback sorting untuk stock di memory jika perlu
     if (finalSortBy === "stock") {
       finalResult = finalResult.sort((a, b) => {
         if (finalSortOrder === "asc") {
@@ -125,14 +117,10 @@ export async function getAllProduct(req: Request, res: Response) {
         }
       });
     }
-
-    // 7. CALCULATE PAGINATION INFO
     const totalPages = Math.ceil(totalProducts / limit);
     const hasNextPage = page < totalPages;
     const hasPrevPage = page > 1;
 
-    // 8. RETURN RESPONSE WITH PAGINATION INFO - UBAH "pagination" jadi "meta"
-    // untuk konsisten dengan frontend
     res.status(200).json({
       data: finalResult,
       meta: {
@@ -159,14 +147,23 @@ export async function getAllProduct(req: Request, res: Response) {
 export async function getProductById(req: Request, res: Response) {
   try {
     const id = req.params.id;
-    const { lat, lng, province, includeAllStores } = req.query; // ← TAMBAHAN parameter
+    const { lat, lng, province, includeAllStores } = req.query;
 
     const product = await prisma.product.findFirst({
       where: { id, deletedAt: null },
       include: {
         imagePreview: true,
         imageContent: true,
-        ProductCategory: { include: { Category: true } },
+        ProductCategory: { include: { Category: true } }, // 🔥 TAMBAH DISCOUNT MANUAL
+        Discount: {
+          where: {
+            deletedAt: null,
+            startDate: { lte: new Date() },
+            endDate: { gte: new Date() },
+          },
+          orderBy: { value: "desc" },
+          take: 1,
+        },
       },
     });
     if (!product) {
@@ -174,7 +171,6 @@ export async function getProductById(req: Request, res: Response) {
       return;
     }
 
-    // ✅ TAMBAHAN: Jika admin butuh semua stores (untuk edit page)
     if (includeAllStores === "true") {
       const allStoreProducts = await prisma.storeProduct.findMany({
         where: { productId: id, deletedAt: null },
