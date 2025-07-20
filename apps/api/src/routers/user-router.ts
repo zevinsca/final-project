@@ -6,11 +6,15 @@ import {
   getCurrentUser,
   getUsersByRole,
 } from "../controllers/user-controller/get/get-user.js";
-import { updateCurrentUser } from "../controllers/user-controller/update/update-user.js";
+import {
+  updateCurrentUser,
+  updateUserRole,
+} from "../controllers/user-controller/update/update-user.js";
 import {
   confirmVerificationToken,
   sendVerificationEmail,
 } from "../controllers/user-controller/update/verification.js";
+import { deleteUser } from "../controllers/user-controller/delete/delete-user.js";
 
 const router = express.Router();
 
@@ -22,6 +26,8 @@ router
 /*                       GET ALL USER HANYA SUPER ADMIN                       */
 /* -------------------------------------------------------------------------- */
 router.route("/").get(getAllUser);
+router.route("/:id").put(updateUserRole).delete(verifyToken, deleteUser);
+
 router.route("/users").get(getUsersByRole);
 // Kirim ulang verifikasi email (harus login)
 router.route("/verify-email").post(verifyToken, sendVerificationEmail);

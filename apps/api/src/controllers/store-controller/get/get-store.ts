@@ -57,3 +57,16 @@ export async function getStoreById(req: Request, res: Response) {
     res.status(500).json({ message: "Error retrieving store." });
   }
 }
+
+export async function getAllStoresForSuperAdmin(_req: Request, res: Response) {
+  try {
+    const stores = await prisma.store.findMany({
+      select: { id: true, name: true },
+    });
+
+    res.json({ data: stores });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Gagal mengambil daftar store" });
+  }
+}

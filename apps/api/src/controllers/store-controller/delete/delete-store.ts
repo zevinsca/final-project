@@ -5,38 +5,49 @@ export async function deleteStore(req: Request, res: Response) {
   const { storeId } = req.params;
 
   try {
-    // 1. Ambil semua StoreAddress yang terhubung ke Store ini
-    const storeAddresses = await prisma.storeAddress.findMany({
-      where: { storeId },
+    // Get related data
+    const store = await prisma.store.findUnique({
+      where: { id: storeId },
+      include: {
+        StoreAddress: {
+          include: {
+            Address: true,
+          },
+        },
+        StoreUser: true,
+      },
     });
 
-    // 2. Hapus semua Address yang berelasi dengan masing-masing StoreAddress
-    for (const sa of storeAddresses) {
-      await prisma.address.deleteMany({
-        where: { storeAddressId: sa.id },
-      });
+    if (!store) {
+      res.status(404).json({ message: "Store tidak ditemukan." });
+      return;
     }
 
-    // 3. Hapus semua StoreAddress yang terkait dengan storeId
-    await prisma.storeAddress.deleteMany({
-      where: { storeId },
-    });
+    // Delete Address
+    for (const storeAddr of store.StoreAddress) {
+      for (const addr of storeAddr.Address) {
+        await prisma.address.delete({ where: { id: addr.id } });
+      }
 
-    // 4. Hapus semua StoreProduct yang terkait dengan storeId (jika ada)
-    await prisma.storeProduct.deleteMany({
-      where: { storeId },
-    });
+      // Delete StoreAddress
+      await prisma.storeAddress.delete({ where: { id: storeAddr.id } });
+    }
 
-    // 5. Hapus data Store itu sendiri
-    const deletedStore = await prisma.store.delete({
-      where: { id: storeId },
-    });
+    // Delete StoreUser
+    for (const su of store.StoreUser) {
+      await prisma.storeUser.delete({ where: { id: su.id } });
+    }
+
+    // Delete Store
+    await prisma.store.delete({ where: { id: storeId } });
 
     res
       .status(200)
-      .json({ message: "Toko berhasil dihapus.", data: deletedStore });
+      .json({ message: "Store and related data deleted successfully." });
   } catch (error) {
-    console.error("Delete store error:", error);
-    res.status(500).json({ message: "Terjadi kesalahan saat menghapus toko." });
+    console.error("deleteStore:", error);
+    res
+      .status(500)
+      .json({ message: "Failed to delete store and related data." });
   }
 }

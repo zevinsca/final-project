@@ -46,13 +46,13 @@ model User {
   verificationToken String? // Token untuk set-password / verifikasi
 
   // Relasi ke model lain jika kamu sudah pakai
-  Store            Store[]
   DiscountUsage    DiscountUsage[]
   InventoryJournal InventoryJournal[]
   Cart             Cart[]
   Order            Order[]
   Product          Product[]
   UserAddress      UserAddress[]
+  StoreUser        StoreUser[]
 }
 
 model UserAddress {
@@ -81,6 +81,16 @@ model Address {
   Order        Order[]
 }
 
+model StoreUser {
+  id        String   @id @default(uuid())
+  storeId   String?
+  userId    String
+  createdAt DateTime @default(now())
+
+  Store Store? @relation(fields: [storeId], references: [id])
+  User  User   @relation(fields: [userId], references: [id])
+}
+
 model StoreAddress {
   id         String @id @default(uuid())
   storeId    String
@@ -96,18 +106,18 @@ model StoreAddress {
 model Store {
   id        String    @id @default(uuid())
   name      String    @unique
-  userId    String
   // Added: longitude for geographical location
   createdAt DateTime  @default(now())
   updatedAt DateTime? @updatedAt
   distance  Float?
 
-  User User @relation(fields: [userId], references: [id])
-
   Discounts    Discount[]
   Inventory    InventoryJournal[]
   StoreProduct StoreProduct[]
   StoreAddress StoreAddress[]
+  StoreUser    StoreUser[]
+
+  userId String?
 }
 
 model Product {
@@ -115,7 +125,6 @@ model Product {
   name        String    @unique
   userId      String
   description String
-  stock       Int
   price       Float
   weight      Float
   createdAt   DateTime  @default(now())

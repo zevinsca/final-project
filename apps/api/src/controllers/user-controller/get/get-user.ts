@@ -13,6 +13,7 @@ export async function getAllUser(_req: Request, res: Response) {
     res.status(500).json({ message: "Failed to get address" });
   }
 }
+
 /* -------------------------------------------------------------------------- */
 /*                              GET CURRENT USER                              */
 /* -------------------------------------------------------------------------- */

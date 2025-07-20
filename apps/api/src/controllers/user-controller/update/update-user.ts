@@ -45,3 +45,37 @@ export async function updateCurrentUser(req: Request, res: Response) {
     res.status(500).json({ message: "Error updating user", error });
   }
 }
+
+export async function updateUserRole(req: Request, res: Response) {
+  const { id } = req.params;
+  const { role } = req.body;
+
+  // Validasi input
+  if (!id || !role) {
+    res.status(400).json({ message: "User ID and new role are required." });
+    return;
+  }
+
+  try {
+    // Update hanya field role
+    const updatedUser = await prisma.user.update({
+      where: { id },
+      data: {
+        role,
+      },
+      select: {
+        id: true,
+        username: true,
+        email: true,
+        role: true,
+      },
+    });
+
+    res
+      .status(200)
+      .json({ message: "User role updated successfully", data: updatedUser });
+  } catch (error) {
+    console.error("Update user role error:", error);
+    res.status(500).json({ message: "Failed to update user role" });
+  }
+}

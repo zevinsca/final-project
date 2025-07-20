@@ -71,10 +71,8 @@ export async function loginGoogle(req: Request, res: Response) {
       { expiresIn: "1d" }
     );
 
-    res
-      .cookie("accessToken", accesstoken, { httpOnly: true })
-      .redirect(`http://localhost:3000/login/success?role=${user.role}`);
-
+    res.cookie("accessToken", accesstoken, { httpOnly: true });
+    res.redirect("http://localhost:3000");
     return;
   } catch (error) {
     console.error(error);

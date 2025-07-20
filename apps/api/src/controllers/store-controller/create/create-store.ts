@@ -1,16 +1,7 @@
 import { Request, Response } from "express";
 import prisma from "../../../config/prisma-client.js";
-import { CustomJwtPayload } from "../../../types/express.js";
 
 export async function createStore(req: Request, res: Response) {
-  const user = req.user as CustomJwtPayload;
-  const userId = user.id;
-
-  if (!userId) {
-    res.status(401).json({ message: "Unauthorized. User not found." });
-    return;
-  }
-
   const {
     name,
     address,
@@ -42,7 +33,6 @@ export async function createStore(req: Request, res: Response) {
     const store = await prisma.store.create({
       data: {
         name,
-        userId: userId,
       },
     });
 

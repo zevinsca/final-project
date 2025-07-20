@@ -5,7 +5,7 @@ import { CustomJwtPayload } from "../../../types/express.js";
 /* -------------------------------------------------------------------------- */
 /*                                 DELETE USER                                */
 /* -------------------------------------------------------------------------- */
-export async function deleteUser(req: Request, res: Response) {
+export async function deleteCurrentUser(req: Request, res: Response) {
   try {
     // Get the authenticated user from req.user (you'll probably have a middleware for authentication)
     const user = req.user as CustomJwtPayload;
@@ -43,5 +43,27 @@ export async function deleteUser(req: Request, res: Response) {
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Failed to delete user.", error });
+  }
+}
+
+export async function deleteUser(req: Request, res: Response) {
+  const { id } = req.params;
+
+  try {
+    // Optional: hapus juga StoreUser dulu jika ada foreign key constraint
+    await prisma.storeUser.deleteMany({
+      where: { userId: id },
+    });
+
+    await prisma.user.delete({
+      where: { id },
+    });
+
+    res.json({ message: "User deleted successfully" });
+  } catch (error: any) {
+    console.error("deleteUser error:", error);
+    res
+      .status(500)
+      .json({ message: "Failed to delete user", error: error.message });
   }
 }

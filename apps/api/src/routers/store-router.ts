@@ -3,6 +3,7 @@ import express from "express";
 import { roleGuard, verifyToken } from "../middleware/auth-middleware.js";
 import {
   getAllStores,
+  getAllStoresForSuperAdmin,
   getStoreById,
 } from "../controllers/store-controller/get/get-store.js";
 import {
@@ -23,6 +24,7 @@ router
 router
   .route("/super-admin")
   .get(verifyToken, getAllStores)
+  .get(getAllStoresForSuperAdmin)
   .post(verifyToken, roleGuard("SUPER_ADMIN"), createStore);
 router
   .route("/super-admin/:storeId")
@@ -31,7 +33,6 @@ router
 router
   .route("/:storeId")
   .get(verifyToken, roleGuard("STORE_ADMIN"), getStoreById);
-router.route("/super-admin/:storeId").delete(deleteStore);
+router.route("/super-admin/:storeId").delete(deleteStore).put(updateStore);
 
-router.route("/super-admin/:editingStore.id").put(updateStore);
 export default router;
