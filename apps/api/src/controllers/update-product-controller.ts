@@ -181,6 +181,9 @@ export async function updateProduct(
     await handleImageUpdates(id, files);
 
     // Update stock per store
+    // GANTI bagian "Update stock per store" di updateProduct function dengan ini:
+
+    // Update stock per store
     if (storeStocks) {
       let parsedStoreStocks: StoreStockItem[];
       try {
@@ -203,25 +206,72 @@ export async function updateProduct(
 
       console.log("Updating stock for stores:", parsedStoreStocks);
 
-      // Update stock for each store
-      for (const item of parsedStoreStocks) {
-        await prisma.storeProduct.upsert({
-          where: {
-            productId_storeId: { productId: id, storeId: item.storeId },
-          },
-          update: {
-            stock: parseInt(item.stock),
-            deletedAt: null,
-          },
-          create: {
-            productId: id,
-            storeId: item.storeId,
-            stock: parseInt(item.stock),
-          },
-        });
-      }
-    }
+      // Get updated product data for weight (needed for journal)
+      const currentProduct = await prisma.product.findUnique({
+        where: { id },
+        select: { weight: true },
+      });
 
+      if (!currentProduct) {
+        res.status(404).json({ message: "Product not found" });
+        return;
+      }
+
+      // Update stock for each store WITH JOURNAL TRACKING
+      await prisma.$transaction(async (tx) => {
+        for (const item of parsedStoreStocks) {
+          // Get current stock
+          const currentStoreProduct = await tx.storeProduct.findUnique({
+            where: {
+              productId_storeId: { productId: id, storeId: item.storeId },
+            },
+          });
+
+          const currentStock = currentStoreProduct?.stock || 0;
+          const newStock = parseInt(item.stock);
+          const difference = newStock - currentStock;
+
+          // Create journal entry ONLY if there's a stock change
+          if (difference !== 0) {
+            const action = difference > 0 ? "ADD" : "SALE";
+            const quantity = Math.abs(difference);
+
+            await tx.inventoryJournal.create({
+              data: {
+                storeId: item.storeId,
+                productId: id,
+                quantity:
+                  difference > 0 ? quantity.toString() : (-quantity).toString(),
+                weight: currentProduct.weight,
+                action: action as any, // InventoryAction type
+                userId: user.id,
+              },
+            });
+
+            console.log(
+              `Journal created: ${action} ${quantity} units for store ${item.storeId}`
+            );
+          }
+
+          // Update or create store product
+          await tx.storeProduct.upsert({
+            where: {
+              productId_storeId: { productId: id, storeId: item.storeId },
+            },
+            update: {
+              stock: newStock,
+              deletedAt: null,
+              updatedAt: new Date(),
+            },
+            create: {
+              productId: id,
+              storeId: item.storeId,
+              stock: newStock,
+            },
+          });
+        }
+      });
+    }
     // Update categories
     if (categoryIds) {
       const newCategoryIds = Array.isArray(categoryIds)

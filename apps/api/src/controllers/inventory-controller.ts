@@ -3,87 +3,137 @@ import prisma from "../config/prisma-client.js";
 import { CustomJwtPayload } from "../types/express.js";
 import { InventoryAction } from "../../generated/prisma/index.js";
 
+// Helper functions
+const buildWhereClause = async (
+  user: CustomJwtPayload,
+  additionalFilters: any = {}
+) => {
+  let whereClause = { deletedAt: null, ...additionalFilters };
+  if (user.role === "STORE_ADMIN") {
+    const userStores = await prisma.store.findMany({
+      where: { userId: user.id },
+      select: { id: true },
+    });
+    whereClause.storeId = { in: userStores.map((store) => store.id) };
+  }
+  return whereClause;
+};
+
+const getPaginationData = (
+  page: string | undefined,
+  limit: string | undefined
+) => {
+  const pageNum = parseInt(page as string) || 1;
+  const limitNum = parseInt(limit as string) || 10;
+  const skip = (pageNum - 1) * limitNum;
+  return { pageNum, limitNum, skip };
+};
+
+const updateStockOperation = async (
+  storeId: string,
+  productId: string,
+  quantity: number,
+  action: InventoryAction,
+  user: CustomJwtPayload,
+  weight: number,
+  isCreate: boolean = false
+) => {
+  const currentStock = isCreate
+    ? 0
+    : (
+        await prisma.storeProduct.findUnique({
+          where: { productId_storeId: { productId, storeId } },
+        })
+      )?.stock || 0;
+
+  let newStock: number;
+  let actualQuantity: number;
+
+  switch (action) {
+    case "ADD":
+    case "RESTOCK":
+      newStock = currentStock + quantity;
+      actualQuantity = quantity;
+      break;
+    case "SALE":
+      if (currentStock < quantity) {
+        throw new Error(
+          `Insufficient stock. Current: ${currentStock}, Requested: ${quantity}`
+        );
+      }
+      newStock = currentStock - quantity;
+      actualQuantity = -quantity;
+      break;
+    default:
+      throw new Error("Invalid action");
+  }
+
+  await prisma.$transaction(async (tx) => {
+    await tx.inventoryJournal.create({
+      data: {
+        storeId,
+        productId,
+        quantity: actualQuantity.toString(),
+        weight,
+        action,
+        userId: user.id,
+      },
+    });
+
+    await tx.storeProduct.upsert({
+      where: { productId_storeId: { productId, storeId } },
+      update: { stock: newStock, updatedAt: new Date() },
+      create: { productId, storeId, stock: newStock },
+    });
+  });
+};
+
 /* -------------------------------------------------------------------------- */
 /*                             GET INVENTORY DATA                             */
 /* -------------------------------------------------------------------------- */
-
-/**
- * GET /api/inventory
- * Mendapatkan data inventory berdasarkan role user
- * - SUPER_ADMIN: bisa lihat semua toko
- * - STORE_ADMIN: hanya toko miliknya
- */
-export async function getInventoryData(req: Request, res: Response) {
+export async function getInventoryData(
+  req: Request,
+  res: Response
+): Promise<void> {
   try {
     const user = req.user as CustomJwtPayload;
-    const { storeId, productId, page = 1, limit = 10 } = req.query;
-
     if (!user) {
       res.status(401).json({ message: "Unauthorized" });
       return;
     }
 
-    // Pagination
-    const pageNum = parseInt(page as string);
-    const limitNum = parseInt(limit as string);
-    const skip = (pageNum - 1) * limitNum;
+    const { storeId, productId, page, limit } = req.query;
+    const { pageNum, limitNum, skip } = getPaginationData(
+      page as string,
+      limit as string
+    );
 
-    // Build where clause berdasarkan role
-    let whereClause: any = {
-      deletedAt: null,
-    };
+    const additionalFilters: any = {};
+    if (storeId && user.role === "SUPER_ADMIN")
+      additionalFilters.storeId = storeId;
+    if (productId) additionalFilters.productId = productId;
 
-    // Filter berdasarkan role
-    if (user.role === "STORE_ADMIN") {
-      // Store admin hanya bisa lihat tokonya sendiri
-      const userStores = await prisma.store.findMany({
-        where: { userId: user.id },
-        select: { id: true },
-      });
+    const whereClause = await buildWhereClause(user, additionalFilters);
 
-      const userStoreIds = userStores.map((store) => store.id);
-      whereClause.storeId = { in: userStoreIds };
-    } else if (storeId) {
-      // Super admin bisa filter berdasarkan storeId
-      whereClause.storeId = storeId as string;
-    }
-
-    // Filter berdasarkan productId jika ada
-    if (productId) {
-      whereClause.productId = productId as string;
-    }
-
-    // Get total count
-    const totalItems = await prisma.storeProduct.count({ where: whereClause });
-
-    // Get inventory data dengan relasi
-    const inventoryData = await prisma.storeProduct.findMany({
-      where: whereClause,
-      include: {
-        Product: {
-          include: {
-            imagePreview: true,
-            ProductCategory: {
-              include: { Category: true },
+    const [totalItems, inventoryData] = await Promise.all([
+      prisma.storeProduct.count({ where: whereClause }),
+      prisma.storeProduct.findMany({
+        where: whereClause,
+        include: {
+          Product: {
+            include: {
+              imagePreview: true,
+              ProductCategory: { include: { Category: true } },
             },
           },
+          Store: { include: { StoreAddress: { include: { Address: true } } } },
         },
-        Store: {
-          include: {
-            StoreAddress: {
-              include: { Address: true },
-            },
-          },
-        },
-      },
-      orderBy: {
-        updatedAt: "desc",
-      },
-      skip,
-      take: limitNum,
-    });
+        orderBy: { updatedAt: "desc" },
+        skip,
+        take: limitNum,
+      }),
+    ]);
 
-    // Calculate pagination info
     const totalPages = Math.ceil(totalItems / limitNum);
 
     res.status(200).json({
@@ -107,22 +157,19 @@ export async function getInventoryData(req: Request, res: Response) {
 /* -------------------------------------------------------------------------- */
 /*                            UPDATE STOCK WITH JOURNAL                       */
 /* -------------------------------------------------------------------------- */
-
-/**
- * POST /api/inventory
- * Update stok dengan mencatat di inventory journal
- */
-export async function updateStockWithJournal(req: Request, res: Response) {
+export async function updateStockWithJournal(
+  req: Request,
+  res: Response
+): Promise<void> {
   try {
     const user = req.user as CustomJwtPayload;
-    const { storeId, productId, quantity, action, reason } = req.body;
-
     if (!user) {
       res.status(401).json({ message: "Unauthorized" });
       return;
     }
 
-    // Validasi input
+    const { storeId, productId, quantity, action } = req.body;
+
     if (!storeId || !productId || !quantity || !action) {
       res.status(400).json({
         message: "storeId, productId, quantity, and action are required",
@@ -130,31 +177,18 @@ export async function updateStockWithJournal(req: Request, res: Response) {
       return;
     }
 
-    // Validasi action
     const validActions: InventoryAction[] = ["RESTOCK", "SALE", "ADD"];
-    if (!validActions.includes(action)) {
+    if (!validActions.includes(action) || parseInt(quantity) <= 0) {
       res.status(400).json({
-        message: "Invalid action. Must be RESTOCK, SALE, or ADD",
+        message: "Invalid action or quantity",
       });
       return;
     }
 
-    // Validasi quantity harus positif
-    const quantityNum = parseInt(quantity);
-    if (quantityNum <= 0) {
-      res.status(400).json({ message: "Quantity must be positive" });
-      return;
-    }
-
-    // Validasi permission untuk store admin
     if (user.role === "STORE_ADMIN") {
       const userStore = await prisma.store.findFirst({
-        where: {
-          id: storeId,
-          userId: user.id,
-        },
+        where: { id: storeId, userId: user.id },
       });
-
       if (!userStore) {
         res.status(403).json({
           message: "You don't have permission to update this store's inventory",
@@ -163,118 +197,26 @@ export async function updateStockWithJournal(req: Request, res: Response) {
       }
     }
 
-    // Cek apakah store dan product exist
     const [store, product] = await Promise.all([
       prisma.store.findUnique({ where: { id: storeId } }),
-      prisma.product.findUnique({
-        where: { id: productId, deletedAt: null },
-      }),
+      prisma.product.findUnique({ where: { id: productId, deletedAt: null } }),
     ]);
 
-    if (!store) {
-      res.status(404).json({ message: "Store not found" });
+    if (!store || !product) {
+      res.status(404).json({ message: "Store or product not found" });
       return;
     }
 
-    if (!product) {
-      res.status(404).json({ message: "Product not found" });
-      return;
-    }
+    await updateStockOperation(
+      storeId,
+      productId,
+      parseInt(quantity),
+      action,
+      user,
+      product.weight
+    );
 
-    // Get current stock
-    const currentStoreProduct = await prisma.storeProduct.findUnique({
-      where: {
-        productId_storeId: {
-          productId,
-          storeId,
-        },
-      },
-    });
-
-    const currentStock = currentStoreProduct?.stock || 0;
-
-    // Calculate new stock berdasarkan action
-    let newStock: number;
-    let actualQuantity: number;
-
-    switch (action) {
-      case "ADD":
-      case "RESTOCK":
-        newStock = currentStock + quantityNum;
-        actualQuantity = quantityNum;
-        break;
-      case "SALE":
-        if (currentStock < quantityNum) {
-          res.status(400).json({
-            message: `Insufficient stock. Current: ${currentStock}, Requested: ${quantityNum}`,
-          });
-          return;
-        }
-        newStock = currentStock - quantityNum;
-        actualQuantity = -quantityNum; // Negative untuk menunjukkan pengurangan
-        break;
-      default:
-        res.status(400).json({ message: "Invalid action" });
-        return;
-    }
-
-    // Transaksi database
-    const result = await prisma.$transaction(async (tx) => {
-      // 1. Buat inventory journal entry
-      const inventoryJournal = await tx.inventoryJournal.create({
-        data: {
-          storeId,
-          productId,
-          quantity: actualQuantity.toString(),
-          weight: product.weight,
-          action: action as InventoryAction,
-          userId: user.id,
-        },
-      });
-
-      // 2. Update atau create store product
-      const updatedStoreProduct = await tx.storeProduct.upsert({
-        where: {
-          productId_storeId: {
-            productId,
-            storeId,
-          },
-        },
-        update: {
-          stock: newStock,
-          updatedAt: new Date(),
-        },
-        create: {
-          productId,
-          storeId,
-          stock: newStock,
-        },
-        include: {
-          Product: {
-            include: {
-              imagePreview: true,
-              ProductCategory: {
-                include: { Category: true },
-              },
-            },
-          },
-          Store: true,
-        },
-      });
-
-      return { inventoryJournal, updatedStoreProduct };
-    });
-
-    res.status(200).json({
-      message: "Stock updated successfully",
-      data: {
-        inventoryJournal: result.inventoryJournal,
-        storeProduct: result.updatedStoreProduct,
-        previousStock: currentStock,
-        newStock,
-        quantityChanged: actualQuantity,
-      },
-    });
+    res.status(200).json({ message: "Stock updated successfully" });
   } catch (error) {
     console.error("Error updating stock:", error);
     res.status(500).json({ message: "Failed to update stock" });
@@ -282,103 +224,183 @@ export async function updateStockWithJournal(req: Request, res: Response) {
 }
 
 /* -------------------------------------------------------------------------- */
-/*                            GET INVENTORY HISTORY                           */
+/*                        SUPER ADMIN: CREATE STOCK ENTRY                    */
 /* -------------------------------------------------------------------------- */
-
-/**
- * GET /api/inventory/history
- * Mendapatkan history perubahan inventory
- */
-export async function getInventoryHistory(req: Request, res: Response) {
+export async function createStockEntry(
+  req: Request,
+  res: Response
+): Promise<void> {
   try {
     const user = req.user as CustomJwtPayload;
-    const {
+    if (!user || user.role !== "SUPER_ADMIN") {
+      res
+        .status(403)
+        .json({ message: "Only Super Admin can create stock entries" });
+      return;
+    }
+
+    const { storeId, productId, initialStock } = req.body;
+    const stockNum = parseInt(initialStock);
+
+    if (!storeId || !productId || stockNum < 0) {
+      res.status(400).json({ message: "Invalid input data" });
+      return;
+    }
+
+    const existing = await prisma.storeProduct.findUnique({
+      where: { productId_storeId: { productId, storeId } },
+    });
+
+    if (existing) {
+      res.status(400).json({ message: "Stock entry already exists" });
+      return;
+    }
+
+    const product = await prisma.product.findUnique({
+      where: { id: productId },
+    });
+    if (!product) {
+      res.status(404).json({ message: "Product not found" });
+      return;
+    }
+
+    await updateStockOperation(
       storeId,
       productId,
-      action,
-      startDate,
-      endDate,
-      page = 1,
-      limit = 10,
-    } = req.query;
+      stockNum,
+      "ADD",
+      user,
+      product.weight,
+      true
+    );
 
+    res.status(201).json({ message: "Stock entry created successfully" });
+  } catch (error) {
+    console.error("Error creating stock entry:", error);
+    res.status(500).json({ message: "Failed to create stock entry" });
+  }
+}
+
+/* -------------------------------------------------------------------------- */
+/*                        SUPER ADMIN: DELETE STOCK ENTRY                    */
+/* -------------------------------------------------------------------------- */
+export async function deleteStockEntry(
+  req: Request,
+  res: Response
+): Promise<void> {
+  try {
+    const user = req.user as CustomJwtPayload;
+    if (!user || user.role !== "SUPER_ADMIN") {
+      res
+        .status(403)
+        .json({ message: "Only Super Admin can delete stock entries" });
+      return;
+    }
+
+    const { storeId, productId } = req.params;
+
+    const existing = await prisma.storeProduct.findUnique({
+      where: { productId_storeId: { productId, storeId } },
+      include: { Product: true },
+    });
+
+    if (!existing) {
+      res.status(404).json({ message: "Stock entry not found" });
+      return;
+    }
+
+    await prisma.$transaction(async (tx) => {
+      await tx.inventoryJournal.create({
+        data: {
+          storeId,
+          productId,
+          quantity: (-existing.stock).toString(),
+          weight: existing.Product.weight,
+          action: "SALE",
+          userId: user.id,
+        },
+      });
+
+      await tx.storeProduct.update({
+        where: { productId_storeId: { productId, storeId } },
+        data: { deletedAt: new Date(), stock: 0 },
+      });
+    });
+
+    res.status(200).json({ message: "Stock entry deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting stock entry:", error);
+    res.status(500).json({ message: "Failed to delete stock entry" });
+  }
+}
+
+/* -------------------------------------------------------------------------- */
+/*                            GET INVENTORY HISTORY                           */
+/* -------------------------------------------------------------------------- */
+export async function getInventoryHistory(
+  req: Request,
+  res: Response
+): Promise<void> {
+  try {
+    const user = req.user as CustomJwtPayload;
     if (!user) {
       res.status(401).json({ message: "Unauthorized" });
       return;
     }
 
-    // Pagination
-    const pageNum = parseInt(page as string);
-    const limitNum = parseInt(limit as string);
-    const skip = (pageNum - 1) * limitNum;
+    const { storeId, productId, action, startDate, endDate, page, limit } =
+      req.query;
+    const { pageNum, limitNum, skip } = getPaginationData(
+      page as string,
+      limit as string
+    );
 
-    // Build where clause
-    let whereClause: any = {};
-
-    // Filter berdasarkan role
-    if (user.role === "STORE_ADMIN") {
-      const userStores = await prisma.store.findMany({
-        where: { userId: user.id },
-        select: { id: true },
-      });
-
-      const userStoreIds = userStores.map((store) => store.id);
-      whereClause.storeId = { in: userStoreIds };
-    } else if (storeId) {
-      whereClause.storeId = storeId as string;
-    }
-
-    // Filter lainnya
-    if (productId) whereClause.productId = productId as string;
-    if (action) whereClause.action = action as InventoryAction;
-
-    // Date range filter
+    const additionalFilters: any = {};
+    if (storeId && user.role === "SUPER_ADMIN")
+      additionalFilters.storeId = storeId;
+    if (productId) additionalFilters.productId = productId;
+    if (action) additionalFilters.action = action;
     if (startDate || endDate) {
-      whereClause.createdAt = {};
-      if (startDate) {
-        whereClause.createdAt.gte = new Date(startDate as string);
-      }
-      if (endDate) {
-        whereClause.createdAt.lte = new Date(endDate as string);
-      }
+      additionalFilters.createdAt = {};
+      if (startDate)
+        additionalFilters.createdAt.gte = new Date(startDate as string);
+      if (endDate)
+        additionalFilters.createdAt.lte = new Date(endDate as string);
     }
 
-    // Get total count
-    const totalItems = await prisma.inventoryJournal.count({
-      where: whereClause,
-    });
+    const whereClause =
+      user.role === "STORE_ADMIN"
+        ? await buildWhereClause(user, additionalFilters)
+        : additionalFilters;
 
-    // Get history data
-    const historyData = await prisma.inventoryJournal.findMany({
-      where: whereClause,
-      include: {
-        Store: true,
-        Product: {
-          include: {
-            imagePreview: true,
-            ProductCategory: {
-              include: { Category: true },
+    const [totalItems, historyData] = await Promise.all([
+      prisma.inventoryJournal.count({ where: whereClause }),
+      prisma.inventoryJournal.findMany({
+        where: whereClause,
+        include: {
+          Store: true,
+          Product: {
+            include: {
+              imagePreview: true,
+              ProductCategory: { include: { Category: true } },
+            },
+          },
+          User: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true,
+              role: true,
             },
           },
         },
-        User: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            email: true,
-            role: true,
-          },
-        },
-      },
-      orderBy: {
-        createdAt: "desc",
-      },
-      skip,
-      take: limitNum,
-    });
+        orderBy: { createdAt: "desc" },
+        skip,
+        take: limitNum,
+      }),
+    ]);
 
-    // Calculate pagination info
     const totalPages = Math.ceil(totalItems / limitNum);
 
     res.status(200).json({
@@ -402,41 +424,21 @@ export async function getInventoryHistory(req: Request, res: Response) {
 /* -------------------------------------------------------------------------- */
 /*                            GET LOW STOCK ALERTS                            */
 /* -------------------------------------------------------------------------- */
-
-/**
- * GET /api/inventory/low-stock
- * Mendapatkan produk dengan stok rendah (threshold: 10)
- */
-export async function getLowStockAlerts(req: Request, res: Response) {
+export async function getLowStockAlerts(
+  req: Request,
+  res: Response
+): Promise<void> {
   try {
     const user = req.user as CustomJwtPayload;
-    const { threshold = 10 } = req.query;
-
     if (!user) {
       res.status(401).json({ message: "Unauthorized" });
       return;
     }
 
-    const thresholdNum = parseInt(threshold as string);
-
-    // Build where clause berdasarkan role
-    let whereClause: any = {
-      deletedAt: null,
-      stock: {
-        lte: thresholdNum,
-      },
-    };
-
-    // Filter berdasarkan role
-    if (user.role === "STORE_ADMIN") {
-      const userStores = await prisma.store.findMany({
-        where: { userId: user.id },
-        select: { id: true },
-      });
-
-      const userStoreIds = userStores.map((store) => store.id);
-      whereClause.storeId = { in: userStoreIds };
-    }
+    const threshold = parseInt(req.query.threshold as string) || 10;
+    const whereClause = await buildWhereClause(user, {
+      stock: { lte: threshold },
+    });
 
     const lowStockItems = await prisma.storeProduct.findMany({
       where: whereClause,
@@ -444,22 +446,18 @@ export async function getLowStockAlerts(req: Request, res: Response) {
         Product: {
           include: {
             imagePreview: true,
-            ProductCategory: {
-              include: { Category: true },
-            },
+            ProductCategory: { include: { Category: true } },
           },
         },
         Store: true,
       },
-      orderBy: {
-        stock: "asc", // Stok terendah dulu
-      },
+      orderBy: { stock: "asc" },
     });
 
     res.status(200).json({
       message: "Low stock items retrieved successfully",
       data: lowStockItems,
-      threshold: thresholdNum,
+      threshold,
       totalLowStockItems: lowStockItems.length,
     });
   } catch (error) {

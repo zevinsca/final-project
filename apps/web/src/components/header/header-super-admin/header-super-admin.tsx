@@ -149,6 +149,12 @@ export default function MenuNavbarAdmin({
               >
                 Store Admin
               </Link>
+              <Link
+                href="/dashboard/admin/inventory-history"
+                className="block w-full text-left hover:bg-green-700 px-2 py-1 rounded"
+              >
+                Inventory
+              </Link>
             </nav>
             <div className="p-6 bg-green-900 w-full">
               <div>
