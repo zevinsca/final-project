@@ -34,7 +34,7 @@ interface ApiResponse {
   };
 }
 
-export default function User() {
+export default function UserPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [pagination, setPagination] = useState<PaginationInfo | null>(null);
   const [loading, setLoading] = useState(false);
@@ -178,7 +178,7 @@ export default function User() {
                 <tr key={user.id} className="hover:bg-gray-50">
                   <td className="px-4 py-2 border-b">{user.username}</td>
                   <td className="px-4 py-2 border-b">
-                    {user.firstName} {user.lastName}
+                    {user.firstName ?? "-"} {user.lastName ?? ""}
                   </td>
                   <td className="px-4 py-2 border-b">{user.email}</td>
                   <td className="px-4 py-2 border-b text-sm">{user.role}</td>
@@ -192,7 +192,6 @@ export default function User() {
         </table>
       </div>
 
-      {/* Pagination (selalu tampil) */}
       {pagination && (
         <div className="mt-4 flex flex-wrap gap-2 items-center justify-center sm:justify-between text-sm">
           <div className="text-gray-700">

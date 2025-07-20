@@ -1,25 +1,20 @@
 import express from "express";
+
+import { verifyToken, roleGuard } from "../middleware/auth-middleware.js";
+import { upload } from "../middleware/upload-middleware.js";
 import {
   getAllProduct,
-  getProductById,
-} from "../controllers/product-controller.js";
-import { verifyToken, roleGuard } from "../middleware/auth-middleware.js";
-import {
-  createStoreProduct,
-  getNearbyProducts,
-} from "../controllers/store-controler.js";
-
-import { upload } from "../middleware/upload-middleware.js";
-import { createProduct } from "../controllers/create-product-controller.js";
-import {
   getAllProductsByCity,
-  getAllProductsByStore,
-} from "../controllers/get-product-controller.js";
+  getNearbyProducts,
+  getProductById,
+} from "../controllers/product-controller/get/get-product.js";
+import { createProduct } from "../controllers/product-controller/create/create-product.js";
+import { createStoreProduct } from "../controllers/store-controller/create/create-store.js";
 import {
   deleteProduct,
   updateProduct,
 } from "../controllers/update-product-controller.js";
-
+import { getAllProductsByStore } from "../controllers/get-product-controller.js";
 const router = express.Router();
 
 router

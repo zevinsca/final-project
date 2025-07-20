@@ -37,52 +37,63 @@ export async function getCart(req: Request, res: Response) {
 export async function addToCart(req: Request, res: Response) {
   try {
     const userId = (req.user as { id: string }).id;
-    const { productId, quantity = 1 } = req.body;
+    const { productId, storeId, quantity = 1 } = req.body;
 
-    if (!productId || quantity < 1) {
-      res.status(400).json({ message: "Invalid payload" });
+    if (!productId || !storeId || quantity < 1) {
+      return res.status(400).json({ message: "Invalid payload" });
     }
 
-    const product = await prisma.product.findUnique({
-      where: { id: productId },
+    const storeProduct = await prisma.storeProduct.findUnique({
+      where: {
+        productId_storeId: { productId, storeId },
+      },
+      include: {
+        Product: true,
+      },
     });
 
-    if (product) {
-      if (product.stock < quantity) {
-        res
-          .status(400)
-          .json({ message: "Insufficient stock for requested quantity" });
-      }
-
-      const cart = await getOrCreateCart(userId);
-
-      const existingLine = await prisma.cartItem.findFirst({
-        where: { cartId: cart.id, productId },
-      });
-
-      const line = existingLine
-        ? await prisma.cartItem.update({
-            where: { id: existingLine.id },
-            data: {
-              quantity: existingLine.quantity + quantity,
-              unitPrice: product.price,
-            },
-          })
-        : await prisma.cartItem.create({
-            data: {
-              cartId: cart.id,
-              productId,
-              quantity,
-              unitPrice: product.price,
-            },
-          });
-      res.status(201).json({ data: line });
-    } else {
-      res.status(404).json({ message: "Product not found" });
+    if (!storeProduct) {
+      return res
+        .status(404)
+        .json({ message: "Product not found in this store" });
     }
+
+    if (storeProduct.stock < quantity) {
+      return res
+        .status(400)
+        .json({ message: "Insufficient stock for requested quantity" });
+    }
+
+    const cart = await getOrCreateCart(userId);
+
+    const existingLine = await prisma.cartItem.findFirst({
+      where: {
+        cartId: cart.id,
+        productId,
+      },
+    });
+
+    const line = existingLine
+      ? await prisma.cartItem.update({
+          where: { id: existingLine.id },
+          data: {
+            quantity: existingLine.quantity + quantity,
+            unitPrice: storeProduct.Product.price,
+          },
+        })
+      : await prisma.cartItem.create({
+          data: {
+            cartId: cart.id,
+            productId,
+            quantity,
+            unitPrice: storeProduct.Product.price,
+          },
+        });
+
+    return res.status(201).json({ data: line });
   } catch (err) {
     console.error("addToCart:", err);
-    res.status(500).json({ message: "Internal server error" });
+    return res.status(500).json({ message: "Internal server error" });
   }
 }
 
@@ -98,27 +109,40 @@ export async function updateCartItem(req: Request, res: Response) {
 
     const line = await prisma.cartItem.findUnique({
       where: { id: cartItemId },
-      include: { Cart: true, Product: true },
+      include: {
+        Cart: true,
+        Product: true,
+      },
     });
+
     if (!line || line.Cart.userId !== userId) {
-      res.status(404).json({ message: "Cart item not found" });
+      return res.status(404).json({ message: "Cart item not found" });
     }
 
-    if (line) {
-      if (line.Product.stock < quantity) {
-        res.status(400).json({ message: "Insufficient stock" });
-      }
+    // Ambil stok dari StoreProduct berdasarkan productId dan storeId
+    const storeProduct = await prisma.storeProduct.findFirst({
+      where: {
+        productId: line.productId,
+      },
+    });
 
-      const updated = await prisma.cartItem.update({
-        where: { id: cartItemId },
-        data: { quantity },
-      });
-
-      res.json({ data: updated });
+    if (!storeProduct) {
+      return res.status(404).json({ message: "Store product not found" });
     }
+
+    if (storeProduct.stock < quantity) {
+      return res.status(400).json({ message: "Insufficient stock" });
+    }
+
+    const updated = await prisma.cartItem.update({
+      where: { id: cartItemId },
+      data: { quantity },
+    });
+
+    return res.json({ data: updated });
   } catch (err) {
     console.error("updateCartItem:", err);
-    res.status(500).json({ message: "Internal server error" });
+    return res.status(500).json({ message: "Internal server error" });
   }
 }
 

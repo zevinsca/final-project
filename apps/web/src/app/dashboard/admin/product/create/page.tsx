@@ -155,7 +155,7 @@ export default function ProductListPage() {
               </div>
               <div>
                 <label className="block mb-1 font-medium" htmlFor="weight">
-                  Weight
+                  Weight (gram)
                 </label>
                 <input
                   type="number"

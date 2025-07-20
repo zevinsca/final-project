@@ -44,7 +44,7 @@ model User {
   provider            String?
   resetToken          String?
   resetTokenExpiresAt DateTime?
-  isVerified          Boolean?  @default(false) // Status verifikasi, default false
+  isVerified          Boolean   @default(false) // Status verifikasi, default false
   verificationToken   String? // Token verifikasi
 
   Store            Store[]
@@ -54,6 +54,7 @@ model User {
   Order            Order[]
   Product          Product[]
   UserAddress      UserAddress[]
+  StoreUser        StoreUser[]
 }
 
 model UserAddress {
@@ -82,11 +83,21 @@ model Address {
   Order        Order[]
 }
 
+model StoreUser {
+  id        String   @id @default(uuid())
+  storeId   String?
+  userId    String
+  createdAt DateTime @default(now())
+
+  Store Store? @relation(fields: [storeId], references: [id])
+  User  User   @relation(fields: [userId], references: [id])
+}
+
 model StoreAddress {
-  id        String @id @default(uuid())
-  storeId   String
-  latitude  Float
-  longitude Float
+  id         String @id @default(uuid())
+  storeId    String
+  latitude   Float
+  longtitude Float
 
   createdAt DateTime @default(now())
 
@@ -109,6 +120,7 @@ model Store {
   Inventory    InventoryJournal[]
   StoreProduct StoreProduct[]
   StoreAddress StoreAddress[]
+  StoreUser    StoreUser[]
 }
 
 model Product {
