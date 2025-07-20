@@ -337,6 +337,8 @@ export async function deleteStockEntry(
 /* -------------------------------------------------------------------------- */
 /*                            GET INVENTORY HISTORY                           */
 /* -------------------------------------------------------------------------- */
+// GANTI function getInventoryHistory di inventory-controller.ts dengan ini:
+
 export async function getInventoryHistory(
   req: Request,
   res: Response
@@ -355,52 +357,81 @@ export async function getInventoryHistory(
       limit as string
     );
 
-    const additionalFilters: any = {};
-    if (storeId && user.role === "SUPER_ADMIN")
-      additionalFilters.storeId = storeId;
-    if (productId) additionalFilters.productId = productId;
-    if (action) additionalFilters.action = action;
-    if (startDate || endDate) {
-      additionalFilters.createdAt = {};
-      if (startDate)
-        additionalFilters.createdAt.gte = new Date(startDate as string);
-      if (endDate)
-        additionalFilters.createdAt.lte = new Date(endDate as string);
+    // Build filters
+    let whereClause: any = {};
+
+    // PERBAIKAN: Filter berdasarkan role
+    if (user.role === "STORE_ADMIN") {
+      // Store admin hanya bisa lihat tokonya sendiri
+      const userStores = await prisma.store.findMany({
+        where: { userId: user.id },
+        select: { id: true },
+      });
+
+      if (userStores.length === 0) {
+        res.status(403).json({ message: "No store assigned to this user" });
+        return;
+      }
+
+      const userStoreIds = userStores.map((store) => store.id);
+      whereClause.storeId = { in: userStoreIds };
+    } else if (user.role === "SUPER_ADMIN") {
+      // Super admin bisa filter berdasarkan storeId jika ada
+      if (storeId) {
+        whereClause.storeId = storeId as string;
+      }
+    } else {
+      res.status(403).json({ message: "Access denied" });
+      return;
     }
 
-    const whereClause =
-      user.role === "STORE_ADMIN"
-        ? await buildWhereClause(user, additionalFilters)
-        : additionalFilters;
+    // Filter lainnya
+    if (productId) whereClause.productId = productId as string;
+    if (action) whereClause.action = action as InventoryAction;
 
-    const [totalItems, historyData] = await Promise.all([
-      prisma.inventoryJournal.count({ where: whereClause }),
-      prisma.inventoryJournal.findMany({
-        where: whereClause,
-        include: {
-          Store: true,
-          Product: {
-            include: {
-              imagePreview: true,
-              ProductCategory: { include: { Category: true } },
-            },
-          },
-          User: {
-            select: {
-              id: true,
-              firstName: true,
-              lastName: true,
-              email: true,
-              role: true,
-            },
+    // Date range filter
+    if (startDate || endDate) {
+      whereClause.createdAt = {};
+      if (startDate) {
+        whereClause.createdAt.gte = new Date(startDate as string);
+      }
+      if (endDate) {
+        whereClause.createdAt.lte = new Date(endDate as string);
+      }
+    }
+
+    // Get total count
+    const totalItems = await prisma.inventoryJournal.count({
+      where: whereClause,
+    });
+
+    // Get history data
+    const historyData = await prisma.inventoryJournal.findMany({
+      where: whereClause,
+      include: {
+        Store: true,
+        Product: {
+          include: {
+            imagePreview: true,
+            ProductCategory: { include: { Category: true } },
           },
         },
-        orderBy: { createdAt: "desc" },
-        skip,
-        take: limitNum,
-      }),
-    ]);
+        User: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            role: true,
+          },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+      skip,
+      take: limitNum,
+    });
 
+    // Calculate pagination info
     const totalPages = Math.ceil(totalItems / limitNum);
 
     res.status(200).json({

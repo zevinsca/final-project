@@ -1,10 +1,10 @@
 import MenuNavbarStoreAdmin from "@/components/header/header-admin-store/header-admin-store";
-import DashboardProducts from "@/components/menu/menu-store-admin/dashboard";
+import DiscountManagement from "@/components/menu/menu-admin/discount-management";
 
-export default function HomeAdminStore() {
+export default function HomeCategory() {
   return (
     <MenuNavbarStoreAdmin>
-      <DashboardProducts />
+      <DiscountManagement />
     </MenuNavbarStoreAdmin>
   );
 }

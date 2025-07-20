@@ -1,19 +1,18 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 
 interface Store {
   id: string;
   name: string;
 }
-
 interface Product {
   id: string;
   name: string;
   price: number;
   imagePreview: { imageUrl: string }[];
 }
-
 interface User {
   id: string;
   firstName: string;
@@ -21,7 +20,6 @@ interface User {
   email: string;
   role: string;
 }
-
 interface InventoryJournal {
   id: string;
   storeId: string;
@@ -33,7 +31,6 @@ interface InventoryJournal {
   Product: Product;
   User: User;
 }
-
 interface HistoryResponse {
   message: string;
   data: InventoryJournal[];
@@ -46,52 +43,84 @@ interface HistoryResponse {
     hasPrevPage: boolean;
   };
 }
+interface UserStore {
+  id: string;
+  name: string;
+}
+interface UserProfileResponse {
+  user: { Store: UserStore[] };
+}
 
-export default function InventoryHistoryPage() {
+export default function StoreInventoryHistoryPage() {
   const [historyData, setHistoryData] = useState<InventoryJournal[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string>("");
-
-  const [selectedStore, setSelectedStore] = useState<string>("");
-  const [selectedAction, setSelectedAction] = useState<string>("");
-  const [stores, setStores] = useState<Store[]>([]);
-
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [userStore, setUserStore] = useState<UserStore | null>(null);
+  const [selectedAction, setSelectedAction] = useState("");
+  const [selectedProduct, setSelectedProduct] = useState("");
+  const [products, setProducts] = useState<Product[]>([]);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const today = new Date().toISOString().split("T")[0];
 
-  const fetchStores = async () => {
+  const fetchUserStore = async () => {
     try {
-      const res = await fetch("http://localhost:8000/api/v1/stores", {
+      const res = await fetch("http://localhost:8000/api/v1/auth/profile", {
         credentials: "include",
       });
+      if (!res.ok) throw new Error("Failed to fetch user profile");
+      const result: UserProfileResponse = await res.json();
+      const stores = result.user?.Store;
+      if (stores?.length) setUserStore(stores[0]);
+      else setError("You are not assigned to any store");
+    } catch {
+      setError("Failed to fetch store information");
+    }
+  };
+
+  const fetchProducts = async () => {
+    if (!userStore) return;
+    try {
+      const res = await fetch(
+        `http://localhost:8000/api/v1/inventory?storeId=${userStore.id}`,
+        { credentials: "include" }
+      );
+      if (!res.ok) throw new Error("Failed to fetch products");
       const result = await res.json();
-      setStores(result.data || []);
-    } catch (error) {
-      console.error("Error fetching stores:", error);
+      const inventoryData: InventoryJournal[] = result.data || [];
+      const unique = inventoryData.reduce((acc: Product[], item) => {
+        const exists = acc.find((p) => p.id === item.Product.id);
+        if (!exists) acc.push(item.Product);
+        return acc;
+      }, []);
+      setProducts(unique);
+    } catch (err) {
+      console.error(err);
     }
   };
 
   const fetchHistory = async () => {
+    if (!userStore) return;
     try {
       setLoading(true);
       const params = new URLSearchParams();
-      if (selectedStore) params.append("storeId", selectedStore);
       if (selectedAction) params.append("action", selectedAction);
+      if (selectedProduct) params.append("productId", selectedProduct);
       if (startDate) params.append("startDate", startDate);
       if (endDate) params.append("endDate", endDate);
 
       const res = await fetch(
         `http://localhost:8000/api/v1/inventory/history?${params}`,
-        { credentials: "include" }
+        {
+          credentials: "include",
+        }
       );
 
-      if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+      if (!res.ok) throw new Error("Fetch failed");
       const result: HistoryResponse = await res.json();
       setHistoryData(result.data || []);
       setError("");
-    } catch (err) {
-      console.error("Error fetching history:", err);
+    } catch {
       setError("Failed to fetch inventory history");
       setHistoryData([]);
     } finally {
@@ -100,16 +129,18 @@ export default function InventoryHistoryPage() {
   };
 
   useEffect(() => {
-    fetchStores();
+    fetchUserStore();
   }, []);
-
   useEffect(() => {
-    fetchHistory();
-  }, [selectedStore, selectedAction, startDate, endDate]);
+    if (userStore) {
+      fetchProducts();
+      fetchHistory();
+    }
+  }, [userStore, selectedAction, selectedProduct, startDate, endDate]);
 
   const clearFilters = () => {
-    setSelectedStore("");
     setSelectedAction("");
+    setSelectedProduct("");
     setStartDate("");
     setEndDate("");
   };
@@ -129,6 +160,24 @@ export default function InventoryHistoryPage() {
     };
   };
 
+  if (loading && !userStore) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600" />
+      </div>
+    );
+  }
+
+  if (error && !userStore) {
+    return (
+      <div className="p-6">
+        <div className="bg-red-50 border border-red-200 rounded-md p-4 text-red-800">
+          {error}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="p-6 max-w-7xl mx-auto">
       <div className="mb-8">
@@ -136,30 +185,12 @@ export default function InventoryHistoryPage() {
           Inventory History
         </h1>
         <p className="text-gray-600">
-          Track all inventory changes and movements across stores
+          Track inventory changes for{" "}
+          <span className="font-semibold text-blue-600">{userStore?.name}</span>
         </p>
       </div>
 
-      {/* Filters */}
       <div className="mb-6 bg-white p-4 rounded-lg border border-gray-200 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Filter by Store
-          </label>
-          <select
-            value={selectedStore}
-            onChange={(e) => setSelectedStore(e.target.value)}
-            className="w-full border px-3 py-2 rounded-md"
-          >
-            <option value="">All Stores</option>
-            {stores.map((store) => (
-              <option key={store.id} value={store.id}>
-                {store.name}
-              </option>
-            ))}
-          </select>
-        </div>
-
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Filter by Action
@@ -175,7 +206,23 @@ export default function InventoryHistoryPage() {
             <option value="SALE">Sale/Reduce</option>
           </select>
         </div>
-
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Filter by Product
+          </label>
+          <select
+            value={selectedProduct}
+            onChange={(e) => setSelectedProduct(e.target.value)}
+            className="w-full border px-3 py-2 rounded-md"
+          >
+            <option value="">All Products</option>
+            {products.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
+          </select>
+        </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
             From Date
@@ -188,7 +235,6 @@ export default function InventoryHistoryPage() {
             className="w-full border px-3 py-2 rounded-md"
           />
         </div>
-
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
             To Date
@@ -202,7 +248,6 @@ export default function InventoryHistoryPage() {
             className="w-full border px-3 py-2 rounded-md"
           />
         </div>
-
         <div className="md:col-span-2 lg:col-span-4 mt-2">
           <button
             onClick={clearFilters}
@@ -213,14 +258,12 @@ export default function InventoryHistoryPage() {
         </div>
       </div>
 
-      {/* Error */}
-      {error && (
+      {error && userStore && (
         <div className="mb-6 bg-red-50 border border-red-200 rounded-md p-4 text-red-800">
           {error}
         </div>
       )}
 
-      {/* Table */}
       <div className="bg-white rounded-lg border overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
@@ -232,23 +275,20 @@ export default function InventoryHistoryPage() {
                 Product
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Store
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                 Action
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                 Quantity
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                User
+                Changed By
               </th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {loading ? (
+            {loading && (
               <tr>
-                <td colSpan={6} className="px-6 py-12 text-center">
+                <td colSpan={5} className="px-6 py-12 text-center">
                   <div className="flex justify-center items-center">
                     <div className="animate-spin h-8 w-8 border-b-2 border-blue-600 rounded-full" />
                     <span className="ml-3 text-gray-500">
@@ -257,7 +297,8 @@ export default function InventoryHistoryPage() {
                   </div>
                 </td>
               </tr>
-            ) : historyData.length > 0 ? (
+            )}
+            {!loading &&
               historyData.map((item) => {
                 const qty = getQuantityDisplay(item.quantity);
                 return (
@@ -266,14 +307,26 @@ export default function InventoryHistoryPage() {
                       {new Date(item.createdAt).toLocaleString("id-ID")}
                     </td>
                     <td className="px-6 py-4">
-                      <div className="text-sm font-medium">
-                        {item.Product.name}
-                      </div>
-                      <div className="text-sm text-gray-500">
-                        Rp{item.Product.price.toLocaleString("id-ID")}
+                      <div className="flex items-center">
+                        {item.Product.imagePreview?.[0]?.imageUrl && (
+                          <Image
+                            src={item.Product.imagePreview[0].imageUrl}
+                            alt={item.Product.name}
+                            width={32}
+                            height={32}
+                            className="rounded object-cover mr-3"
+                          />
+                        )}
+                        <div>
+                          <div className="text-sm font-medium">
+                            {item.Product.name}
+                          </div>
+                          <div className="text-sm text-gray-500">
+                            Rp{item.Product.price.toLocaleString("id-ID")}
+                          </div>
+                        </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-sm">{item.Store.name}</td>
                     <td className="px-6 py-4">
                       <span
                         className={`px-2 py-1 text-xs font-semibold rounded-full ${getActionBadgeClass(item.action)}`}
@@ -294,29 +347,29 @@ export default function InventoryHistoryPage() {
                     </td>
                   </tr>
                 );
-              })
-            ) : (
-              <tr>
-                <td colSpan={6} className="text-center py-12 text-gray-500">
-                  <div className="text-lg">No inventory history found</div>
-                  <p className="text-gray-400 mt-2">
-                    {selectedStore || selectedAction || startDate || endDate
-                      ? "Try adjusting your filters"
-                      : "No inventory changes have been made yet"}
-                  </p>
-                </td>
-              </tr>
-            )}
+              })}
           </tbody>
         </table>
+
+        {!loading && historyData.length === 0 && !error && (
+          <div className="text-center py-12 text-gray-500">
+            <div className="text-lg">No inventory history found</div>
+            <p className="text-gray-400 mt-2">
+              {selectedAction || selectedProduct || startDate || endDate
+                ? "Try adjusting your filters"
+                : "No inventory changes have been made yet"}
+            </p>
+          </div>
+        )}
       </div>
 
       {historyData.length > 0 && (
         <div className="mt-6 bg-blue-50 border border-blue-200 rounded-md p-4 text-sm text-blue-800">
           Showing {historyData.length} inventory{" "}
-          {historyData.length === 1 ? "transaction" : "transactions"}
-          {selectedStore && ` for selected store`}
+          {historyData.length === 1 ? "transaction" : "transactions"} for{" "}
+          <span className="font-semibold">{userStore?.name}</span>
           {selectedAction && ` with action: ${selectedAction}`}
+          {selectedProduct && ` for selected product`}
           {(startDate || endDate) && ` within date range`}
         </div>
       )}

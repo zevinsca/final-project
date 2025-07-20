@@ -9,9 +9,9 @@ import {
   FiLayers,
   FiShoppingCart,
   FiUsers,
-  FiSettings,
   FiHome,
 } from "react-icons/fi";
+import { MdOutlineInventory, MdDiscount } from "react-icons/md";
 import Link from "next/link";
 import SignOut from "@/components/login/logout";
 
@@ -144,6 +144,20 @@ export default function MenuNavbarStoreAdmin({
                   <span>Category</span>
                 </Link>
                 <Link
+                  href="/dashboard/admin-store/discount"
+                  className="flex items-center space-x-2 hover:bg-green-700 px-2 py-1 rounded"
+                >
+                  <MdDiscount />
+                  <span>Discount</span>
+                </Link>
+                <Link
+                  href="/dashboard/admin-store/inventory-management"
+                  className="flex items-center space-x-2 hover:bg-green-700 px-2 py-1 rounded"
+                >
+                  <MdOutlineInventory />
+                  <span>Inventory</span>
+                </Link>
+                <Link
                   href="/store/orders"
                   className="flex items-center space-x-2 hover:bg-green-700 px-2 py-1 rounded"
                 >
@@ -156,13 +170,6 @@ export default function MenuNavbarStoreAdmin({
                 >
                   <FiUsers />
                   <span>Pelanggan</span>
-                </Link>
-                <Link
-                  href="/store/settings"
-                  className="flex items-center space-x-2 hover:bg-green-700 px-2 py-1 rounded"
-                >
-                  <FiSettings />
-                  <span>Pengaturan</span>
                 </Link>
               </nav>
               <div className="p-6 bg-green-900 w-full">
