@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import { CustomJwtPayload } from "../types/express.js";
 import prisma from "../config/prisma-client.js";
 import { ZodError } from "zod";
 import { Resend } from "resend";
@@ -304,5 +305,35 @@ export async function loginGoogle(req: Request, res: Response) {
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Failed to Login", error });
+  }
+}
+
+export async function getProfile(req: Request, res: Response) {
+  try {
+    const user = req.user as CustomJwtPayload;
+
+    const userWithStore = await prisma.user.findUnique({
+      where: { id: user.id },
+      include: {
+        Store: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+    });
+
+    if (!userWithStore) {
+      res.status(404).json({ message: "User not found" });
+      return;
+    }
+
+    res.status(200).json({
+      user: userWithStore,
+    });
+  } catch (error) {
+    console.error("Get Profile Error:", error);
+    res.status(500).json({ message: "Error fetching profile" });
   }
 }

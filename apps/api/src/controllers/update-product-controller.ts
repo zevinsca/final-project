@@ -4,6 +4,18 @@ import { CustomJwtPayload } from "../types/express.js";
 import cloudinary from "../config/cloudinary-config.js";
 import fs from "fs/promises";
 
+interface StoreStockItem {
+  storeId: string;
+  stock: string;
+}
+
+interface UpdateData {
+  name?: string;
+  description?: string;
+  price?: number;
+  weight?: number;
+}
+
 // DELETE PRODUCT
 export async function deleteProduct(
   req: Request,
@@ -18,20 +30,22 @@ export async function deleteProduct(
       return;
     }
 
-    await prisma.product.update({
-      where: { id },
-      data: { deletedAt: new Date() },
-    });
+    const deleteDate = new Date();
 
-    await prisma.productCategory.updateMany({
-      where: { productId: id },
-      data: { deletedAt: new Date() },
-    });
-
-    await prisma.storeProduct.updateMany({
-      where: { productId: id },
-      data: { deletedAt: new Date() },
-    });
+    await Promise.all([
+      prisma.product.update({
+        where: { id },
+        data: { deletedAt: deleteDate },
+      }),
+      prisma.productCategory.updateMany({
+        where: { productId: id },
+        data: { deletedAt: deleteDate },
+      }),
+      prisma.storeProduct.updateMany({
+        where: { productId: id },
+        data: { deletedAt: deleteDate },
+      }),
+    ]);
 
     res.status(200).json({ message: "Product deleted successfully" });
   } catch (error) {
@@ -51,18 +65,16 @@ export async function updateProduct(
       req.body;
     const user = req.user as CustomJwtPayload;
 
-    // ✅ Validasi user authentication
+    // Authentication validation
     if (!user) {
       res.status(401).json({ message: "Unauthorized" });
       return;
     }
 
-    // ✅ Validasi product exists dan belum dihapus
+    // Product existence validation
     const product = await prisma.product.findUnique({
       where: { id },
-      include: {
-        StoreProduct: { include: { Store: true } },
-      },
+      include: { StoreProduct: { include: { Store: true } } },
     });
 
     if (!product || product.deletedAt) {
@@ -70,26 +82,19 @@ export async function updateProduct(
       return;
     }
 
-    // 🔥 NEW: Validasi ownership untuk STORE_ADMIN
+    // STORE_ADMIN permission validation
     if (user.role === "STORE_ADMIN") {
-      // Check apakah user adalah pemilik produk
-      if (product.userId !== user.id) {
-        res.status(403).json({
-          message: "You don't have permission to update this product",
-        });
-        return;
-      }
-
-      // Jika ada storeStocks, pastikan semua store adalah milik user
       if (storeStocks) {
+        // Validate store ownership for stock updates
         const userStores = await prisma.store.findMany({
           where: { userId: user.id },
           select: { id: true },
         });
 
         const userStoreIds = userStores.map((store) => store.id);
-        let parsedStoreStocks;
+        console.log("User store IDs:", userStoreIds);
 
+        let parsedStoreStocks: StoreStockItem[];
         try {
           parsedStoreStocks = JSON.parse(storeStocks);
         } catch (error) {
@@ -97,14 +102,15 @@ export async function updateProduct(
           return;
         }
 
-        const requestedStoreIds = parsedStoreStocks.map(
-          (item: any) => item.storeId
-        );
+        const requestedStoreIds = parsedStoreStocks.map((item) => item.storeId);
+        console.log("Requested store IDs:", requestedStoreIds);
+
         const invalidStores = requestedStoreIds.filter(
-          (storeId: string) => !userStoreIds.includes(storeId)
+          (storeId) => !userStoreIds.includes(storeId)
         );
 
         if (invalidStores.length > 0) {
+          console.log("Invalid stores:", invalidStores);
           res.status(403).json({
             message:
               "You don't have permission to update stock for these stores",
@@ -112,10 +118,18 @@ export async function updateProduct(
           });
           return;
         }
+      } else {
+        // Validate product ownership for other updates
+        if (product.userId !== user.id) {
+          res.status(403).json({
+            message: "You don't have permission to update this product",
+          });
+          return;
+        }
       }
     }
 
-    // ✅ Validasi duplicate name (kecuali untuk produk ini sendiri)
+    // Duplicate name validation
     if (name && name !== product.name) {
       const existingProduct = await prisma.product.findFirst({
         where: {
@@ -131,18 +145,14 @@ export async function updateProduct(
       }
     }
 
-    // ✅ Validasi categories jika ada
+    // Categories validation
     if (categoryIds) {
-      let newCategoryIds = categoryIds;
-      if (typeof newCategoryIds === "string") {
-        newCategoryIds = [newCategoryIds];
-      }
+      const newCategoryIds = Array.isArray(categoryIds)
+        ? categoryIds
+        : [categoryIds];
 
       const validCategories = await prisma.category.findMany({
-        where: {
-          id: { in: newCategoryIds },
-          deletedAt: null,
-        },
+        where: { id: { in: newCategoryIds }, deletedAt: null },
       });
 
       if (validCategories.length !== newCategoryIds.length) {
@@ -151,77 +161,28 @@ export async function updateProduct(
       }
     }
 
-    // ✅ Update basic product info
-    const updateData: any = {};
+    // Update basic product info
+    const updateData: UpdateData = {};
     if (name) updateData.name = name;
     if (description) updateData.description = description;
     if (price) updateData.price = parseFloat(price);
     if (weight) updateData.weight = parseFloat(weight);
 
     if (Object.keys(updateData).length > 0) {
-      await prisma.product.update({
-        where: { id },
-        data: updateData,
-      });
+      await prisma.product.update({ where: { id }, data: updateData });
     }
 
-    // 🔥 NEW: Update Images if provided
+    // Update images
     const files = req.files as {
       imagePreview?: Express.Multer.File[];
       imageContent?: Express.Multer.File[];
     };
 
-    if (files?.imagePreview?.[0]) {
-      // Hapus image preview lama
-      await prisma.image.deleteMany({
-        where: { previewProductId: id },
-      });
+    await handleImageUpdates(id, files);
 
-      // Upload image preview baru
-      const result = await cloudinary.uploader.upload(
-        files.imagePreview[0].path,
-        {
-          folder: "final-project/products",
-        }
-      );
-
-      await prisma.image.create({
-        data: {
-          imageUrl: result.secure_url,
-          previewProductId: id,
-        },
-      });
-
-      await fs.unlink(files.imagePreview[0].path);
-    }
-
-    if (files?.imageContent?.[0]) {
-      // Hapus image content lama
-      await prisma.image.deleteMany({
-        where: { contentProductId: id },
-      });
-
-      // Upload image content baru
-      const result = await cloudinary.uploader.upload(
-        files.imageContent[0].path,
-        {
-          folder: "final-project/products",
-        }
-      );
-
-      await prisma.image.create({
-        data: {
-          imageUrl: result.secure_url,
-          contentProductId: id,
-        },
-      });
-
-      await fs.unlink(files.imageContent[0].path);
-    }
-
-    // 🔥 NEW: Update stock per store (bukan semua store)
+    // Update stock per store
     if (storeStocks) {
-      let parsedStoreStocks;
+      let parsedStoreStocks: StoreStockItem[];
       try {
         parsedStoreStocks = JSON.parse(storeStocks);
       } catch (error) {
@@ -229,10 +190,8 @@ export async function updateProduct(
         return;
       }
 
-      // Validasi stores exist
-      const requestedStoreIds = parsedStoreStocks.map(
-        (item: any) => item.storeId
-      );
+      // Validate stores exist
+      const requestedStoreIds = parsedStoreStocks.map((item) => item.storeId);
       const validStores = await prisma.store.findMany({
         where: { id: { in: requestedStoreIds } },
       });
@@ -242,18 +201,17 @@ export async function updateProduct(
         return;
       }
 
-      // Update stock untuk setiap store
+      console.log("Updating stock for stores:", parsedStoreStocks);
+
+      // Update stock for each store
       for (const item of parsedStoreStocks) {
         await prisma.storeProduct.upsert({
           where: {
-            productId_storeId: {
-              productId: id,
-              storeId: item.storeId,
-            },
+            productId_storeId: { productId: id, storeId: item.storeId },
           },
           update: {
             stock: parseInt(item.stock),
-            deletedAt: null, // Reset deletedAt jika ada
+            deletedAt: null,
           },
           create: {
             productId: id,
@@ -264,22 +222,16 @@ export async function updateProduct(
       }
     }
 
-    // ✅ Update categories
+    // Update categories
     if (categoryIds) {
-      let newCategoryIds = categoryIds;
-      if (typeof newCategoryIds === "string") {
-        newCategoryIds = [newCategoryIds];
-      }
-
-      //delete categories lama
+      const newCategoryIds = Array.isArray(categoryIds)
+        ? categoryIds
+        : [categoryIds];
 
       await prisma.productCategory.deleteMany({
-        where: {
-          productId: product.id,
-        },
+        where: { productId: product.id },
       });
 
-      // Buat categories baru
       await prisma.productCategory.createMany({
         data: newCategoryIds.map((categoryId: string) => ({
           productId: id,
@@ -288,7 +240,7 @@ export async function updateProduct(
       });
     }
 
-    // ✅ Return updated product dengan relasi lengkap
+    // Return updated product
     const updatedProduct = await prisma.product.findUnique({
       where: { id },
       include: {
@@ -306,6 +258,8 @@ export async function updateProduct(
       },
     });
 
+    console.log("Stock update successful");
+
     res.status(200).json({
       message: "Product updated successfully",
       data: updatedProduct,
@@ -313,7 +267,6 @@ export async function updateProduct(
   } catch (error) {
     console.error("Error updating product:", error);
 
-    // 🔥 NEW: Better error handling
     if (error instanceof Error) {
       if (error.message.includes("Unique constraint")) {
         res.status(409).json({ message: "Product name already exists" });
@@ -327,5 +280,60 @@ export async function updateProduct(
     }
 
     res.status(500).json({ message: "Failed to update product" });
+  }
+}
+
+// Helper function for image updates
+async function handleImageUpdates(
+  productId: string,
+  files: {
+    imagePreview?: Express.Multer.File[];
+    imageContent?: Express.Multer.File[];
+  }
+): Promise<void> {
+  // Update preview image
+  if (files?.imagePreview?.[0]) {
+    await prisma.image.deleteMany({
+      where: { previewProductId: productId },
+    });
+
+    const result = await cloudinary.uploader.upload(
+      files.imagePreview[0].path,
+      {
+        folder: "final-project/products",
+      }
+    );
+
+    await prisma.image.create({
+      data: {
+        imageUrl: result.secure_url,
+        previewProductId: productId,
+      },
+    });
+
+    await fs.unlink(files.imagePreview[0].path);
+  }
+
+  // Update content image
+  if (files?.imageContent?.[0]) {
+    await prisma.image.deleteMany({
+      where: { contentProductId: productId },
+    });
+
+    const result = await cloudinary.uploader.upload(
+      files.imageContent[0].path,
+      {
+        folder: "final-project/products",
+      }
+    );
+
+    await prisma.image.create({
+      data: {
+        imageUrl: result.secure_url,
+        contentProductId: productId,
+      },
+    });
+
+    await fs.unlink(files.imageContent[0].path);
   }
 }

@@ -123,7 +123,7 @@ export default function MenuNavbarAdmin({
                 href="/dashboard/admin/user"
                 className="block w-full text-left hover:bg-green-700 px-2 py-1 rounded"
               >
-                Users
+                User
               </Link>
               <Link
                 href="/dashboard/admin/store"

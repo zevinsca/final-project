@@ -65,13 +65,18 @@ export default function MenuNavbarStoreAdmin({
         </button>
         <div className="text-sm">
           {users ? (
-            <span>
-              Welcome,{" "}
-              <strong>
-                {users.firstName} {users.lastName}
-                {users.name}
-              </strong>
-            </span>
+            <div>
+              <span>
+                Welcome,{" "}
+                <strong>
+                  {users.firstName} {users.lastName}
+                  {users.name}
+                </strong>
+              </span>
+              <div className="text-xs text-green-200">
+                Role: <span className="font-semibold">{users.role}</span>
+              </div>
+            </div>
           ) : (
             <span>Loading user...</span>
           )}
@@ -125,11 +130,11 @@ export default function MenuNavbarStoreAdmin({
                   <span>Dashboard</span>
                 </Link>
                 <Link
-                  href="/dashboard/admin-store/store"
+                  href="/dashboard/admin-store/product"
                   className="flex items-center space-x-2 hover:bg-green-700 px-2 py-1 rounded"
                 >
                   <FiBox />
-                  <span>Store</span>
+                  <span>Product</span>
                 </Link>
                 <Link
                   href="/store/categories"

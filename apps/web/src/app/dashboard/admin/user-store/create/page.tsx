@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import MenuNavbarAdmin from "@/components/header/header-super-admin/header-super-admin";
 
 interface Store {
   id: string;
@@ -93,7 +94,7 @@ export default function CreateStoreAdminPage() {
 
       if (response.ok) {
         alert("Store admin created successfully!");
-        router.push("/dashboard/admin/usser-store");
+        router.push("/dashboard/admin/user-store");
       } else {
         const errorData = await response.json();
         const errorMessage =
@@ -109,28 +110,31 @@ export default function CreateStoreAdminPage() {
   };
 
   return (
-    <section className="p-4">
-      <div className="flex items-center mb-4">
-        <Link
-          href="/dashboard/admin/user-store"
-          className="mr-4 text-blue-600 hover:text-blue-800"
+    <MenuNavbarAdmin>
+      <section className="max-w-2xl mx-auto p-4">
+        <div className="flex items-center justify-between mb-4">
+          <h1 className="text-2xl font-bold">Create Store Admin</h1>
+          <Link
+            href="/dashboard/admin/user-store"
+            className="bg-gray-300 text-gray-800 px-4 py-2 rounded hover:bg-gray-400"
+          >
+            ← Back to List
+          </Link>
+        </div>
+
+        <form
+          onSubmit={handleSubmit}
+          className="bg-white p-6 rounded shadow space-y-4"
         >
-          ← Back to Store Admin List
-        </Link>
-        <h1 className="text-2xl font-bold">Create Store Admin</h1>
-      </div>
+          {/* Personal Information Section */}
+          <div className="space-y-4">
+            <h2 className="text-lg font-semibold text-gray-800 border-b pb-2">
+              Personal Information
+            </h2>
 
-      <div className="max-w-2xl">
-        <div className="space-y-6">
-          <div className="bg-white p-6 border border-gray-300 rounded">
-            <h2 className="text-lg font-semibold mb-4">Personal Information</h2>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-4">
               <div>
-                <label
-                  htmlFor="firstName"
-                  className="block text-sm font-medium text-gray-700 mb-1"
-                >
+                <label htmlFor="firstName" className="block mb-1 font-medium">
                   First Name *
                 </label>
                 <input
@@ -140,16 +144,13 @@ export default function CreateStoreAdminPage() {
                   value={formData.firstName}
                   onChange={handleInputChange}
                   required
-                  className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full border rounded px-3 py-2"
                   placeholder="Enter first name"
                 />
               </div>
 
               <div>
-                <label
-                  htmlFor="lastName"
-                  className="block text-sm font-medium text-gray-700 mb-1"
-                >
+                <label htmlFor="lastName" className="block mb-1 font-medium">
                   Last Name *
                 </label>
                 <input
@@ -159,18 +160,15 @@ export default function CreateStoreAdminPage() {
                   value={formData.lastName}
                   onChange={handleInputChange}
                   required
-                  className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full border rounded px-3 py-2"
                   placeholder="Enter last name"
                 />
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+            <div className="grid grid-cols-2 gap-4">
               <div>
-                <label
-                  htmlFor="email"
-                  className="block text-sm font-medium text-gray-700 mb-1"
-                >
+                <label htmlFor="email" className="block mb-1 font-medium">
                   Email *
                 </label>
                 <input
@@ -180,16 +178,13 @@ export default function CreateStoreAdminPage() {
                   value={formData.email}
                   onChange={handleInputChange}
                   required
-                  className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full border rounded px-3 py-2"
                   placeholder="Enter email address"
                 />
               </div>
 
               <div>
-                <label
-                  htmlFor="username"
-                  className="block text-sm font-medium text-gray-700 mb-1"
-                >
+                <label htmlFor="username" className="block mb-1 font-medium">
                   Username
                 </label>
                 <input
@@ -198,18 +193,15 @@ export default function CreateStoreAdminPage() {
                   name="username"
                   value={formData.username}
                   onChange={handleInputChange}
-                  className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full border rounded px-3 py-2"
                   placeholder="Enter username"
                 />
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+            <div className="grid grid-cols-2 gap-4">
               <div>
-                <label
-                  htmlFor="password"
-                  className="block text-sm font-medium text-gray-700 mb-1"
-                >
+                <label htmlFor="password" className="block mb-1 font-medium">
                   Password *
                 </label>
                 <input
@@ -219,16 +211,13 @@ export default function CreateStoreAdminPage() {
                   value={formData.password}
                   onChange={handleInputChange}
                   required
-                  className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full border rounded px-3 py-2"
                   placeholder="Enter password"
                 />
               </div>
 
               <div>
-                <label
-                  htmlFor="phoneNumber"
-                  className="block text-sm font-medium text-gray-700 mb-1"
-                >
+                <label htmlFor="phoneNumber" className="block mb-1 font-medium">
                   Phone Number
                 </label>
                 <input
@@ -237,21 +226,21 @@ export default function CreateStoreAdminPage() {
                   name="phoneNumber"
                   value={formData.phoneNumber}
                   onChange={handleInputChange}
-                  className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full border rounded px-3 py-2"
                   placeholder="Enter phone number"
                 />
               </div>
             </div>
           </div>
 
-          <div className="bg-white p-6 border border-gray-300 rounded">
-            <h2 className="text-lg font-semibold mb-4">Store Assignment</h2>
+          {/* Store Assignment Section */}
+          <div className="space-y-4">
+            <h2 className="text-lg font-semibold text-gray-800 border-b pb-2">
+              Store Assignment
+            </h2>
 
             <div>
-              <label
-                htmlFor="storeId"
-                className="block text-sm font-medium text-gray-700 mb-1"
-              >
+              <label htmlFor="storeId" className="block mb-1 font-medium">
                 Assign to Store (Optional)
               </label>
               <select
@@ -259,7 +248,7 @@ export default function CreateStoreAdminPage() {
                 name="storeId"
                 value={formData.storeId}
                 onChange={handleInputChange}
-                className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full border rounded px-3 py-2"
                 disabled={loading}
               >
                 <option value="">Select a store (optional)</option>
@@ -278,24 +267,24 @@ export default function CreateStoreAdminPage() {
             </div>
           </div>
 
-          <div className="flex justify-end space-x-4">
+          {/* Action Buttons */}
+          <div className="flex justify-between pt-4">
             <Link
               href="/dashboard/admin/user-store"
-              className="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400"
+              className="bg-gray-300 text-gray-800 px-4 py-2 rounded hover:bg-gray-400"
             >
               Cancel
             </Link>
             <button
-              type="button"
-              onClick={handleSubmit}
+              type="submit"
               disabled={submitting}
-              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {submitting ? "Creating..." : "Create Store Admin"}
             </button>
           </div>
-        </div>
-      </div>
-    </section>
+        </form>
+      </section>
+    </MenuNavbarAdmin>
   );
 }

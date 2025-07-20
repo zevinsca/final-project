@@ -3,6 +3,7 @@
 import { useEffect, useState, use } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import MenuNavbarAdmin from "@/components/header/header-super-admin/header-super-admin";
 
 interface Store {
   id: string;
@@ -177,51 +178,62 @@ export default function EditStoreAdminPage({
 
   if (loading) {
     return (
-      <section className="p-4">
-        <div className="flex justify-center py-8">
-          <div className="text-gray-500">Loading store admin data...</div>
-        </div>
-      </section>
+      <MenuNavbarAdmin>
+        <section className="max-w-2xl mx-auto p-4">
+          <div className="flex justify-center py-8">
+            <div className="text-gray-500">Loading store admin data...</div>
+          </div>
+        </section>
+      </MenuNavbarAdmin>
     );
   }
 
   return (
-    <section className="p-4">
-      <div className="flex items-center mb-4">
-        <Link
-          href="/dashboard/admin/user-store"
-          className="mr-4 text-blue-600 hover:text-blue-800"
-        >
-          ← Back to Store Admin List
-        </Link>
-        <h1 className="text-2xl font-bold">Edit Store Admin</h1>
-      </div>
-
-      {adminData && (
-        <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded">
-          <h3 className="font-semibold text-blue-800">Current Admin Info</h3>
-          <p className="text-sm text-blue-700">
-            Editing: {adminData.firstName} {adminData.lastName} (
-            {adminData.email})
-          </p>
-          <p className="text-sm text-blue-700">
-            Role: {adminData.role} | Created:{" "}
-            {new Date(adminData.createdAt).toLocaleDateString("id-ID")}
-          </p>
+    <MenuNavbarAdmin>
+      <section className="max-w-2xl mx-auto p-4">
+        <div className="flex items-center justify-between mb-4">
+          <h1 className="text-2xl font-bold">Edit Store Admin</h1>
+          <Link
+            href="/dashboard/admin/user-store"
+            className="bg-gray-300 text-gray-800 px-4 py-2 rounded hover:bg-gray-400"
+          >
+            ← Back to List
+          </Link>
         </div>
-      )}
 
-      <div className="max-w-2xl">
-        <div className="space-y-6">
-          <div className="bg-white p-6 border border-gray-300 rounded">
-            <h2 className="text-lg font-semibold mb-4">Personal Information</h2>
+        {adminData && (
+          <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded">
+            <h3 className="font-semibold text-blue-800">Current Admin Info</h3>
+            <p className="text-sm text-blue-700">
+              Editing: {adminData.firstName} {adminData.lastName} (
+              {adminData.email})
+            </p>
+            <p className="text-sm text-blue-700">
+              Role: {adminData.role} | Created:{" "}
+              {new Date(adminData.createdAt).toLocaleDateString("id-ID")}
+            </p>
+            {adminData?.Store && adminData.Store.length > 0 && (
+              <p className="text-sm text-blue-700">
+                Currently assigned to:{" "}
+                <strong>{adminData.Store[0].name}</strong>
+              </p>
+            )}
+          </div>
+        )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <form
+          onSubmit={handleSubmit}
+          className="bg-white p-6 rounded shadow space-y-4"
+        >
+          {/* Personal Information Section */}
+          <div className="space-y-4">
+            <h2 className="text-lg font-semibold text-gray-800 border-b pb-2">
+              Personal Information
+            </h2>
+
+            <div className="grid grid-cols-2 gap-4">
               <div>
-                <label
-                  htmlFor="firstName"
-                  className="block text-sm font-medium text-gray-700 mb-1"
-                >
+                <label htmlFor="firstName" className="block mb-1 font-medium">
                   First Name *
                 </label>
                 <input
@@ -231,16 +243,13 @@ export default function EditStoreAdminPage({
                   value={formData.firstName}
                   onChange={handleInputChange}
                   required
-                  className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full border rounded px-3 py-2"
                   placeholder="Enter first name"
                 />
               </div>
 
               <div>
-                <label
-                  htmlFor="lastName"
-                  className="block text-sm font-medium text-gray-700 mb-1"
-                >
+                <label htmlFor="lastName" className="block mb-1 font-medium">
                   Last Name *
                 </label>
                 <input
@@ -250,18 +259,15 @@ export default function EditStoreAdminPage({
                   value={formData.lastName}
                   onChange={handleInputChange}
                   required
-                  className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full border rounded px-3 py-2"
                   placeholder="Enter last name"
                 />
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+            <div className="grid grid-cols-2 gap-4">
               <div>
-                <label
-                  htmlFor="email"
-                  className="block text-sm font-medium text-gray-700 mb-1"
-                >
+                <label htmlFor="email" className="block mb-1 font-medium">
                   Email *
                 </label>
                 <input
@@ -271,16 +277,13 @@ export default function EditStoreAdminPage({
                   value={formData.email}
                   onChange={handleInputChange}
                   required
-                  className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full border rounded px-3 py-2"
                   placeholder="Enter email address"
                 />
               </div>
 
               <div>
-                <label
-                  htmlFor="username"
-                  className="block text-sm font-medium text-gray-700 mb-1"
-                >
+                <label htmlFor="username" className="block mb-1 font-medium">
                   Username
                 </label>
                 <input
@@ -289,17 +292,14 @@ export default function EditStoreAdminPage({
                   name="username"
                   value={formData.username}
                   onChange={handleInputChange}
-                  className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full border rounded px-3 py-2"
                   placeholder="Enter username"
                 />
               </div>
             </div>
 
-            <div className="mt-4">
-              <label
-                htmlFor="phoneNumber"
-                className="block text-sm font-medium text-gray-700 mb-1"
-              >
+            <div>
+              <label htmlFor="phoneNumber" className="block mb-1 font-medium">
                 Phone Number
               </label>
               <input
@@ -308,20 +308,20 @@ export default function EditStoreAdminPage({
                 name="phoneNumber"
                 value={formData.phoneNumber}
                 onChange={handleInputChange}
-                className="w-full md:w-1/2 border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full border rounded px-3 py-2"
                 placeholder="Enter phone number"
               />
             </div>
           </div>
 
-          <div className="bg-white p-6 border border-gray-300 rounded">
-            <h2 className="text-lg font-semibold mb-4">Store Assignment</h2>
+          {/* Store Assignment Section */}
+          <div className="space-y-4">
+            <h2 className="text-lg font-semibold text-gray-800 border-b pb-2">
+              Store Assignment
+            </h2>
 
             <div>
-              <label
-                htmlFor="storeId"
-                className="block text-sm font-medium text-gray-700 mb-1"
-              >
+              <label htmlFor="storeId" className="block mb-1 font-medium">
                 Assign to Store (Optional)
               </label>
               <select
@@ -329,7 +329,7 @@ export default function EditStoreAdminPage({
                 name="storeId"
                 value={formData.storeId}
                 onChange={handleInputChange}
-                className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full border rounded px-3 py-2"
               >
                 <option value="">No store assignment</option>
                 {stores.map((store) => (
@@ -342,44 +342,26 @@ export default function EditStoreAdminPage({
                 Change the store assignment for this admin.
               </p>
             </div>
-
-            {adminData?.Store && adminData.Store.length > 0 && (
-              <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded">
-                <p className="text-sm text-yellow-800">
-                  <strong>Currently assigned to:</strong>{" "}
-                  {adminData.Store[0].name}
-                </p>
-              </div>
-            )}
           </div>
 
-          <div className="bg-white p-6 border border-gray-300 rounded">
-            <h2 className="text-lg font-semibold mb-2">Password</h2>
-            <p className="text-sm text-gray-600 mb-4">
-              Password cannot be changed from this form. If you need to change
-              the password, please contact the system administrator or use the
-              password reset feature.
-            </p>
-          </div>
-
-          <div className="flex justify-end space-x-4">
+          {/* Action Buttons */}
+          <div className="flex justify-between pt-4">
             <Link
               href="/dashboard/admin/user-store"
-              className="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400"
+              className="bg-gray-300 text-gray-800 px-4 py-2 rounded hover:bg-gray-400"
             >
               Cancel
             </Link>
             <button
-              type="button"
-              onClick={handleSubmit}
+              type="submit"
               disabled={submitting}
-              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {submitting ? "Updating..." : "Update Store Admin"}
             </button>
           </div>
-        </div>
-      </div>
-    </section>
+        </form>
+      </section>
+    </MenuNavbarAdmin>
   );
 }

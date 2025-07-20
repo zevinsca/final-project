@@ -101,8 +101,6 @@ export default function ProductListPage() {
       setImagePreviewFile(null);
       setImageContentFile(null);
       setCategoryId("");
-      // setStoreId("");
-      // setStock(0);
       setStoreStocks([]);
       setCurrentStep(1);
     } catch (error) {

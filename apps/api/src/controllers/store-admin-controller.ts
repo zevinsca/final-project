@@ -149,7 +149,7 @@ export async function updateStoreAdmin(req: Request, res: Response) {
     // 1. Hapus assignment store lama dari user ini
     await prisma.store.updateMany({
       where: { userId: id },
-      data: { userId: undefined },
+      data: { userId: null },
     });
 
     // 2. Update user data

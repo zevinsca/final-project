@@ -9,13 +9,14 @@ import {
   verifyEmail,
   VerifySuccess,
   loginGoogle,
+  getProfile,
 } from "../controllers/auth.controller.js";
 
 import {
   changePassword,
   resetPassword,
 } from "../controllers/user-controller.js";
-import { authMiddleware } from "../middleware/auth-middleware.js";
+import { authMiddleware, verifyToken } from "../middleware/auth-middleware.js";
 
 const router = express.Router();
 
@@ -37,6 +38,8 @@ router.get(
   passport.authenticate("google", { session: false }),
   loginGoogle
 );
+
+router.get("/profile", verifyToken, getProfile);
 // Logout untuk user yang login lewat Google
 router.route("/logout").delete(logout);
 

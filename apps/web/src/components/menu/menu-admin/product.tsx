@@ -39,7 +39,7 @@ interface Product {
   category: string[];
   storeName: string | null;
   imagePreview: { imageUrl: string }[];
-  storeProducts?: StoreStock[]; // Will be populated after fetch
+  storeProducts?: StoreStock[];
 }
 
 export default function ProductAdminPage() {
