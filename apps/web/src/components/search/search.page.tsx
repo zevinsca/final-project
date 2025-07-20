@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { FiSearch } from "react-icons/fi";
-import { useRouter } from "next/router";
+import { useRouter } from "next/navigation";
 
 export default function SearchSection() {
   const [search, setSearch] = useState("");

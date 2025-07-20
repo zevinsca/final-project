@@ -1,16 +1,32 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import axios from "axios";
+import Image from "next/image";
+import Link from "next/link";
 
-interface Category {
-  id: string;
-  name: string;
+interface StoreStock {
+  storeId: string;
+  storeName: string;
+  stock: number;
 }
 
 interface Store {
   id: string;
   name: string;
+}
+
+interface StoreProductDetail {
+  storeId: string;
+  stock: number;
+  Store: Store;
+}
+
+interface ProductDetailResponse {
+  id: string;
+  name: string;
+  StoreProduct: StoreProductDetail[];
 }
 
 interface Product {
@@ -19,342 +35,433 @@ interface Product {
   description: string;
   price: number;
   stock: number;
-  weight: number;
+  weight?: number;
   category: string[];
+  storeName: string | null;
+  imagePreview: { imageUrl: string }[];
+  storeProducts?: StoreStock[];
 }
 
-export default function CreateProductPage() {
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [stores, setStores] = useState<Store[]>([]);
+export default function ProductAdminPage() {
+  const router = useRouter();
+
   const [products, setProducts] = useState<Product[]>([]);
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
-  const [price, setPrice] = useState<number>(0);
-  const [stock, setStock] = useState<number>(0);
-  const [weight, setWeight] = useState<number>(0);
-  const [categoryId, setCategoryId] = useState<string>(""); // Single category selected
-  const [storeId, setStoreId] = useState<string>("");
+  const [totalPages, setTotalPages] = useState(1);
+  const [page, setPage] = useState(1);
+  const [loading, setLoading] = useState(false);
 
-  // State untuk langkah formulir (1 untuk langkah pertama, 2 untuk langkah kedua)
-  const [currentStep, setCurrentStep] = useState(1);
+  const [search, setSearch] = useState("");
+  const [category, setCategory] = useState("");
+  const [sortBy, setSortBy] = useState("createdAt");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+  const [categories, setCategories] = useState<{ id: string; name: string }[]>(
+    []
+  );
 
-  // State untuk menampilkan atau menyembunyikan modal
   const [showModal, setShowModal] = useState(false);
+  const [productToDelete, setProductToDelete] = useState<Product | null>(null);
 
-  // Mengambil data kategori, toko, dan produk
   useEffect(() => {
-    async function fetchData() {
+    async function fetchProducts() {
+      setLoading(true);
       try {
-        const categoriesRes = await axios.get(
-          "http://localhost:8000/api/v1/categories",
-          {
-            withCredentials: true,
-          }
-        );
-        setCategories(categoriesRes.data.data);
+        const res = await axios.get("http://localhost:8000/api/v1/products", {
+          params: {
+            page,
+            limit: 5,
+            search,
+            category,
+            sortBy,
+            sortOrder,
+          },
+          withCredentials: true,
+        });
 
-        const storesRes = await axios.get(
-          "http://localhost:8000/api/v1/stores",
-          {
-            withCredentials: true,
-          }
-        );
-        setStores(storesRes.data.data);
+        const productsData = res.data.data;
 
-        const productsRes = await axios.get(
-          "http://localhost:8000/api/v1/products",
-          {
-            withCredentials: true,
-          }
+        // Fetch store details for each product
+        const productsWithStores = await Promise.all(
+          productsData.map(async (product: Product) => {
+            try {
+              const detailRes = await axios.get<{
+                data: ProductDetailResponse;
+              }>(`http://localhost:8000/api/v1/products/${product.id}`, {
+                params: { includeAllStores: "true" },
+                withCredentials: true,
+              });
+
+              const storeProducts = detailRes.data.data.StoreProduct || [];
+              const storeStocks: StoreStock[] = storeProducts.map(
+                (sp: StoreProductDetail) => ({
+                  storeId: sp.storeId,
+                  storeName: sp.Store.name,
+                  stock: sp.stock,
+                })
+              );
+
+              return {
+                ...product,
+                storeProducts: storeStocks,
+              };
+            } catch (error) {
+              console.error(
+                `Error fetching stores for product ${product.id}:`,
+                error
+              );
+              return {
+                ...product,
+                storeProducts: [],
+              };
+            }
+          })
         );
-        setProducts(productsRes.data.data);
+
+        setProducts(productsWithStores);
+        setTotalPages(res.data.meta.totalPages);
       } catch (err) {
-        console.error("Error fetching data:", err);
+        console.error("Error fetching products:", err);
+      } finally {
+        setLoading(false);
       }
     }
 
-    fetchData();
-  }, []);
+    fetchProducts();
+  }, [page, search, category, sortBy, sortOrder]);
 
-  // Menangani pembuatan produk
-  const handleCreateProduct = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    // Validasi apakah semua kolom wajib diisi
-    if (
-      !name ||
-      !description ||
-      !price ||
-      !stock ||
-      !weight ||
-      !categoryId ||
-      !storeId
-    ) {
-      alert("Missing required fields or no category selected.");
-      return;
+  useEffect(() => {
+    async function fetchCategories() {
+      try {
+        const res = await axios.get("http://localhost:8000/api/v1/categories", {
+          withCredentials: true,
+        });
+        setCategories(res.data.data);
+      } catch (err) {
+        console.error("Failed to fetch categories", err);
+      }
     }
 
+    fetchCategories();
+  }, []);
+
+  const confirmDeleteProduct = (product: Product) => {
+    setProductToDelete(product);
+    setShowModal(true);
+  };
+
+  const handleDeleteConfirmed = async () => {
+    if (!productToDelete) return;
+
     try {
-      const response = await axios.post(
-        "http://localhost:8000/api/v1/products",
-        {
-          name,
-          description,
-          price,
-          stock,
-          weight,
-          categoryIds: [categoryId], // Single category selected
-          storeId,
-        },
-        { withCredentials: true }
-      );
-
-      console.log("Product created:", response.data);
-      alert("Product created successfully.");
-      // Reset form dan tutup modal
-      setName("");
-      setDescription("");
-      setPrice(0);
-      setStock(0);
-      setWeight(0);
-      setCategoryId(""); // Reset category selection
-      setStoreId("");
-      setShowModal(false); // Sembunyikan modal
-
-      // Update list produk
-      const productsRes = await axios.get(
-        "http://localhost:8000/api/v1/products",
+      await axios.delete(
+        `http://localhost:8000/api/v1/products/${productToDelete.id}`,
         {
           withCredentials: true,
         }
       );
-      setProducts(productsRes.data.data);
+      alert("Product deleted successfully.");
+      setProducts((prev) => prev.filter((p) => p.id !== productToDelete.id));
     } catch (error) {
-      console.error("Error creating product:", error);
-      alert("Failed to create product.");
+      console.error("Error deleting product:", error);
+      alert("Failed to delete product.");
+    } finally {
+      setShowModal(false);
+      setProductToDelete(null);
     }
   };
 
-  // Menangani perubahan langkah formulir
-  const handleNextStep = () => {
-    if (currentStep === 1) {
-      setCurrentStep(2);
+  const handleUpdateProduct = (id: string) => {
+    router.push(`/dashboard/admin/product/edit/${id}`);
+  };
+
+  const getStockStatus = (stock: number) => {
+    if (stock === 0) {
+      return {
+        bgClass: "bg-red-100",
+        textClass: "text-red-700",
+        dotClass: "bg-red-500",
+      };
+    } else if (stock < 10) {
+      return {
+        bgClass: "bg-orange-100",
+        textClass: "text-orange-700",
+        dotClass: "bg-orange-500",
+      };
+    } else {
+      return {
+        bgClass: "bg-green-100",
+        textClass: "text-green-700",
+        dotClass: "bg-green-500",
+      };
     }
   };
 
-  const handlePreviousStep = () => {
-    if (currentStep === 2) {
-      setCurrentStep(1);
+  const calculateTotalStock = (storeProducts: StoreStock[] = []) => {
+    return storeProducts.reduce((sum, store) => sum + store.stock, 0);
+  };
+
+  // Function to get sort order options based on selected field
+  const getSortOrderOptions = () => {
+    switch (sortBy) {
+      case "name":
+        return [
+          { value: "asc", label: "🔤 A to Z" },
+          { value: "desc", label: "🔡 Z to A" },
+        ];
+      case "price":
+        return [
+          { value: "asc", label: "💸 Lowest to Highest" },
+          { value: "desc", label: "💰 Highest to Lowest" },
+        ];
+      case "createdAt":
+        return [
+          { value: "desc", label: "📅 Newest First" },
+          { value: "asc", label: "📅 Oldest First" },
+        ];
+      default:
+        return [
+          { value: "asc", label: "⬆️ Ascending" },
+          { value: "desc", label: "⬇️ Descending" },
+        ];
     }
   };
 
   return (
-    <section>
-      <h1 className="text-2xl font-bold mb-4">Create New Product</h1>
+    <section className="p-4">
+      <div className="flex justify-between items-center mb-4">
+        <h1 className="text-2xl font-bold">All Products</h1>
+        <Link
+          href="/dashboard/admin/product/create"
+          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+        >
+          Create Product
+        </Link>
+      </div>
 
-      {/* Tombol untuk membuka modal */}
-      <button
-        onClick={() => setShowModal(true)}
-        className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 mb-6"
-      >
-        Create New Product
-      </button>
+      {/* Filter & Sort */}
+      <div className="flex flex-wrap gap-4 mb-4">
+        <input
+          type="text"
+          placeholder="Search..."
+          value={search}
+          onChange={(e) => {
+            setSearch(e.target.value);
+            setPage(1);
+          }}
+          className="border px-3 py-1 rounded"
+        />
+        <select
+          value={category}
+          onChange={(e) => {
+            setCategory(e.target.value);
+            setPage(1);
+          }}
+          className="border px-3 py-1 rounded"
+        >
+          <option value="">All Categories</option>
+          {categories.map((cat) => (
+            <option key={cat.id} value={cat.name}>
+              {cat.name}
+            </option>
+          ))}
+        </select>
 
-      {/* Modal untuk pembuatan produk baru */}
-      {showModal && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg w-full max-w-md shadow-lg">
-            <h2 className="text-lg font-bold mb-4">
-              {currentStep === 1
-                ? "Step 1: Product Details"
-                : "Step 2: Category and Store"}
-            </h2>
-            <form onSubmit={handleCreateProduct} className="space-y-4">
-              {/* Langkah 1 - Detail Produk */}
-              {currentStep === 1 && (
-                <>
-                  <div>
-                    <label className="block mb-1 font-medium" htmlFor="name">
-                      Product Name
-                    </label>
-                    <input
-                      id="name"
-                      type="text"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      required
-                      className="w-full border border-gray-300 rounded px-3 py-2"
-                    />
-                  </div>
+        <select
+          value={sortBy}
+          onChange={(e) => setSortBy(e.target.value)}
+          className="border px-3 py-1 rounded"
+        >
+          <option value="createdAt">Date Created</option>
+          <option value="name">Name</option>
+          <option value="price">Price</option>
+        </select>
+        <select
+          value={sortOrder}
+          onChange={(e) => setSortOrder(e.target.value as "asc" | "desc")}
+          className="border px-3 py-1 rounded"
+        >
+          {getSortOrderOptions().map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+      </div>
 
-                  <div>
-                    <label
-                      className="block mb-1 font-medium"
-                      htmlFor="description"
-                    >
-                      Description
-                    </label>
-                    <textarea
-                      id="description"
-                      value={description}
-                      onChange={(e) => setDescription(e.target.value)}
-                      required
-                      className="w-full border border-gray-300 rounded px-3 py-2"
-                    />
-                  </div>
+      {loading ? (
+        <div className="flex justify-center py-8">
+          <div className="text-gray-500">Loading products...</div>
+        </div>
+      ) : products.length === 0 ? (
+        <p>No products found.</p>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="min-w-full border border-gray-300">
+            <thead className="bg-gray-100">
+              <tr>
+                <th className="border px-4 py-2 text-left">Image</th>
+                <th className="border px-4 py-2 text-left">Name</th>
+                <th className="border px-4 py-2 text-left">Description</th>
+                <th className="border px-4 py-2 text-left">Price</th>
+                <th className="border px-4 py-2 text-left min-w-[200px]">
+                  Stock by Store
+                </th>
+                <th className="border px-4 py-2 text-left">Category</th>
+                <th className="border px-4 py-2 text-center">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {products.map((product) => {
+                const totalStock = calculateTotalStock(product.storeProducts);
+                const totalStockStatus = getStockStatus(totalStock);
 
-                  <div>
-                    <label className="block mb-1 font-medium" htmlFor="price">
-                      Price
-                    </label>
-                    <input
-                      id="price"
-                      type="number"
-                      value={price}
-                      onChange={(e) => setPrice(Number(e.target.value))}
-                      required
-                      className="w-full border border-gray-300 rounded px-3 py-2"
-                    />
-                  </div>
+                return (
+                  <tr key={product.id} className="hover:bg-gray-50">
+                    <td className="border px-4 py-2">
+                      <Image
+                        src={
+                          product.imagePreview?.[0]?.imageUrl ??
+                          "/placeholder.jpg"
+                        }
+                        alt={product.name}
+                        width={80}
+                        height={80}
+                        className="object-contain bg-white"
+                      />
+                    </td>
+                    <td className="border px-4 py-2 font-medium">
+                      {product.name}
+                    </td>
+                    <td className="border px-4 py-2 text-sm text-gray-600 max-w-[200px] truncate">
+                      {product.description}
+                    </td>
+                    <td className="border px-4 py-2 font-semibold">
+                      Rp{product.price.toLocaleString()}
+                    </td>
+                    <td className="border px-4 py-2">
+                      <div className="space-y-2">
+                        {/* Total Stock Summary */}
+                        <div
+                          className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${totalStockStatus.bgClass} ${totalStockStatus.textClass}`}
+                        >
+                          <div
+                            className={`w-2 h-2 rounded-full ${totalStockStatus.dotClass} mr-2`}
+                          ></div>
+                          Total: {totalStock} units
+                        </div>
 
-                  <div>
-                    <label className="block mb-1 font-medium" htmlFor="stock">
-                      Stock
-                    </label>
-                    <input
-                      id="stock"
-                      type="number"
-                      value={stock}
-                      onChange={(e) => setStock(Number(e.target.value))}
-                      required
-                      className="w-full border border-gray-300 rounded px-3 py-2"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block mb-1 font-medium" htmlFor="weight">
-                      Weight
-                    </label>
-                    <input
-                      id="weight"
-                      type="number"
-                      value={weight}
-                      onChange={(e) => setWeight(Number(e.target.value))}
-                      required
-                      className="w-full border border-gray-300 rounded px-3 py-2"
-                    />
-                  </div>
-                </>
-              )}
-
-              {/* Langkah 2 - Kategori dan Toko */}
-              {currentStep === 2 && (
-                <>
-                  <div>
-                    <label
-                      className="block mb-1 font-medium"
-                      htmlFor="category"
-                    >
-                      Category
-                    </label>
-                    <select
-                      id="category"
-                      value={categoryId}
-                      onChange={(e) => setCategoryId(e.target.value)}
-                      className="w-full border border-gray-300 rounded px-3 py-2"
-                      required
-                    >
-                      <option value="">Select a Category</option>
-                      {categories.map((category) => (
-                        <option key={category.id} value={category.id}>
-                          {category.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block mb-1 font-medium" htmlFor="store">
-                      Select Store
-                    </label>
-                    <select
-                      id="store"
-                      value={storeId}
-                      onChange={(e) => setStoreId(e.target.value)}
-                      required
-                      className="w-full border border-gray-300 rounded px-3 py-2"
-                    >
-                      <option value="">Select a Store</option>
-                      {stores.map((store) => (
-                        <option key={store.id} value={store.id}>
-                          {store.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </>
-              )}
-
-              {/* Navigasi Tombol */}
-              <div className="flex justify-between pt-2">
-                {currentStep === 2 && (
-                  <button
-                    type="button"
-                    onClick={handlePreviousStep}
-                    className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400"
-                  >
-                    Back
-                  </button>
-                )}
-                <div className="flex space-x-2">
-                  {currentStep === 1 ? (
-                    <button
-                      type="button"
-                      onClick={handleNextStep}
-                      className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-                    >
-                      Next
-                    </button>
-                  ) : (
-                    <button
-                      type="submit"
-                      className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-                    >
-                      Create Product
-                    </button>
-                  )}
-                </div>
-              </div>
-            </form>
-          </div>
+                        {/* Individual Store Stocks */}
+                        <div className="space-y-1">
+                          {product.storeProducts &&
+                          product.storeProducts.length > 0 ? (
+                            product.storeProducts.map((store) => {
+                              const storeStockStatus = getStockStatus(
+                                store.stock
+                              );
+                              return (
+                                <div
+                                  key={store.storeId}
+                                  className="flex items-center justify-between text-xs"
+                                >
+                                  <span
+                                    className="text-gray-600 truncate max-w-[120px]"
+                                    title={store.storeName}
+                                  >
+                                    {store.storeName}
+                                  </span>
+                                  <span
+                                    className={`font-medium ${storeStockStatus.textClass}`}
+                                  >
+                                    {store.stock}
+                                  </span>
+                                </div>
+                              );
+                            })
+                          ) : (
+                            <div className="text-xs text-gray-400 italic">
+                              No stores found
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="border px-4 py-2 text-sm">
+                      {product.category.join(", ")}
+                    </td>
+                    <td className="border px-4 py-2 text-center">
+                      <div className="flex justify-center space-x-2">
+                        <button
+                          onClick={() => handleUpdateProduct(product.id)}
+                          className="bg-yellow-400 hover:bg-yellow-500 text-white font-medium px-3 py-1 rounded text-sm"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => confirmDeleteProduct(product)}
+                          className="bg-red-500 hover:bg-red-600 text-white font-medium px-3 py-1 rounded text-sm"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       )}
 
-      {/* Menampilkan semua produk dalam format kartu */}
-      <h2 className="text-xl font-semibold mt-8">All Products</h2>
-      {products.length === 0 ? (
-        <p>No products found. You can create one.</p>
-      ) : (
-        <ul className="space-y-5 mt-4">
-          {products.map((product) => (
-            <li
-              key={product.id}
-              className="border border-gray-300 rounded-lg p-4"
-            >
-              <h3 className="text-lg font-semibold">{product.name}</h3>
-              <p className="mt-2 text-gray-700">{product.description}</p>
-              <p className="text-sm text-gray-600">
-                <strong>Price:</strong> ${product.price}
-              </p>
-              <p className="text-sm text-gray-600">
-                <strong>Stock:</strong> {product.stock}
-              </p>
-              <p className="text-sm text-gray-600">
-                <strong>Category:</strong> {product.category.join(", ")}
-              </p>
-            </li>
-          ))}
-        </ul>
+      {/* Pagination */}
+      {totalPages >= 1 && (
+        <div className="flex justify-center mt-4 space-x-2">
+          <button
+            onClick={() => setPage((prev) => Math.max(prev - 1, 1))}
+            disabled={page === 1 || loading}
+            className="px-3 py-1 border rounded disabled:opacity-50"
+          >
+            Previous
+          </button>
+          <span className="px-3 py-1">
+            Page {page} of {totalPages}
+          </span>
+          <button
+            onClick={() => setPage((prev) => Math.min(prev + 1, totalPages))}
+            disabled={page === totalPages || loading}
+            className="px-3 py-1 border rounded disabled:opacity-50"
+          >
+            Next
+          </button>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showModal && productToDelete && (
+        <div className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none">
+          <div className="bg-white p-6 rounded-lg shadow-lg max-w-sm w-full mx-4 pointer-events-auto">
+            <h2 className="text-xl font-semibold mb-4">Confirm Deletion</h2>
+            <p className="mb-6">
+              Are you sure you want to delete{" "}
+              <span className="font-bold">{productToDelete.name}</span>?
+            </p>
+            <div className="flex justify-end space-x-2">
+              <button
+                className="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400"
+                onClick={() => {
+                  setShowModal(false);
+                  setProductToDelete(null);
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+                onClick={handleDeleteConfirmed}
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </section>
   );

@@ -9,9 +9,9 @@ import {
   FiLayers,
   FiShoppingCart,
   FiUsers,
-  FiSettings,
   FiHome,
 } from "react-icons/fi";
+import { MdOutlineInventory, MdDiscount } from "react-icons/md";
 import Link from "next/link";
 import SignOut from "@/components/login/logout";
 
@@ -65,13 +65,18 @@ export default function MenuNavbarStoreAdmin({
         </button>
         <div className="text-sm">
           {users ? (
-            <span>
-              Welcome,{" "}
-              <strong>
-                {users.firstName} {users.lastName}
-                {users.name}
-              </strong>
-            </span>
+            <div>
+              <span>
+                Welcome,{" "}
+                <strong>
+                  {users.firstName} {users.lastName}
+                  {users.name}
+                </strong>
+              </span>
+              <div className="text-xs text-green-200">
+                Role: <span className="font-semibold">{users.role}</span>
+              </div>
+            </div>
           ) : (
             <span>Loading user...</span>
           )}
@@ -125,18 +130,32 @@ export default function MenuNavbarStoreAdmin({
                   <span>Dashboard</span>
                 </Link>
                 <Link
-                  href="/dashboard/admin-store/store"
+                  href="/dashboard/admin-store/product"
                   className="flex items-center space-x-2 hover:bg-green-700 px-2 py-1 rounded"
                 >
                   <FiBox />
-                  <span>Store</span>
+                  <span>Product</span>
                 </Link>
                 <Link
-                  href="/store/categories"
+                  href="/dashboard/admin-store/category"
                   className="flex items-center space-x-2 hover:bg-green-700 px-2 py-1 rounded"
                 >
                   <FiLayers />
-                  <span>Kategori Produk</span>
+                  <span>Category</span>
+                </Link>
+                <Link
+                  href="/dashboard/admin-store/discount"
+                  className="flex items-center space-x-2 hover:bg-green-700 px-2 py-1 rounded"
+                >
+                  <MdDiscount />
+                  <span>Discount</span>
+                </Link>
+                <Link
+                  href="/dashboard/admin-store/inventory-management"
+                  className="flex items-center space-x-2 hover:bg-green-700 px-2 py-1 rounded"
+                >
+                  <MdOutlineInventory />
+                  <span>Inventory</span>
                 </Link>
                 <Link
                   href="/store/orders"
@@ -151,13 +170,6 @@ export default function MenuNavbarStoreAdmin({
                 >
                   <FiUsers />
                   <span>Pelanggan</span>
-                </Link>
-                <Link
-                  href="/store/settings"
-                  className="flex items-center space-x-2 hover:bg-green-700 px-2 py-1 rounded"
-                >
-                  <FiSettings />
-                  <span>Pengaturan</span>
                 </Link>
               </nav>
               <div className="p-6 bg-green-900 w-full">

@@ -35,4 +35,5 @@ router
   .get(verifyToken, roleGuard("STORE_ADMIN"), getStoreById);
 router.route("/super-admin/:storeId").delete(deleteStore).put(updateStore);
 
+router.route("/super-admin/:editingStore.id").put(updateStore);
 export default router;

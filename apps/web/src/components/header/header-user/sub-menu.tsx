@@ -1,5 +1,4 @@
 "use client";
-
 import Link from "next/link";
 
 export default function Submenu() {
@@ -25,8 +24,7 @@ export default function Submenu() {
           >
             Contact Us
           </Link>
-
-          <Link href="/dashboard/user/product" className="hover:text-green-600">
+          <Link href="/products" className="hover:text-green-600">
             Product
           </Link>
         </nav>

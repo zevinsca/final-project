@@ -3,6 +3,17 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { calculateDiscountPrice } from "../../../../lib/utils/discount";
+
+interface DiscountType {
+  id: string;
+  value: number;
+  discountType: "PERCENTAGE" | "FIXED";
+  minPurchase: number;
+  maxDiscount: number;
+  startDate: string;
+  endDate: string;
+}
 
 interface Product {
   id: string;
@@ -12,6 +23,8 @@ interface Product {
   stock: number;
   imagePreview: { imageUrl: string }[];
   storeName?: string | null;
+  storeDistance?: number;
+  Discount?: DiscountType[];
 }
 
 interface Store {
@@ -40,14 +53,10 @@ export default function ProductPage() {
   const [search, setSearch] = useState<string>("");
   const [page, setPage] = useState<number>(1);
   const [limit] = useState<number>(12);
-
-  // ✅ NEW: Filter by category
   const [category, setCategory] = useState<string>("");
   const [categories, setCategories] = useState<string[]>([]);
 
-  // 🔥 PERBAIKAN 1: Load initial data dari localStorage
   useEffect(() => {
-    // Load saved location data
     const savedLat = localStorage.getItem("lat");
     const savedLng = localStorage.getItem("lng");
     const savedProvince = localStorage.getItem("province");
@@ -67,7 +76,6 @@ export default function ProductPage() {
     }
   }, []);
 
-  // 🔥 PERBAIKAN 2: Geolocation dengan localStorage sync
   useEffect(() => {
     if ("geolocation" in navigator) {
       navigator.geolocation.getCurrentPosition(
@@ -79,12 +87,10 @@ export default function ProductPage() {
           setLongitude(lng);
           setIsGeoActive(true);
 
-          // 🔥 SIMPAN KE LOCALSTORAGE
           localStorage.setItem("lat", lat.toString());
           localStorage.setItem("lng", lng.toString());
           localStorage.setItem("isGeoActive", "true");
 
-          // Clear province selection karena geo aktif
           localStorage.removeItem("province");
           setSelectedProvince("All");
 
@@ -97,7 +103,6 @@ export default function ProductPage() {
           console.log("❌ Geolocation failed:", error.message);
           setIsGeoActive(false);
 
-          // 🔥 BERSIHKAN LOCALSTORAGE
           localStorage.removeItem("lat");
           localStorage.removeItem("lng");
           localStorage.setItem("isGeoActive", "false");
@@ -191,7 +196,6 @@ export default function ProductPage() {
       try {
         const res = await fetch(`${domain}/api/v1/categories`);
         const data = await res.json();
-        // Ambil array nama kategori dari data.data
         const names = (data.data || []).map((c: { name: string }) => c.name);
         setCategories(names);
       } catch (err) {
@@ -203,12 +207,9 @@ export default function ProductPage() {
     fetchCategories();
   }, []);
 
-  // 🔥 PERBAIKAN 3: Handler untuk province change
   const handleProvinceChange = (province: string) => {
     setSelectedProvince(province);
     setPage(1);
-
-    // 🔥 SIMPAN KE LOCALSTORAGE
     localStorage.setItem("province", province);
 
     // Clear geolocation data karena user pilih province manual
@@ -254,7 +255,7 @@ export default function ProductPage() {
           <div>
             <h2 className="text-2xl font-bold mb-4 text-green-900"></h2>
 
-            {/* 🔥 PERBAIKAN 4: Status indicator */}
+            {/*  Status indicator */}
             <div className="mb-4 p-3 bg-gray-100 rounded-lg">
               <p className="text-sm text-gray-600">
                 <strong>Status:</strong>{" "}
@@ -274,12 +275,6 @@ export default function ProductPage() {
                 onChange={(e) => setSearch(e.target.value)}
                 className="px-3 py-2 border rounded shadow"
               />
-              {/* <button
-                onClick={() => setPage(1)}
-                className="bg-green-700 text-white px-4 py-2 rounded shadow"
-              >
-                Search
-              </button> */}
 
               <select
                 value={category}
@@ -309,42 +304,84 @@ export default function ProductPage() {
             )}
 
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-              {products.map((product) => (
-                <div
-                  key={product.id}
-                  className="bg-white border border-gray-300 rounded-lg p-4 shadow hover:shadow-lg transition duration-300 text-center"
-                >
-                  <Image
-                    src={
-                      product.imagePreview?.[0]?.imageUrl ?? "/placeholder.jpg"
-                    }
-                    alt={product.name}
-                    width={150}
-                    height={150}
-                    className="mx-auto mb-4"
-                  />
+              {products.map((product) => {
+                const activeDiscount = product.Discount?.[0] || null;
+                const { finalPrice, discountAmount, discountLabel } =
+                  calculateDiscountPrice(product.price, activeDiscount);
 
-                  <h3 className="text-lg font-semibold text-gray-900 mb-1">
-                    {product.name}
-                  </h3>
-
-                  <p className="text-green-700 font-bold mb-2">
-                    Rp{product.price.toLocaleString()}
-                  </p>
-
-                  {/* 🔥 PERBAIKAN 5: Tampilkan stock info */}
-                  <p className="text-sm text-gray-600 mb-4">
-                    Stock: {product.stock}
-                  </p>
-
-                  <Link
-                    href={`/products/${product.id}`}
-                    className="inline-block bg-green-700 text-white px-4 py-1 rounded hover:bg-green-800 transition"
+                return (
+                  <div
+                    key={product.id}
+                    className="bg-white border border-gray-300 rounded-lg p-4 shadow hover:shadow-lg transition duration-300 text-center relative overflow-hidden"
                   >
-                    View Product
-                  </Link>
-                </div>
-              ))}
+                    {/* Discount Badge */}
+                    {activeDiscount && (
+                      <div className="absolute top-2 left-2 bg-red-500 text-white px-2 py-1 rounded-md text-xs font-bold z-10">
+                        {discountLabel}
+                      </div>
+                    )}
+
+                    {/* Hot Deal Badge */}
+                    {activeDiscount &&
+                      ((activeDiscount.discountType === "PERCENTAGE" &&
+                        activeDiscount.value >= 30) ||
+                        (activeDiscount.discountType === "FIXED" &&
+                          activeDiscount.value >= 50000)) && (
+                        <div className="absolute top-2 right-2 bg-orange-500 text-white px-2 py-1 rounded-md text-xs font-bold animate-pulse z-10">
+                          🔥 HOT
+                        </div>
+                      )}
+
+                    <Image
+                      src={
+                        product.imagePreview?.[0]?.imageUrl ??
+                        "/placeholder.jpg"
+                      }
+                      alt={product.name}
+                      width={150}
+                      height={150}
+                      className="mx-auto mb-4"
+                    />
+
+                    <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                      {product.name}
+                    </h3>
+
+                    <div className="mb-2">
+                      {activeDiscount ? (
+                        <>
+                          <p className="text-sm text-gray-400 line-through">
+                            Rp {product.price.toLocaleString()}
+                          </p>
+                          <div className="flex items-center justify-center gap-2">
+                            <p className="text-lg font-bold text-green-700">
+                              Rp {finalPrice.toLocaleString()}
+                            </p>
+                          </div>
+                          <span className="text-xs bg-red-100 text-red-600 px-2 py-1 rounded">
+                            Save Rp {discountAmount.toLocaleString()}
+                          </span>
+                        </>
+                      ) : (
+                        <p className="text-lg font-bold text-green-700">
+                          Rp {product.price.toLocaleString()}
+                        </p>
+                      )}
+                    </div>
+
+                    <p className="text-sm text-gray-600 mb-4">
+                      Stock: {product.stock}
+                    </p>
+
+                    <Link
+                      href={`/products/${product.id}`}
+                      className="inline-block bg-green-700 text-white px-4 py-1 rounded hover:bg-green-800 transition"
+                    >
+                      View Product
+                    </Link>
+                  </div>
+                );
+              })}
             </div>
 
             <div className="flex justify-center mt-8 gap-3">

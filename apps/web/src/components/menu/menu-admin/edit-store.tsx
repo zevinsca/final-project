@@ -17,8 +17,8 @@ interface EditStoreSectionProps {
   setDestination: Dispatch<SetStateAction<string>>;
   latitude: number;
   setLatitude: Dispatch<SetStateAction<number>>;
-  longtitude: number;
-  setLongtitude: Dispatch<SetStateAction<number>>;
+  longitude: number;
+  setlongitude: Dispatch<SetStateAction<number>>;
   handleUpdateStore: () => Promise<void>;
   setShowEditModal: Dispatch<SetStateAction<boolean>>;
 }
@@ -38,8 +38,8 @@ export default function EditStoreSection({
   setDestination,
   latitude,
   setLatitude,
-  longtitude,
-  setLongtitude,
+  longitude,
+  setlongitude,
   handleUpdateStore,
   setShowEditModal,
 }: EditStoreSectionProps) {
@@ -92,10 +92,10 @@ export default function EditStoreSection({
             className="w-full p-2 border"
           />
           <input
-            value={longtitude}
-            onChange={(e) => setLongtitude(parseFloat(e.target.value))}
+            value={longitude}
+            onChange={(e) => setlongitude(parseFloat(e.target.value))}
             type="number"
-            placeholder="Longtitude"
+            placeholder="longitude"
             className="w-full p-2 border"
           />
         </div>

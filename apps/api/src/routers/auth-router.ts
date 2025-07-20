@@ -20,6 +20,7 @@ import {
   resetPassword,
 } from "../controllers/auth-controller/set-password/set-password.js";
 import { changePassword } from "../controllers/user-controller/update/change-password.js";
+import { getProfile } from "../controllers/auth.controller.js";
 
 const router = express.Router();
 
@@ -41,6 +42,8 @@ router.get(
   passport.authenticate("google", { session: false }),
   loginGoogle
 );
+
+router.get("/profile", verifyToken, getProfile);
 // Logout untuk user yang login lewat Google
 router.route("/logout").delete(logout);
 

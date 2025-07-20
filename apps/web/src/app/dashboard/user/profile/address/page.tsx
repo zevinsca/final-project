@@ -8,8 +8,8 @@ interface AddressDetail {
   id: string;
   userAddressId: string;
   storeAddressId: string | null;
-  destination: string;
   address: string;
+  destination: string;
   city: string;
   province: string;
   postalCode: string;
@@ -22,6 +22,13 @@ interface UserAddress {
   recipient: string;
   isPrimary: boolean;
   Address: AddressDetail[];
+}
+
+interface DestinationOption {
+  label: string;
+  city_name: string;
+  province_name: string;
+  zip_code: string;
 }
 
 interface DestinationOption {
