@@ -14,6 +14,8 @@ async function seed() {
     console.info("⚡ Cleaning old data...");
 
     await prisma.userAddress.deleteMany(); // or the correct relation model name
+    await prisma.orderItem.deleteMany();
+    await prisma.order.deleteMany();
     await prisma.address.deleteMany();
     await prisma.cartItem.deleteMany();
     await prisma.cart.deleteMany();

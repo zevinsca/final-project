@@ -185,23 +185,23 @@ export default function CheckoutPage() {
   //   })();
   // }, []);
 
-  // useEffect(() => {
-  //   const clientKey = process.env.NEXT_PUBLIC_MIDTRANS_SANDBOX_CLIENT_KEY;
+  useEffect(() => {
+    const clientKey = process.env.NEXT_PUBLIC_MIDTRANS_SANDBOX_CLIENT_KEY;
 
-  //   if (
-  //     document.querySelector(
-  //       'script[src="https://app.sandbox.midtrans.com/snap/snap.js"]'
-  //     )
-  //   ) {
-  //     return; // already loaded
-  //   }
+    if (
+      document.querySelector(
+        'script[src="https://app.sandbox.midtrans.com/snap/snap.js"]'
+      )
+    ) {
+      return; // already loaded
+    }
 
-  //   const script = document.createElement("script");
-  //   script.src = "https://app.sandbox.midtrans.com/snap/snap.js";
-  //   script.setAttribute("data-client-key", clientKey || "");
-  //   script.async = true;
-  //   document.body.appendChild(script);
-  // }, []);
+    const script = document.createElement("script");
+    script.src = "https://app.sandbox.midtrans.com/snap/snap.js";
+    script.setAttribute("data-client-key", clientKey || "");
+    script.async = true;
+    document.body.appendChild(script);
+  }, []);
 
   useEffect(() => {
     if (!selectedAddressId) return;
@@ -244,7 +244,8 @@ export default function CheckoutPage() {
     if (!allAddressFilled)
       return alert("Please complete your shipping address.");
     if (!shippingId) return alert("Please select a shipping method.");
-    if (!manualPaymentProof) return alert("Please upload your payment proof.");
+    if (!manualPaymentProof && paymentMethod == "manual")
+      return alert("Please upload your payment proof.");
 
     const selectedAddress = userAddresses.find(
       (s) => s.id === selectedAddressId
@@ -255,6 +256,7 @@ export default function CheckoutPage() {
     formData.append("address", JSON.stringify(selectedAddress));
     formData.append("shippingOptions", JSON.stringify(selectedShippingOption));
     formData.append("cartItems", JSON.stringify(cartItems));
+    formData.append("paymentMethod", paymentMethod);
 
     try {
       const res = await fetch("http://localhost:8000/api/v1/checkout/manual", {
@@ -268,7 +270,31 @@ export default function CheckoutPage() {
 
       const json = await res.json();
       if (res.ok) {
-        router.push("/pending");
+        if (paymentMethod == "manual") router.push("/dashboard/user/my-orders");
+        else {
+          console.log(window);
+          console.log(JSON.stringify(json));
+          window.snap.pay(json.data.midtransTransaction?.token, {
+            selectedPaymentType: "gopay",
+            onSuccess: function (result) {
+              console.log("success");
+              console.log(result);
+            },
+            onPending: function (result) {
+              console.log("pending");
+              console.log(result);
+            },
+            onError: function (result) {
+              console.log("error");
+              console.log(result);
+            },
+            onClose: function () {
+              console.log(
+                "customer closed the popup without finishing the payment"
+              );
+            },
+          });
+        }
       } else {
         console.error(json);
         alert("Failed to submit manual payment.");
@@ -306,13 +332,13 @@ export default function CheckoutPage() {
                       {item.Product?.image && (
                         <Image
                           src={item.Product.image}
-                          alt={item.Product.title}
+                          alt={item.Product.name}
                           width={60}
                           height={60}
                           className="rounded"
                         />
                       )}
-                      <span>{item.Product.title}</span>
+                      <span>{item.Product.name}</span>
                     </td>
                     <td className="p-2 text-center">
                       Rp. {formatRp(item.Product.price)}
@@ -528,7 +554,7 @@ export default function CheckoutPage() {
             })}
 
             {/* Payment Method Selection */}
-            {/* <div className="mt-6">
+            <div className="mt-6">
               <h3 className="text-lg font-semibold mb-2">Payment Method</h3>
               <div className="space-y-2">
                 <label className="flex items-center gap-2">
@@ -568,8 +594,8 @@ export default function CheckoutPage() {
                   />
                 </div>
               )}
-            </div> */}
-            <div className="mt-6">
+            </div>
+            {/* <div className="mt-6">
               <h3 className="text-lg font-semibold mb-2">Payment Method</h3>
               <div className="space-y-2">
                 <label className="flex items-center gap-2">
@@ -591,7 +617,7 @@ export default function CheckoutPage() {
                   className="block w-full border rounded p-2"
                 />
               </div>
-            </div>
+            </div> */}
 
             {/* Totals */}
             <h3 className="text-lg font-semibold mb-2">Totals</h3>

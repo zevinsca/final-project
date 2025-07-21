@@ -1,14 +1,13 @@
-// import express from "express";
+import express from "express";
 
-// import {
-//   createOrder,
-//   updateOrderStatus,
-// } from "../controllers/order-controller.js";
-// import { verifyToken } from "../middleware/auth-middleware.js";
+import {
+  getMyOrders,
+  markOrderAsDone,
+} from "../controllers/order-controller.js";
+import { verifyToken } from "../middleware/auth-middleware.js";
 
-// const router = express.Router();
+const router = express.Router();
 
-// router.route("/").post(verifyToken, createOrder);
-// router.route("/status").post(updateOrderStatus);
-
-// export default router;
+router.get("/", verifyToken, getMyOrders);
+router.patch("/complete", verifyToken, markOrderAsDone);
+export default router;

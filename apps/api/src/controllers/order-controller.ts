@@ -1,148 +1,125 @@
-// import { Request, Response } from "express";
-// import prisma from "../config/prisma-client.js";
-// import { MidtransClient } from "midtrans-node-client";
-// import { v7 as uuid } from "uuid";
-// import { CustomJwtPayload } from "../types/express.js";
+import { Request, Response } from "express";
+import prisma from "../config/prisma-client.js";
 
-// const snap = new MidtransClient.Snap({
-//   isProduction: process.env.NODE_ENV === "production",
-//   serverKey: process.env.MIDTRANS_SANDBOX_SERVER_KEY,
-// });
+export const getMyOrders = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user.id;
 
-// // Create Order and initiate Midtrans transaction
-// export async function createOrder(req: Request, res: Response) {
-//   try {
-//     const user = req.user as CustomJwtPayload;
-//     const userId = user.id;
-//     const { addressId } = req.body;
+    const orders = await prisma.order.findMany({
+      where: { userId },
+      orderBy: { createdAt: "desc" },
+      include: {
+        OrderItem: {
+          include: {
+            Product: true,
+          },
+        },
+      },
+    });
 
-//     // Get the user's cart and items
-//     const cart = await prisma.cart.findFirst({
-//       where: { userId },
-//       include: {
-//         CartItem: {
-//           include: { Product: true },
-//         },
-//       },
-//     });
+    res.status(200).json({ data: orders });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Failed to fetch orders." });
+  }
+};
 
-//     if (!cart || cart.CartItem.length === 0) {
-//       res.status(400).json({ message: "Cart is empty" });
-//       return;
-//     }
+export const getOrders = async (req: Request, res: Response) => {
+  try {
+    const orders = await prisma.order.findMany({
+      orderBy: { createdAt: "desc" },
+      include: {
+        Address: {
+          include: {
+            UserAddresses: true,
+          },
+        },
+        OrderItem: {
+          include: {
+            Product: {
+              select: {
+                name: true,
+              },
+            },
+          },
+        },
+      },
+    });
 
-//     const orderId = uuid();
+    // Convert to the expected structure
+    const result = orders.map((order) => {
+      const recipientName =
+        order.Address.UserAddresses[0]?.recipient || "Unknown";
 
-//     const subTotal = cart.CartItem.reduce(
-//       (total: number, item: { unitPrice: number; quantity: number }) =>
-//         total + item.unitPrice * item.quantity,
-//       0
-//     );
-//     const shippingTotal = 20000; // Example flat shipping cost
-//     const totalPrice = subTotal + shippingTotal;
+      return {
+        id: order.id,
+        orderNumber: order.orderNumber,
+        recipientName, // added from UserAddress
+        totalPrice: order.totalPrice,
+        items: order.OrderItem.map((item) => ({
+          name: item.Product.name,
+          quantity: item.quantity,
+        })),
+        proofImageUrl: order.proofImageUrl || null,
+        paymentStatus: order.status.toLowerCase() || "pending",
+        isDone: order.isDone,
+      };
+    });
 
-//     // Create the Order and OrderItems
-//     await prisma.order.create({
-//       data: {
-//         id: orderId,
-//         userId,
-//         orderNumber: orderId,
-//         status: "PENDING",
-//         subTotal,
-//         shippingTotal,
-//         totalPrice,
-//         addressId,
-//         OrderItem: {
-//           create: cart.CartItem.map(
-//             (item: {
-//               productId: string;
-//               unitPrice: number;
-//               quantity: number;
-//             }) => ({
-//               productId: item.productId,
-//               unitPrice: item.unitPrice,
-//               quantity: item.quantity,
-//               total: item.unitPrice * item.quantity,
-//             })
-//           ),
-//         },
-//       },
-//     });
+    console.log(orders);
 
-//     const midtransTransaction = await snap.createTransaction({
-//       transaction_details: {
-//         order_id: orderId,
-//         gross_amount: totalPrice,
-//       },
-//       item_details: cart.CartItem.map(
-//         (item: {
-//           productId: string;
-//           unitPrice: number;
-//           quantity: number;
-//           Product: { name: string };
-//         }) => ({
-//           id: item.productId,
-//           name: item.Product.name,
-//           quantity: item.quantity,
-//           price: item.unitPrice,
-//         })
-//       ),
-//       customer_details: {
-//         first_name: user.name,
-//         email: user.email,
-//       },
-//     });
+    res.status(200).json({ data: result });
+  } catch (err) {
+    console.error("getOrders error:", err);
+    res.status(500).json({ message: "Failed to fetch orders." });
+  }
+};
 
-//     res.status(201).json({
-//       message: "Order created and transaction initialized",
-//       data: {
-//         midtransTransaction,
-//         orderId,
-//       },
-//     });
-//   } catch (error) {
-//     console.error("Error creating order:", error);
-//     res.status(500).json({ message: "Failed to create order" });
-//   }
-// }
+export const markOrderAsDone = async (req: Request, res: Response) => {
+  try {
+    const { orderId } = req.body;
+    const userId = req.user.id; // assuming verifyToken adds req.user
 
-// // Midtrans webhook or status update
-// export async function updateOrderStatus(req: Request, res: Response) {
-//   try {
-//     const { order_id, transaction_status } = req.body;
+    const order = await prisma.order.findUnique({
+      where: { id: orderId },
+    });
 
-//     if (!order_id || !transaction_status) {
-//       res.status(400).json({ message: "Missing transaction data" });
-//       return;
-//     }
+    if (!order || order.userId !== userId) {
+      return res.status(403).json({ message: "Not authorized" });
+    }
 
-//     if (
-//       transaction_status === "settlement" ||
-//       transaction_status === "capture"
-//     ) {
-//       await prisma.order.update({
-//         where: { id: order_id },
-//         data: { status: "PAID" },
-//       });
-//     } else if (transaction_status === "pending") {
-//       await prisma.order.update({
-//         where: { id: order_id },
-//         data: { status: "PENDING" },
-//       });
-//     } else if (
-//       transaction_status === "cancel" ||
-//       transaction_status === "deny" ||
-//       transaction_status === "expire"
-//     ) {
-//       await prisma.order.update({
-//         where: { id: order_id },
-//         data: { status: "CANCELLED" },
-//       });
-//     }
+    const updatedOrder = await prisma.order.update({
+      where: { id: orderId },
+      data: { isDone: true },
+    });
 
-//     res.status(200).json({ message: "Order status updated" });
-//   } catch (error) {
-//     console.error("Error updating order status:", error);
-//     res.status(500).json({ message: "Failed to update order status" });
-//   }
-// }
+    res.json({ message: "Order marked as done", data: updatedOrder });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Failed to mark as done" });
+  }
+};
+
+export const updateOrderStatusByAdmin = async (req: Request, res: Response) => {
+  try {
+    const { orderId, status } = req.body;
+
+    const allowedStatuses = ["PENDING", "PAID", "CANCELLED"] as const;
+
+    if (!allowedStatuses.includes(status?.toUpperCase())) {
+      return res.status(400).json({ message: "Invalid status value" });
+    }
+
+    const updatedOrder = await prisma.order.update({
+      where: { id: orderId },
+      data: {
+        status: status.toUpperCase(), // Only update if `status` is provided
+      },
+    });
+
+    res.status(200).json({ message: "Order updated", data: updatedOrder });
+  } catch (error) {
+    console.error("Admin update order error:", error);
+    res.status(500).json({ message: "Failed to update order" });
+  }
+};

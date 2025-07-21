@@ -2,25 +2,36 @@ import cloudinary from "../config/cloudinary-config.js";
 import { Request, Response } from "express";
 import prisma from "../config/prisma-client.js";
 
+import { MidtransClient } from "midtrans-node-client";
+
+const snap = new MidtransClient.Snap({
+  isProduction: process.env.NODE_ENV === "production",
+  serverKey: process.env.MIDTRANS_SANDBOX_SERVER_KEY,
+});
+
 export const handleManualCheckout = async (req: Request, res: Response) => {
   try {
     //const userId = req.user.id;
+    const user = req.user;
 
-    let { address, shippingOptions, cartItems } = req.body;
+    console.log(JSON.stringify(user));
+
+    let { address, shippingOptions, cartItems, paymentMethod } = req.body;
 
     const file = req.file;
-    if (!file) {
+    if (!file && paymentMethod == "manual") {
       res.status(400).json({ message: "No payment proof uploaded." });
       return;
     }
 
-    console.log(file.mimetype);
-
     // Upload image to Cloudinary
-    const base64Image = `data:${file.mimetype};base64,${file.buffer.toString("base64")}`;
-    const uploadRes = await cloudinary.uploader.upload(base64Image, {
-      folder: "payment_proofs",
-    });
+    let uploadRes = null;
+    if (paymentMethod == "manual") {
+      const base64Image = `data:${file.mimetype};base64,${file.buffer.toString("base64")}`;
+      uploadRes = await cloudinary.uploader.upload(base64Image, {
+        folder: "payment_proofs",
+      });
+    }
 
     // Parse address/cart
     const parsedAddress = JSON.parse(address);
@@ -67,47 +78,114 @@ export const handleManualCheckout = async (req: Request, res: Response) => {
     let regularShippings = result.data?.calculate_reguler;
 
     regularShippings.forEach((cost) => {
+      console.log(cost.shipping_name + "|" + cost.service_name);
+      console.log(
+        parsedShipping.shippingName + "|" + parsedShipping.serviceName
+      );
       if (
-        cost.shipping_name == shippingOptions.shipping_name &&
-        cost.service_name == shippingOptions.service_name
+        cost.shipping_name == parsedShipping.shippingName &&
+        cost.service_name == parsedShipping.serviceName
       ) {
         shippingCost = cost.grandtotal;
       }
     });
 
     // Calculate subtotal and total
+    // const subTotal = parsedCart.reduce(
+    //   (sum, item) =>
+    //     sum + item.Product.price * item.Product.weight * item.quantity,
+    //   0
+    // );
     const subTotal = parsedCart.reduce(
-      (sum, item) =>
-        sum + item.Product.price * item.Product.weight * item.quantity,
+      (sum, item) => sum + item.Product.price * item.quantity,
       0
     );
     const totalPrice = subTotal + shippingCost;
 
     console.log("ADDRESSID" + parsedAddress.addressId);
 
+    console.log(totalPrice);
+
+    let orderNumber = `ORD-${Date.now()}`;
+
     const newOrder = await prisma.order.create({
       data: {
-        orderNumber: `ORD-${Date.now()}`,
+        orderNumber: orderNumber,
         subTotal,
-        totalPrice,
-        // paymentMethod: "manual",
-        // paymentProofUrl: uploadRes.secure_url,
-        // paymentStatus: "PENDING",
-        shippingOptions: parsedShipping,
         shippingTotal: shippingCost,
-        Address: {
-          connect: {
-            id: parsedAddress.addressId,
-          },
+        totalPrice,
+        shippingOptions: parsedShipping,
+        proofImageUrl: uploadRes?.secure_url,
+        addressId: parsedAddress.addressId,
+        userId: req.user.id,
+        paymentMethod: paymentMethod,
+        OrderItem: {
+          create: parsedCart.map((item) => ({
+            productId: item.Product.id,
+            unitPrice: parseFloat(item.Product.price),
+            quantity: item.quantity,
+            total: parseFloat(item.Product.price) * item.quantity,
+          })),
         },
-        User: {
-          connect: {
-            id: req.user.id,
-          },
-        },
+      },
+      include: {
+        OrderItem: true,
       },
     });
 
+    let midItemDetails = parsedCart.map(
+      (item: {
+        productId: string;
+        unitPrice: number;
+        quantity: number;
+        Product: { name: string };
+      }) => ({
+        id: item.productId,
+        name: item.Product.name,
+        quantity: item.quantity,
+        price: item.unitPrice,
+      })
+    );
+
+    midItemDetails.push({
+      id: "SHIPPING COST",
+      name: "SHIPPING COST",
+      quantity: 1,
+      price: shippingCost,
+    });
+
+    if (paymentMethod != "manual") {
+      let requestBody = {
+        transaction_details: {
+          order_id: orderNumber,
+          gross_amount: totalPrice,
+        },
+        item_details: midItemDetails,
+        customer_details: {
+          first_name: user.firstName,
+          email: user.email,
+        },
+      };
+      try {
+        console.log(JSON.stringify(requestBody));
+
+        let midtransTransaction = await snap.createTransaction(requestBody);
+        res.status(201).json({
+          message: "Order created and transaction initialized",
+          data: {
+            midtransTransaction,
+            orderNumber,
+          },
+        });
+      } catch (error) {
+        console.log(error);
+        console.log("WTF");
+        console.log(JSON.stringify(error.ApiResponse));
+        res.status(500).json({
+          message: "Order failed",
+        });
+      }
+    }
     res
       .status(200)
       .json({ message: "Manual payment submitted", data: newOrder });

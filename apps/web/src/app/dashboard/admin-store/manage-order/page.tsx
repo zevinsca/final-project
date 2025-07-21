@@ -8,24 +8,60 @@ interface Order {
   id: string;
   orderNumber: string;
   recipientName: string;
+  totalPrice: number;
   items: {
     name: string;
     quantity: number;
   }[];
-  paymentMethod: "epayment" | "manual";
-  paymentProofUrl?: string;
-  paymentStatus: "pending" | "paid" | "failed";
-  isDelivered: boolean;
+  // paymentMethod: "epayment" | "manual";
+  proofImageUrl?: string;
+  paymentStatus: "pending" | "paid" | "cancelled";
   isDone: boolean;
 }
 
 export default function ManageOrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
 
+  const handleStatusChange = async (
+    orderId: string,
+    newStatus: Order["paymentStatus"]
+  ) => {
+    try {
+      const res = await fetch(
+        "http://localhost:8000/api/v1/admin/orders/update",
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
+          body: JSON.stringify({
+            orderId,
+            status: newStatus.toUpperCase(),
+          }),
+        }
+      );
+
+      if (res.ok) {
+        setOrders((prev) =>
+          prev.map((order) =>
+            order.id === orderId
+              ? { ...order, paymentStatus: newStatus } // ✅ only update status
+              : order
+          )
+        );
+      } else {
+        console.error("Failed to update status");
+      }
+    } catch (err) {
+      console.error("Error:", err);
+    }
+  };
+
   useEffect(() => {
     async function fetchOrders() {
       try {
-        const res = await fetch("http://localhost:8000/api/v1/orders", {
+        const res = await fetch("http://localhost:8000/api/v1/admin/orders", {
           credentials: "include",
         });
         const json = await res.json();
@@ -55,10 +91,10 @@ export default function ManageOrdersPage() {
                 <th className="p-3 text-left">Order Number</th>
                 <th className="p-3 text-left">Recipient</th>
                 <th className="p-3 text-left">Order Details</th>
+                <th className="p-3 text-left">Total Price</th>
                 <th className="p-3 text-left">Payment Method</th>
                 <th className="p-3 text-left">Proof of Payment</th>
-                <th className="p-3 text-left">Payment Status</th>
-                <th className="p-3 text-left">Delivered</th>
+                <th className="p-3 text-left">Status</th>
                 <th className="p-3 text-left">Done</th>
               </tr>
             </thead>
@@ -73,7 +109,7 @@ export default function ManageOrdersPage() {
                 orders.map((order, index) => (
                   <tr key={order.id} className="border-b hover:bg-gray-50">
                     <td className="p-3">{index + 1}</td>
-                    <td className="p-3 font-medium">{order.orderNumber}</td>
+                    <td className="p-3 font-medium">#{order.orderNumber}</td>
                     <td className="p-3">{order.recipientName}</td>
                     <td className="p-3 text-sm">
                       <ul className="list-disc pl-4">
@@ -84,16 +120,18 @@ export default function ManageOrdersPage() {
                         ))}
                       </ul>
                     </td>
-                    <td className="p-3 capitalize">{order.paymentMethod}</td>
+                    <td className="p-3">{order.totalPrice}</td>
+                    {/* <td className="p-3 capitalize">{order.paymentMethod}</td> */}
+                    <td className="p-3 capitalize">Manual</td>
                     <td className="p-3">
-                      {order.paymentProofUrl ? (
+                      {order.proofImageUrl ? (
                         <a
-                          href={order.paymentProofUrl}
+                          href={order.proofImageUrl}
                           target="_blank"
                           rel="noopener noreferrer"
                         >
                           <Image
-                            src={order.paymentProofUrl}
+                            src={order.proofImageUrl}
                             alt="Proof"
                             width={60}
                             height={60}
@@ -104,7 +142,7 @@ export default function ManageOrdersPage() {
                         <span className="text-gray-400">—</span>
                       )}
                     </td>
-                    <td
+                    {/* <td
                       className={`p-3 font-medium ${
                         order.paymentStatus === "paid"
                           ? "text-green-600"
@@ -114,8 +152,24 @@ export default function ManageOrdersPage() {
                       }`}
                     >
                       {order.paymentStatus}
+                    </td> */}
+                    <td className="p-3">
+                      <select
+                        value={order.paymentStatus}
+                        onChange={(e) =>
+                          handleStatusChange(
+                            order.id,
+                            e.target.value as Order["paymentStatus"]
+                          )
+                        }
+                        className="border rounded px-2 py-1"
+                      >
+                        <option value="pending">Pending</option>
+                        <option value="paid">Paid</option>
+                        <option value="cancelled">Cancelled</option>
+                      </select>
                     </td>
-                    <td className="p-3">{order.isDelivered ? "✅" : "❌"}</td>
+
                     <td className="p-3">{order.isDone ? "✅" : "❌"}</td>
                   </tr>
                 ))

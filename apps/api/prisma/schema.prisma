@@ -239,7 +239,6 @@ model InventoryJournal {
 enum OrderStatus {
   PENDING
   PAID
-  SHIPPED
   DELIVERED
   CANCELLED
 }
@@ -301,12 +300,15 @@ model Order {
   subTotal        Float
   shippingTotal   Float
   totalPrice      Float
+  paymentMethod   String
+  proofImageUrl   String?
   shippingOptions Json
   addressId       String
+  isDone          Boolean     @default(false)
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
 
-  Address            Address           @relation(fields: [addressId], references: [id])
+  Address            Address           @relation(fields: [addressId], references: [id], onDelete: Cascade)
   User               User              @relation(fields: [userId], references: [id])
   OrderItem          OrderItem[]
   InventoryJournal   InventoryJournal? @relation(fields: [inventoryJournalId], references: [id])

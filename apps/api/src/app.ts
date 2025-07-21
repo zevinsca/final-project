@@ -15,6 +15,8 @@ import storeRouter from "./routers/store-router.js";
 import categoryRouter from "./routers/category-router.js"; // Ganti dengan categoryRouter jika ada
 import rajaOngkirRouter from "./routers/rajaongkir-router.js";
 import checkoutManualRouter from "./routers/checkout-router.js";
+import getMyOrderRouter from "./routers/order-router.js";
+import adminOrderRouter from "./routers/admin-order-router.js";
 // import paymentRouter from "./routers/payment-router.js";
 
 import "./config/passport.js"; // konfigurasi strategi Passport (GoogleStrategy)
@@ -67,9 +69,8 @@ app.use("/api/v1/cart", cartRouter);
 app.use("/api/v1/stores", storeRouter); // Ganti dengan storeRouter jika ada
 
 app.use("/api/v1/checkout", checkoutManualRouter);
-
-// app.use("/api/v1/orders", orderRouter);
-// app.use("/api/v1/payments", paymentRouter);
+app.use("/api/v1/my-orders", getMyOrderRouter);
+app.use("/api/v1/admin/orders", adminOrderRouter);
 
 // 🛡️ Endpoint dilindungi, bisa pakai verifyToken (JWT) atau verifyGoogleToken (session)
 app.use("/api/v1/user", userRouter);
