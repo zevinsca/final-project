@@ -120,7 +120,10 @@ export default function CartPage() {
                   </td>
                   <td className="p-2 flex items-center gap-2">
                     <Image
-                      src={item.Product.imagePreview}
+                      src={
+                        item.Product?.imagePreview?.[0]?.imageUrl ??
+                        "/default.jpg"
+                      }
                       alt={item.Product.name}
                       width={60}
                       height={60}

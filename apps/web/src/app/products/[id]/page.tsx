@@ -19,6 +19,7 @@ interface ProductType {
   price: number;
   stock: number;
   imagePreview: [{ imageUrl: string }];
+  storeId: string;
   Discount?: DiscountType[];
 }
 
@@ -119,6 +120,7 @@ export default function ProductCatalogId({
           imagePreview: raw.imagePreview ?? [],
           stock,
           Discount: raw.Discount ?? [],
+          storeId: storeProduct.storeId,
         };
 
         if (isMounted) setProduct(normalized);
@@ -145,7 +147,11 @@ export default function ProductCatalogId({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ productId: product.id, quantity: qty }),
+        body: JSON.stringify({
+          productId: product.id,
+          quantity: qty,
+          storeId: product.storeId,
+        }),
       });
       setNotification("✅ Successfully added to cart!");
       setTimeout(() => setNotification(null), 3000);
