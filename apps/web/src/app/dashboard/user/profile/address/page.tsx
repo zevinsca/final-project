@@ -10,7 +10,6 @@ interface AddressDetail {
   storeAddressId: string | null;
   address: string;
   destination: string;
-  destinationId: string;
   city: string;
   province: string;
   postalCode: string;
@@ -36,7 +35,6 @@ interface DestinationOption {
   label: string;
   city_name: string;
   province_name: string;
-  id: string;
   zip_code: string;
 }
 
@@ -59,7 +57,6 @@ export default function AddressPage() {
     city: "",
     province: "",
     postalCode: "",
-    destinationId: "",
     isPrimary: false,
   });
 
@@ -160,7 +157,6 @@ export default function AddressPage() {
           city: "",
           province: "",
           postalCode: "",
-          destinationId: "",
           isPrimary: false,
         });
         setSelectedAddress(null);
@@ -186,234 +182,110 @@ export default function AddressPage() {
             <h1 className="text-2xl font-bold text-green-800">
               Your Addresses
             </h1>
-
-            <div>
-              {addresses.length === 0 ? (
-                <p className="text-center">No addresses available.</p>
-              ) : (
-                <ul className="space-y-4">
-                  {addresses.map((address) => (
-                    <li
-                      key={address.id}
-                      className={`p-4 bg-white text-green-700 border border-green-700 rounded-lg ${
-                        address.isPrimary ? "bg-green-100" : ""
-                      }`}
-                    >
-                      <p className="font-semibold">{address.recipient}</p>
-                      <p>{address.Address.address}</p>
-                      <p>
-                        {address.Address.city}, {address.Address.province},{" "}
-                        {address.Address.postalCode}
-                      </p>
-                      <p className="text-sm">
-                        {address.isPrimary
-                          ? "Primary Address"
-                          : "Secondary Address"}
-                      </p>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-
-            <div className="mt-6 text-center">
-              {!isAddingAddress && (
-                <button
-                  onClick={handleAddNewAddress}
-                  className="bg-blue-500 text-white px-4 py-2 rounded"
-                >
-                  Add New Address
-                </button>
-              )}
-            </div>
+            <button
+              onClick={() => {
+                setIsEditing(false);
+                setFormData({
+                  recipient: "",
+                  address: "",
+                  destination: "",
+                  city: "",
+                  province: "",
+                  postalCode: "",
+                  isPrimary: false,
+                });
+                setShowModal(true);
+              }}
+              className="flex items-center gap-1 bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-full text-sm shadow"
+            >
+              <FiPlus className="text-lg" /> Add
+            </button>
           </div>
 
-          {isAddingAddress && (
-            <div className="fixed inset-0 bg-gray-600/10 bg-opacity-50 backdrop-blur-sm flex justify-center items-center">
-              <div className="bg-white p-8 rounded-lg shadow-lg w-[40%]">
-                <h2 className="text-xl font-semibold mb-4 text-center">
-                  Add New Address
-                </h2>
-                <form onSubmit={handleSubmit}>
-                  <div className="mb-4">
-                    <label className="block mb-2 text-sm font-medium">
-                      Recipient
-                    </label>
-                    <input
-                      type="text"
-                      value={newAddress.recipient}
-                      onChange={(e) =>
-                        setNewAddress({
-                          ...newAddress,
-                          recipient: e.target.value,
-                        })
-                      }
-                      className="w-full p-2 border border-gray-300 rounded-lg"
-                      required
-                    />
+          {loading ? (
+            <p className="text-center">Loading addresses...</p>
+          ) : error ? (
+            <p className="text-red-500 text-center">{error}</p>
+          ) : addresses.length === 0 ? (
+            <p className="text-center">No addresses available.</p>
+          ) : (
+            <ul className="space-y-4">
+              {addresses.map((userAddress) => (
+                <li
+                  key={userAddress.id}
+                  className={`transition-all duration-300 p-4 rounded-lg shadow-sm border relative cursor-pointer ${
+                    userAddress.isPrimary
+                      ? "border-green-600 bg-green-50"
+                      : "border-gray-300 bg-white hover:border-gray-400"
+                  }`}
+                >
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <p className="text-lg font-semibold text-green-800">
+                        {userAddress.recipient || "-"}
+                      </p>
+                      <p className="text-sm text-gray-700 mt-1">
+                        {userAddress.Address[0]?.address || "-"}
+                      </p>
+                      <p className="text-sm text-gray-700">
+                        {userAddress.Address[0]?.city || "-"},{" "}
+                        {userAddress.Address[0]?.province || "-"},{" "}
+                        {userAddress.Address[0]?.postalCode || "-"}
+                      </p>
+                    </div>
+                    <div className="flex flex-col items-end gap-1">
+                      <button
+                        onClick={() => setAsPrimary(userAddress.id)}
+                        className="text-xs px-2 py-1 rounded-full border"
+                      >
+                        {userAddress.isPrimary ? (
+                          <span className="text-green-600 border-green-600">
+                            PRIMARY
+                          </span>
+                        ) : (
+                          <span className="text-gray-500 border-gray-300">
+                            Set Primary
+                          </span>
+                        )}
+                      </button>
+                      <div className="flex gap-2 mt-2">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedAddress(userAddress);
+                            setFormData({
+                              recipient: userAddress.recipient,
+                              address: userAddress.Address[0]?.address || "",
+                              destination:
+                                userAddress.Address[0]?.destination || "",
+                              city: userAddress.Address[0]?.city || "",
+                              province: userAddress.Address[0]?.province || "",
+                              postalCode:
+                                userAddress.Address[0]?.postalCode || "",
+                              isPrimary: userAddress.isPrimary,
+                            });
+                            setIsEditing(true);
+                            setShowModal(true);
+                          }}
+                          className="text-blue-500 hover:text-blue-700"
+                        >
+                          <FiEdit />
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDelete(userAddress.Address[0].id);
+                          }}
+                          className="text-red-500 hover:text-red-700"
+                        >
+                          <FiTrash2 />
+                        </button>
+                      </div>
+                    </div>
                   </div>
-
-                  <div className="mb-4">
-                    <label className="block mb-2 text-sm font-medium">
-                      Address Line
-                    </label>
-                    <input
-                      type="text"
-                      value={newAddress.address}
-                      onChange={(e) =>
-                        setNewAddress({
-                          ...newAddress,
-                          address: e.target.value,
-                        })
-                      }
-                      className="w-full p-2 border border-gray-300 rounded-lg"
-                      required
-                    />
-                  </div>
-
-                  <div className="mb-4">
-                    <label className="block mb-2 text-sm font-medium">
-                      Destination
-                    </label>
-                    <input
-                      type="text"
-                      value={newAddress.destination || ""}
-                      onChange={(e) => {
-                        const value = e.target.value;
-                        setNewAddress({ ...newAddress, destination: value });
-                        fetchDestinationSuggestions(value); // fetch suggestion saat user ketik
-                      }}
-                      className="w-full p-2 border border-gray-300 rounded-lg"
-                      required
-                    />
-                    {/* Optional: tampilkan list suggestion */}
-                    {destinationOptions.length > 0 && (
-                      <ul className="border border-gray-300 rounded-lg max-h-40 overflow-y-auto mt-2 bg-white shadow-md z-10 relative">
-                        {destinationOptions.map((opt, index) => (
-                          <li
-                            key={index}
-                            className="p-2 hover:bg-gray-100 cursor-pointer"
-                            onClick={() => {
-                              setNewAddress({
-                                ...newAddress,
-
-                                destination: opt.label,
-                                city: opt.city_name,
-                                province: opt.province_name,
-                                postalCode: opt.zip_code,
-                                destinationId: opt.id,
-                              });
-                              setDestinationOptions([]);
-                            }}
-                          >
-                            {opt.label}
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </div>
-
-                  <div className="mb-4">
-                    <label className="block mb-2 text-sm font-medium">
-                      City
-                    </label>
-                    <input
-                      type="text"
-                      value={newAddress.city}
-                      onChange={(e) =>
-                        setNewAddress({ ...newAddress, city: e.target.value })
-                      }
-                      className="w-full p-2 border border-gray-300 rounded-lg"
-                      required
-                    />
-                  </div>
-
-                  <div className="mb-4">
-                    <label className="block mb-2 text-sm font-medium">
-                      Province
-                    </label>
-                    <input
-                      type="text"
-                      value={newAddress.province}
-                      onChange={(e) =>
-                        setNewAddress({
-                          ...newAddress,
-                          province: e.target.value,
-                        })
-                      }
-                      className="w-full p-2 border border-gray-300 rounded-lg"
-                      required
-                    />
-                  </div>
-
-                  <div className="mb-4">
-                    <label className="block mb-2 text-sm font-medium">
-                      Postal Code
-                    </label>
-                    <input
-                      type="text"
-                      value={newAddress.postalCode}
-                      onChange={(e) =>
-                        setNewAddress({
-                          ...newAddress,
-                          postalCode: e.target.value,
-                        })
-                      }
-                      className="w-full p-2 border border-gray-300 rounded-lg"
-                      required
-                    />
-                  </div>
-                  <div className="mb-4">
-                    <label className="block mb-2 text-sm font-medium">
-                      Destination ID
-                    </label>
-                    <input
-                      type="text"
-                      value={newAddress.destinationId}
-                      onChange={(e) =>
-                        setNewAddress({
-                          ...newAddress,
-                          destinationId: e.target.value,
-                        })
-                      }
-                      className="w-full p-2 border border-gray-300 rounded-lg"
-                      required
-                    />
-                  </div>
-
-                  <div className="mb-4 flex items-center">
-                    <input
-                      type="checkbox"
-                      checked={newAddress.isPrimary}
-                      onChange={(e) =>
-                        setNewAddress({
-                          ...newAddress,
-                          isPrimary: e.target.checked,
-                        })
-                      }
-                      className="mr-2"
-                    />
-                    <label className="text-sm">Set as Primary Address</label>
-                  </div>
-
-                  <div className="text-center">
-                    <button
-                      type="submit"
-                      className="bg-green-600 text-white px-4 py-2 rounded"
-                    >
-                      Save Address
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleCloseForm}
-                      className="bg-red-600 text-white px-4 py-2 rounded ml-4"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </form>
-              </div>
-            </div>
+                </li>
+              ))}
+            </ul>
           )}
         </div>
       </main>
