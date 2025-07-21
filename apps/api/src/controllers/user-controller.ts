@@ -6,20 +6,113 @@ import handlebars from "handlebars";
 import fs from "fs/promises";
 import { Resend } from "resend";
 import { Role } from "../../generated/prisma/index.js";
-import jwt from "jsonwebtoken";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 /* -------------------------------------------------------------------------- */
 /*                                GET ALL USER                                */
 /* -------------------------------------------------------------------------- */
-export async function getAllUser(_req: Request, res: Response) {
+export async function getAllUser(req: Request, res: Response) {
   try {
-    const user = await prisma.user.findMany();
-    res.status(200).json({ message: "Get All user success", data: user });
+    // Ambil query parameters
+    const {
+      page = "1",
+      limit = "10",
+      sortBy = "createdAt",
+      sortOrder = "desc",
+      search = "",
+      role = "",
+    } = req.query;
+
+    // Convert string ke number untuk pagination
+    const pageNum = parseInt(page as string, 10);
+    const limitNum = parseInt(limit as string, 10);
+    const skip = (pageNum - 1) * limitNum;
+
+    // Validasi sortBy untuk mencegah injection
+    const allowedSortFields = [
+      "id",
+      "username",
+      "email",
+      "firstName",
+      "lastName",
+      "role",
+      "createdAt",
+    ];
+    const validSortBy = allowedSortFields.includes(sortBy as string)
+      ? (sortBy as string)
+      : "createdAt";
+    const validSortOrder = sortOrder === "asc" ? "asc" : "desc";
+
+    // Build where clause untuk filtering
+    const whereClause: any = {};
+
+    // Search filter (mencari di multiple fields)
+    if (search) {
+      whereClause.OR = [
+        { username: { contains: search as string, mode: "insensitive" } },
+        { email: { contains: search as string, mode: "insensitive" } },
+        { firstName: { contains: search as string, mode: "insensitive" } },
+        { lastName: { contains: search as string, mode: "insensitive" } },
+      ];
+    }
+
+    // Role filter
+    if (role && role !== "") {
+      whereClause.role = role as Role;
+    }
+    // Get total count untuk pagination info
+    const totalUsers = await prisma.user.count({
+      where: whereClause,
+    });
+
+    // Get users with pagination, filtering, and sorting
+    const users = await prisma.user.findMany({
+      where: whereClause,
+      orderBy: {
+        [validSortBy]: validSortOrder,
+      },
+      skip: skip,
+      take: limitNum,
+      select: {
+        id: true,
+        username: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        phoneNumber: true,
+        role: true,
+        createdAt: true,
+      },
+    });
+
+    // Calculate pagination info
+    const totalPages = Math.ceil(totalUsers / limitNum);
+    const hasNextPage = pageNum < totalPages;
+    const hasPrevPage = pageNum > 1;
+
+    // Response dengan metadata pagination
+    res.status(200).json({
+      message: "Get All users success",
+      data: users,
+      pagination: {
+        currentPage: pageNum,
+        totalPages: totalPages,
+        totalUsers: totalUsers,
+        usersPerPage: limitNum,
+        hasNextPage: hasNextPage,
+        hasPrevPage: hasPrevPage,
+      },
+      filters: {
+        search: search || null,
+        role: role || null,
+        sortBy: validSortBy,
+        sortOrder: validSortOrder,
+      },
+    });
   } catch (error) {
     console.error("get All User Error:", error);
-    res.status(500).json({ message: "Failed to get address" });
+    res.status(500).json({ message: "Failed to get users" });
   }
 }
 /* -------------------------------------------------------------------------- */
@@ -46,7 +139,6 @@ export async function getCurrentUser(
       photo: user.photo,
       role: user.role,
       loginType: user.loginType,
-      isVerified: user.isVerified,
     };
     res.status(200).json({ data: userData });
   } catch (error) {
@@ -142,6 +234,82 @@ export async function deleteUser(req: Request, res: Response) {
   }
 }
 
+function getRandom(length: number): string {
+  return Math.random()
+    .toString(36)
+    .substring(2, 2 + length); // Menghasilkan string acak
+}
+export async function resetPassword(
+  req: Request,
+  res: Response
+): Promise<void> {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      res.status(400).json({ message: "Email diperlukan." });
+      return;
+    }
+
+    // Mencari user berdasarkan email
+    const user = await prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (!user) {
+      res
+        .status(404)
+        .json({ message: "User dengan email ini tidak ditemukan." });
+      return;
+    }
+
+    // Membuat token reset dan waktu kedaluwarsa (1 jam)
+    const resetToken = getRandom(32); // Menggunakan randomBytes dengan benar
+    const resetTokenExpiresAt = new Date();
+    resetTokenExpiresAt.setHours(resetTokenExpiresAt.getHours() + 1); // Kedaluwarsa dalam 1 jam
+
+    // Menyimpan token dan waktu kedaluwarsa pada user
+    await prisma.user.update({
+      where: { email },
+      data: {
+        resetToken,
+        resetTokenExpiresAt,
+      },
+    });
+
+    // Membaca template email dan mengompile-nya
+    const templateSource = await fs.readFile(
+      "src/templates/reset-password.hbs",
+      "utf-8"
+    );
+    const compiledTemplate = handlebars.compile(templateSource);
+
+    // Menghasilkan konten email dengan link reset dan link resend
+    const htmlTemplate = compiledTemplate({
+      resetLink: `http://localhost:8000/reset-password?token=${resetToken}`, // Link reset password
+      resendLink: `http://localhost:8000/request-reset`, // Link resend reset request
+      companyName: "YourCompany", // Nama perusahaan
+      currentYear: new Date().getFullYear(),
+    });
+
+    // Mengirim email menggunakan Resend API
+    const { error: resendError } = await resend.emails.send({
+      from: "reset-password@market-snap.com", // Gantilah dengan email pengirim yang sesuai
+      to: user.email,
+      subject: "Permintaan Reset Password",
+      html: htmlTemplate, // Menggunakan HTML template yang telah di-generate
+    });
+    if (resendError) {
+      res.status(400).json({ message: "email true but failed to send email" });
+      return;
+    }
+    res.status(200).json({ message: "Email reset password telah dikirim." });
+  } catch (error) {
+    console.error("Terjadi kesalahan dalam menangani permintaan reset:", error);
+    res.status(500).json({ message: "Gagal mengirim email reset password." });
+  }
+}
+
 // CHANGE PASSWORD
 export async function changePassword(
   req: Request,
@@ -150,7 +318,7 @@ export async function changePassword(
   try {
     const { oldPassword, newPassword } = req.body;
     const user = req.user as CustomJwtPayload;
-    const userId = user.ud; // Diambil dari auth middleware
+    const userId = user.id; // Diambil dari auth middleware
 
     if (!oldPassword || !newPassword) {
       res
@@ -226,117 +394,5 @@ export async function getUsersByRole(req: Request, res: Response) {
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Error fetching users." });
-  }
-}
-
-export async function sendVerificationEmail(req: Request, res: Response) {
-  try {
-    const user = req.user as CustomJwtPayload;
-    const userId = user.id;
-
-    const foundUser = await prisma.user.findUnique({
-      where: { id: userId },
-    });
-
-    if (!foundUser) {
-      res.status(404).json({ message: "User tidak ditemukan." });
-      return;
-    }
-
-    if (foundUser.isVerified) {
-      res.status(200).json({ message: "Akun sudah diverifikasi." });
-      return;
-    }
-
-    const token = jwt.sign(
-      { email: foundUser.email },
-      process.env.JWT_SECRET!,
-      {
-        expiresIn: "1d",
-      }
-    );
-
-    await prisma.user.update({
-      where: { id: userId },
-      data: {
-        verificationToken: token,
-      },
-    });
-
-    const templateSource = await fs.readFile(
-      "src/templates/verify-email.hbs",
-      "utf-8"
-    );
-    const compiledTemplate = handlebars.compile(templateSource);
-    const htmlTemplate = compiledTemplate({
-      customerName: foundUser.username,
-      token,
-      currentYear: new Date().getFullYear(),
-    });
-
-    const { error: resendError } = await resend.emails.send({
-      from: "MarketSnap <cs@resend.dev>",
-      to: [foundUser.email],
-      subject: "Please Verify Your Email Address",
-      html: htmlTemplate,
-    });
-
-    if (resendError) {
-      res.status(400).json({
-        message: "Email gagal dikirim. Silakan coba beberapa saat lagi.",
-      });
-      return;
-    }
-
-    res.status(200).json({
-      message: "Link verifikasi telah dikirim ke email Anda.",
-    });
-  } catch (error) {
-    console.error("Send Verification Error:", error);
-    res.status(500).json({ message: "Terjadi kesalahan server." });
-  }
-}
-
-export async function confirmVerificationToken(req: Request, res: Response) {
-  const { token } = req.query;
-
-  try {
-    if (!token || typeof token !== "string") {
-      res.status(400).json({ message: "Token tidak valid." });
-      return;
-    }
-
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as {
-      email: string;
-    };
-
-    const user = await prisma.user.findUnique({
-      where: { email: decoded.email },
-    });
-
-    if (!user) {
-      res.status(404).json({ message: "User tidak ditemukan." });
-      return;
-    }
-
-    if (user.isVerified) {
-      res.status(200).json({ message: "Akun Anda sudah diverifikasi." });
-      return;
-    }
-
-    await prisma.user.update({
-      where: { email: decoded.email },
-      data: {
-        isVerified: true,
-        verificationToken: null,
-      },
-    });
-
-    res.status(200).json({ message: "Email berhasil diverifikasi." });
-  } catch (error) {
-    console.error("Verifikasi gagal:", error);
-    res
-      .status(400)
-      .json({ message: "Token tidak valid atau sudah kedaluwarsa." });
   }
 }

@@ -33,21 +33,20 @@ enum InventoryAction {
 
 model User {
   id                  String    @id @default(uuid())
-  firstName           String?
-  lastName            String?
+  firstName           String
+  lastName            String
   email               String    @unique
   username            String?   @unique
-  password            String? // Kosong saat register, diisi saat user buat password
+  password            String?
   phoneNumber         String?   @unique
   role                Role      @default(USER)
   createdAt           DateTime  @default(now())
-  provider            String? // Untuk Google Login, default null
+  provider            String?
   resetToken          String?
   resetTokenExpiresAt DateTime?
-  isVerified          Boolean   @default(false) // Baru true setelah klik link verifikasi email
-  verificationToken   String? // Token untuk set-password / verifikasi
+  isVerified          Boolean   @default(false) // Status verifikasi, default false
+  verificationToken   String? // Token verifikasi
 
-  // Relasi ke model lain jika kamu sudah pakai
   Store            Store[]
   DiscountUsage    DiscountUsage[]
   InventoryJournal InventoryJournal[]
@@ -55,7 +54,7 @@ model User {
   Order            Order[]
   Product          Product[]
   UserAddress      UserAddress[]
-  Payment          Payment[]
+  StoreUser        StoreUser[]
 }
 
 model UserAddress {
@@ -87,6 +86,16 @@ model Address {
   Order         Order[]
 }
 
+model StoreUser {
+  id        String   @id @default(uuid())
+  storeId   String?
+  userId    String
+  createdAt DateTime @default(now())
+
+  Store Store? @relation(fields: [storeId], references: [id])
+  User  User   @relation(fields: [userId], references: [id])
+}
+
 model StoreAddress {
   id         String @id @default(uuid())
   storeId    String
@@ -102,18 +111,19 @@ model StoreAddress {
 model Store {
   id        String    @id @default(uuid())
   name      String    @unique
-  userId    String
+  userId    String?
   // Added: longitude for geographical location
   createdAt DateTime  @default(now())
   updatedAt DateTime? @updatedAt
   distance  Float?
 
-  User User @relation(fields: [userId], references: [id])
+  User User? @relation(fields: [userId], references: [id])
 
   Discounts    Discount[]
   Inventory    InventoryJournal[]
   StoreProduct StoreProduct[]
   StoreAddress StoreAddress[]
+  StoreUser    StoreUser[]
 }
 
 model Product {
@@ -121,7 +131,6 @@ model Product {
   name        String    @unique
   userId      String
   description String
-  stock       Int
   price       Float
   weight      Float
   createdAt   DateTime  @default(now())
@@ -277,20 +286,20 @@ model CartItem {
   Product Product @relation(fields: [productId], references: [id])
 }
 
-model Payment {
-  id            String        @id @default(uuid())
-  orderId       String        @unique
-  method        PaymentMethod
-  status        PaymentStatus @default(PENDING)
-  proofImageUrl String?
-  verifiedById  String? // Admin user who verified it
-  verifiedAt    DateTime?
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+// model Payment {
+//   id            String        @id @default(uuid())
+//   orderId       String        @unique
+//   method        PaymentMethod
+//   status        PaymentStatus @default(PENDING)
+//   proofImageUrl String?
+//   verifiedById  String? // Admin user who verified it
+//   verifiedAt    DateTime?
+//   createdAt     DateTime      @default(now())
+//   updatedAt     DateTime      @updatedAt
 
-  Order      Order @relation(fields: [orderId], references: [id])
-  verifiedBy User? @relation(fields: [verifiedById], references: [id])
-}
+//   Order      Order @relation(fields: [orderId], references: [id])
+//   verifiedBy User? @relation(fields: [verifiedById], references: [id])
+// }
 
 model Order {
   id              String      @id @default(uuid())
@@ -313,7 +322,7 @@ model Order {
   OrderItem          OrderItem[]
   InventoryJournal   InventoryJournal? @relation(fields: [inventoryJournalId], references: [id])
   inventoryJournalId String?
-  Payment            Payment?
+  // Payment            Payment?
 }
 
 model OrderItem {

@@ -12,6 +12,10 @@ import productRouter from "./routers/product-router.js";
 import cartRouter from "./routers/cart-router.js";
 import storeRouter from "./routers/store-router.js";
 // import orderRouter from "./routers/order-router.js";
+import inventoryRouter from "./routers/inventory-router.js";
+import discountRouter from "./routers/discount-router.js";
+// import storeProductRouter from "./routers/storeProduct-router.js";
+
 import categoryRouter from "./routers/category-router.js"; // Ganti dengan categoryRouter jika ada
 import rajaOngkirRouter from "./routers/rajaongkir-router.js";
 import checkoutManualRouter from "./routers/checkout-router.js";
@@ -63,10 +67,10 @@ app.use("/api/v1/auth", authRouter);
 
 app.use("/api/v1/addresses", addressRouter);
 app.use("/api/v1/products", productRouter);
-
 app.use("/api/v1/cart", cartRouter);
-
-app.use("/api/v1/stores", storeRouter); // Ganti dengan storeRouter jika ada
+app.use("/api/v1/stores", storeRouter);
+app.use("/api/v1/inventory", inventoryRouter);
+app.use("/api/v1/discounts", discountRouter);
 
 app.use("/api/v1/checkout", checkoutManualRouter);
 app.use("/api/v1/my-orders", getMyOrderRouter);
@@ -74,7 +78,7 @@ app.use("/api/v1/admin/orders", adminOrderRouter);
 
 // 🛡️ Endpoint dilindungi, bisa pakai verifyToken (JWT) atau verifyGoogleToken (session)
 app.use("/api/v1/user", userRouter);
-app.use("/api/v1/categories", categoryRouter); // Ganti dengan categoryRouter jika ada
+app.use("/api/v1/categories", categoryRouter);
 app.use("/api/v1/rajaongkir", rajaOngkirRouter);
 // Health check
 app.get("/api/v1/health", async (_req: Request, res: Response) => {

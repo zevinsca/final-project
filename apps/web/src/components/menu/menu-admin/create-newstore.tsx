@@ -21,14 +21,14 @@ interface StoreInput {
   province: string;
   postalCode: string;
   latitude: number;
-  longtitude: number;
+  longitude: number;
 }
 
 export default function CreateStoreSection({
   onStoreCreated,
 }: CreateStoreSectionProps) {
   const [latitude, setLatitude] = useState<number>(0);
-  const [longtitude, setLongtitude] = useState<number>(0);
+  const [longitude, setlongitude] = useState<number>(0);
   const [error, setError] = useState<string>("");
   const [success, setSuccess] = useState<string>("");
   const [showModal, setShowModal] = useState<boolean>(false);
@@ -44,7 +44,7 @@ export default function CreateStoreSection({
     province: "",
     postalCode: "",
     latitude: 0,
-    longtitude: 0,
+    longitude: 0,
   });
 
   const handleChange = <K extends keyof StoreInput>(
@@ -62,14 +62,14 @@ export default function CreateStoreSection({
     if (
       latitude < -90 ||
       latitude > 90 ||
-      longtitude < -180 ||
-      longtitude > 180
+      longitude < -180 ||
+      longitude > 180
     ) {
       setError("Latitude and Longitude must be within valid ranges.");
       return;
     }
 
-    const updatedStore = { ...newStore, latitude, longtitude };
+    const updatedStore = { ...newStore, latitude, longitude };
 
     try {
       const response = await fetch(
@@ -94,7 +94,7 @@ export default function CreateStoreSection({
           province: "",
           postalCode: "",
           latitude: 0,
-          longtitude: 0,
+          longitude: 0,
         });
         setShowModal(false);
         setSuccess("Toko berhasil dibuat!");
@@ -214,12 +214,12 @@ export default function CreateStoreSection({
 
               <div>
                 <label className="block text-sm font-medium text-gray-700">
-                  Longtitude
+                  longitude
                 </label>
                 <input
                   type="number"
-                  value={longtitude}
-                  onChange={(e) => setLongtitude(parseFloat(e.target.value))}
+                  value={longitude}
+                  onChange={(e) => setlongitude(parseFloat(e.target.value))}
                   className="mt-1 p-2 w-full border border-gray-300 rounded-md"
                   required
                 />

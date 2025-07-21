@@ -1,13 +1,17 @@
 import express from "express";
+
+import { roleGuard, verifyToken } from "../middleware/auth-middleware.js";
+import {
+  getAllStores,
+  getAllStoresForSuperAdmin,
+  getStoreById,
+} from "../controllers/store-controller/get/get-store.js";
 import {
   createStore,
-  getStoreById,
-  getAllStores,
   createStoreProduct,
-  deleteStore,
-  updateStore,
-} from "../controllers/store-controler.js";
-import { roleGuard, verifyToken } from "../middleware/auth-middleware.js";
+} from "../controllers/store-controller/create/create-store.js";
+import { deleteStore } from "../controllers/store-controller/delete/delete-store.js";
+import { updateStore } from "../controllers/store-controller/update/update-store.js";
 
 const router = express.Router();
 
@@ -20,6 +24,7 @@ router
 router
   .route("/super-admin")
   .get(verifyToken, getAllStores)
+  .get(getAllStoresForSuperAdmin)
   .post(verifyToken, roleGuard("SUPER_ADMIN"), createStore);
 router
   .route("/super-admin/:storeId")
@@ -28,7 +33,7 @@ router
 router
   .route("/:storeId")
   .get(verifyToken, roleGuard("STORE_ADMIN"), getStoreById);
-router.route("/super-admin/:storeId").delete(deleteStore);
+router.route("/super-admin/:storeId").delete(deleteStore).put(updateStore);
 
 router.route("/super-admin/:editingStore.id").put(updateStore);
 export default router;

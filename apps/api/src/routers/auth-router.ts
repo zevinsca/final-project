@@ -1,22 +1,26 @@
 import express from "express";
 import passport from "passport";
+
+import { authMiddleware, verifyToken } from "../middleware/auth-middleware.js";
 import {
-  login,
-  logout,
-  register,
-  loginSuccess,
   loginFailed,
+  loginGoogle,
+  loginSuccess,
+} from "../controllers/auth-controller/login/login-google.js";
+import { logout } from "../controllers/auth-controller/logout/logout.js";
+import {
+  confirmEmail,
   sendVerificationEmail,
   VerifySuccess,
-  loginGoogle,
-  setPassword,
+} from "../controllers/auth-controller/verification/verification.js";
+import { register } from "../controllers/auth-controller/register/register.js";
+import { login } from "../controllers/auth-controller/login/login-market-snap.js";
+import {
+  resendSetPasswordLink,
   resetPassword,
-  setNewPassword,
-  confirmEmail,
-} from "../controllers/auth.controller.js";
-
-import { changePassword } from "../controllers/user-controller.js";
-import { authMiddleware, verifyToken } from "../middleware/auth-middleware.js";
+} from "../controllers/auth-controller/set-password/set-password.js";
+import { changePassword } from "../controllers/user-controller/update/change-password.js";
+import { getProfile } from "../controllers/auth.controller.js";
 
 const router = express.Router();
 
@@ -38,6 +42,8 @@ router.get(
   passport.authenticate("google", { session: false }),
   loginGoogle
 );
+
+router.get("/profile", verifyToken, getProfile);
 // Logout untuk user yang login lewat Google
 router.route("/logout").delete(logout);
 
@@ -60,10 +66,12 @@ router.route("/login").post(login); // Logout khusus JWT
 /*                          Reser and change Password                         */
 /* -------------------------------------------------------------------------- */
 
-router.route("/reset-password").post(resetPassword);
-router.route("/set-new-password").post(setNewPassword);
+router.post("/reset-password", resendSetPasswordLink);
+
+// Route to handle the actual password reset using the token
+router.post("/set-password", resetPassword);
 
 // Change password harus login
 router.route("/change-password").post(authMiddleware, changePassword);
-router.route("/set-password").post(setPassword);
+// router.route("/set-password").post(setPassword);
 export default router;

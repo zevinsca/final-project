@@ -7,7 +7,10 @@ import { FaTwitter } from "react-icons/fa";
 import Link from "next/link";
 
 export default function LoginPage() {
-  const [loginData, setLoginData] = useState({ username: "", password: "" });
+  const [loginData, setLoginData] = useState({
+    usernameOrEmail: "",
+    password: "",
+  });
   const router = useRouter();
 
   async function handleSubmit(e: React.FormEvent) {
@@ -23,14 +26,30 @@ export default function LoginPage() {
 
       if (!res.ok) throw new Error("Login gagal");
 
+      const data = await res.json();
+
+      // Optional: alert login sukses
       alert("Login success");
 
-      setLoginData({ username: "", password: "" });
+      setLoginData({ usernameOrEmail: "", password: "" });
 
-      router.push("/");
-      window.location.href = "/";
+      // Redirect berdasarkan role
+      switch (data.role) {
+        case "USER":
+          router.push("/");
+          break;
+        case "STORE_ADMIN":
+          router.push("/dashboard/admin-store");
+          break;
+        case "SUPER_ADMIN":
+          router.push("/dashboard/admin");
+          break;
+        default:
+          router.push("/");
+      }
     } catch (error) {
-      console.error(error);
+      console.error("Login error:", error);
+      alert("Login gagal. Periksa kembali email/username dan password.");
     }
   }
 
@@ -43,19 +62,20 @@ export default function LoginPage() {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="text-sm font-medium text-gray-700">
-              Username
+              Username or Email
             </label>
             <input
               type="text"
-              placeholder="Enter your username"
+              placeholder="Enter your username or email"
               className="w-full mt-1 px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-900"
-              value={loginData.username}
+              value={loginData.usernameOrEmail}
               onChange={(e) =>
-                setLoginData({ ...loginData, username: e.target.value })
+                setLoginData({ ...loginData, usernameOrEmail: e.target.value })
               }
               required
             />
           </div>
+
           <div>
             <label className="text-sm font-medium text-gray-700">
               Password

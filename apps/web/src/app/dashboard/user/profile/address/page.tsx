@@ -2,18 +2,34 @@
 
 import { useState, useEffect } from "react";
 import MenuNavbarUser from "@/components/header/header-user/header";
-import Link from "next/link";
+import { FiPlus, FiEdit, FiTrash2 } from "react-icons/fi";
 
-interface Address {
+interface AddressDetail {
   id: string;
-  recipient: string;
+  userAddressId: string;
+  storeAddressId: string | null;
   address: string;
   destination: string;
   destinationId: string;
   city: string;
   province: string;
   postalCode: string;
+  createdAt: string;
+}
+
+interface UserAddress {
+  id: string;
+  userId: string;
+  recipient: string;
   isPrimary: boolean;
+  Address: AddressDetail[];
+}
+
+interface DestinationOption {
+  label: string;
+  city_name: string;
+  province_name: string;
+  zip_code: string;
 }
 
 interface DestinationOption {
@@ -25,14 +41,18 @@ interface DestinationOption {
 }
 
 export default function AddressPage() {
-  const [addresses, setAddresses] = useState<Address[]>([]);
+  const [addresses, setAddresses] = useState<UserAddress[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string>("");
-  const [isAddingAddress, setIsAddingAddress] = useState(false);
+  const [error, setError] = useState("");
+  const [showModal, setShowModal] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [selectedAddress, setSelectedAddress] = useState<UserAddress | null>(
+    null
+  );
   const [destinationOptions, setDestinationOptions] = useState<
     DestinationOption[]
   >([]);
-  const [newAddress, setNewAddress] = useState({
+  const [formData, setFormData] = useState({
     recipient: "",
     address: "",
     destination: "",
@@ -43,22 +63,20 @@ export default function AddressPage() {
     isPrimary: false,
   });
 
-  // ✅ Reusable function to fetch addresses
   const fetchAddresses = async () => {
     try {
       const res = await fetch("http://localhost:8000/api/v1/addresses", {
         credentials: "include",
       });
       const data = await res.json();
-
       if (res.ok) {
-        setAddresses(data); // ✅ Must return array of Address
+        setAddresses(data);
       } else {
         setError(data.message || "Failed to fetch addresses.");
       }
-    } catch (error) {
+    } catch (err) {
+      console.error("Error fetching addresses:", err);
       setError("Error fetching addresses.");
-      console.error("Error fetching addresses:", error);
     } finally {
       setLoading(false);
     }
@@ -72,7 +90,7 @@ export default function AddressPage() {
       const data = await res.json();
 
       if (res.ok) {
-        setDestinationOptions(data); // misalnya array destinasi
+        setDestinationOptions(data);
       } else {
         console.error("Failed to fetch destinations:", data.message);
       }
@@ -81,37 +99,61 @@ export default function AddressPage() {
     }
   };
 
-  useEffect(() => {
-    fetchAddresses();
-  }, []);
-
-  const handleAddNewAddress = () => {
-    setIsAddingAddress(true);
-  };
-
-  const handleCloseForm = () => {
-    setIsAddingAddress(false);
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
+  const setAsPrimary = async (userAddressId: string) => {
     try {
-      const response = await fetch("http://localhost:8000/api/v1/addresses", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(newAddress),
+      const res = await fetch(
+        `http://localhost:8000/api/v1/addresses/${userAddressId}/set-primary`,
+        {
+          method: "PUT",
+          credentials: "include",
+        }
+      );
+      if (!res.ok) {
+        const data = await res.json();
+        alert(data.message || "Gagal mengatur primary address.");
+        return;
+      }
+      await fetchAddresses();
+    } catch (err) {
+      console.error("Error setting primary address:", err);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this address?")) return;
+    try {
+      const res = await fetch(`http://localhost:8000/api/v1/addresses/${id}`, {
+        method: "DELETE",
         credentials: "include",
       });
+      if (res.ok) {
+        await fetchAddresses();
+      } else {
+        const data = await res.json();
+        alert(data.message || "Gagal menghapus alamat.");
+      }
+    } catch (err) {
+      console.error("Error deleting address:", err);
+    }
+  };
 
-      if (response.ok) {
-        const addedAddress = await response.json();
-        console.log("🚀 Added Address:", addedAddress);
-
-        // Reset form
-        setNewAddress({
+  const handleSave = async () => {
+    const endpoint =
+      isEditing && selectedAddress
+        ? `http://localhost:8000/api/v1/addresses/${selectedAddress.Address[0].id}`
+        : "http://localhost:8000/api/v1/addresses";
+    const method = isEditing ? "PUT" : "POST";
+    try {
+      const res = await fetch(endpoint, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(formData),
+      });
+      if (res.ok) {
+        await fetchAddresses();
+        setShowModal(false);
+        setFormData({
           recipient: "",
           address: "",
           destination: "",
@@ -121,47 +163,27 @@ export default function AddressPage() {
           destinationId: "",
           isPrimary: false,
         });
-
-        setIsAddingAddress(false);
-
-        // ✅ Refresh address list from backend
-        await fetchAddresses();
+        setSelectedAddress(null);
+        setIsEditing(false);
       } else {
-        const data = await response.json();
-        setError(data.message || "Failed to add address.");
+        const data = await res.json();
+        alert(data.message || "Failed to save address");
       }
-    } catch (error) {
-      setError("Error adding address.");
-      console.error("Error adding address:", error);
+    } catch (err) {
+      console.error("Error saving address:", err);
     }
   };
 
-  if (loading) return <p className="text-center">Loading addresses...</p>;
-  if (error) return <p className="text-red-500 text-center">{error}</p>;
+  useEffect(() => {
+    fetchAddresses();
+  }, []);
 
   return (
     <MenuNavbarUser>
-      <div>
-        <div className="max-w-md mx-auto bg-white shadow-lg rounded-lg p-6 px-10 justify-center">
-          <div className="grid grid-cols-2 items-center justify-center space-x-4 text-center">
-            <Link
-              href="/dashboard/user/profile"
-              className="hover:text-green-900 bg-green-600 text-white px-4 py-2 rounded"
-            >
-              Profile
-            </Link>
-            <Link
-              href="/dashboard/user/profile/address"
-              className="hover:text-green-900 bg-green-600 text-white px-4 py-2 rounded"
-            >
-              Address
-            </Link>
-          </div>
-        </div>
-
-        <main className="bg-[#f7f8fa] min-h-screen text-black flex justify-center">
-          <div className="h-fit w-[40%] bg-white p-6 rounded-lg shadow-lg border border-black">
-            <h1 className="text-2xl font-bold mb-4 text-center">
+      <main className="bg-[#f7f8fa] min-h-screen text-black flex justify-center">
+        <div className="h-fit w-[90%] md:w-[60%] lg:w-[40%] bg-white p-6 rounded-lg shadow-lg border border-black">
+          <div className="flex justify-between items-center mb-4">
+            <h1 className="text-2xl font-bold text-green-800">
               Your Addresses
             </h1>
 
@@ -393,8 +415,128 @@ export default function AddressPage() {
               </div>
             </div>
           )}
-        </main>
-      </div>
+        </div>
+      </main>
+
+      {showModal && (
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
+            <h2 className="text-lg font-semibold mb-4 text-center">
+              {isEditing ? "Edit Address" : "Add New Address"}
+            </h2>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleSave();
+              }}
+            >
+              <input
+                type="text"
+                placeholder="Recipient"
+                value={formData.recipient}
+                onChange={(e) =>
+                  setFormData({ ...formData, recipient: e.target.value })
+                }
+                className="w-full p-2 mb-2 border border-gray-300 rounded"
+              />
+              <input
+                type="text"
+                placeholder="Address"
+                value={formData.address}
+                onChange={(e) =>
+                  setFormData({ ...formData, address: e.target.value })
+                }
+                className="w-full p-2 mb-2 border border-gray-300 rounded"
+              />
+              <input
+                type="text"
+                placeholder="Destination"
+                value={formData.destination}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setFormData({ ...formData, destination: value });
+                  fetchDestinationSuggestions(value);
+                }}
+                className="w-full p-2 mb-2 border border-gray-300 rounded"
+              />
+              {destinationOptions.map((opt, index) => (
+                <li
+                  key={index}
+                  className="p-2 hover:bg-gray-100 cursor-pointer"
+                  onClick={() => {
+                    setFormData({
+                      ...formData,
+                      destination: opt.label,
+                      city: opt.city_name,
+                      province: opt.province_name,
+                      postalCode: opt.zip_code,
+                    });
+                    setDestinationOptions([]);
+                  }}
+                >
+                  {opt.label}
+                </li>
+              ))}
+              <input
+                type="text"
+                placeholder="City"
+                value={formData.city}
+                onChange={(e) =>
+                  setFormData({ ...formData, city: e.target.value })
+                }
+                className="w-full p-2 mb-2 border border-gray-300 rounded"
+              />
+              <input
+                type="text"
+                placeholder="Province"
+                value={formData.province}
+                onChange={(e) =>
+                  setFormData({ ...formData, province: e.target.value })
+                }
+                className="w-full p-2 mb-2 border border-gray-300 rounded"
+              />
+              <input
+                type="text"
+                placeholder="Postal Code"
+                value={formData.postalCode}
+                onChange={(e) =>
+                  setFormData({ ...formData, postalCode: e.target.value })
+                }
+                className="w-full p-2 mb-2 border border-gray-300 rounded"
+              />
+              <label className="flex items-center space-x-2 mb-4">
+                <input
+                  type="checkbox"
+                  checked={formData.isPrimary}
+                  onChange={(e) =>
+                    setFormData({ ...formData, isPrimary: e.target.checked })
+                  }
+                />
+                <span>Set as primary</span>
+              </label>
+              <div className="flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowModal(false);
+                    setSelectedAddress(null);
+                    setIsEditing(false);
+                  }}
+                  className="bg-gray-400 hover:bg-gray-500 text-white px-4 py-2 rounded"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded"
+                >
+                  Save
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </MenuNavbarUser>
   );
 }
