@@ -77,6 +77,7 @@ export default function CheckoutPage() {
     useState<ShippingOption | null>(null);
 
   const calculateShippingCost = (selectedAddress: UserAddress) => {
+    console.log(selectedAddress);
     let totalWeight = cartItems.reduce(
       (sum, item) => sum + item.Product.weight * item.quantity,
       0
@@ -89,7 +90,7 @@ export default function CheckoutPage() {
 
     const queryParams = new URLSearchParams({
       shipper_destination_id: "501", // your warehouse
-      receiver_destination_id: selectedAddress.Address.destinationId,
+      receiver_destination_id: selectedAddress.Address?.[0]?.destinationId,
       weight: totalWeight.toString(),
       item_value: subtotal.toString(),
       cod: "false",
@@ -214,10 +215,10 @@ export default function CheckoutPage() {
       setAddress({
         fullName: selectedAddress.recipient,
         // phone: "", // update if your data includes phone
-        address: selectedAddress.Address.address,
-        city: selectedAddress.Address.city,
-        province: selectedAddress.Address.province,
-        postalCode: selectedAddress.Address.postalCode,
+        address: selectedAddress.Address?.[0]?.address,
+        city: selectedAddress.Address?.[0]?.city,
+        province: selectedAddress.Address?.[0]?.province,
+        postalCode: selectedAddress.Address?.[0]?.postalCode,
       });
 
       calculateShippingCost(selectedAddress);
@@ -238,7 +239,9 @@ export default function CheckoutPage() {
   const formatRp = (n: number) =>
     n.toLocaleString("id-ID", { minimumFractionDigits: 2 });
 
-  const allAddressFilled = Object.values(address).every((v) => v.trim() !== "");
+  const allAddressFilled = Object.values(address)
+    .filter((f) => f != null)
+    .every((v) => v.trim() !== "");
 
   const handlePayNow = async () => {
     if (!allAddressFilled)
@@ -329,9 +332,10 @@ export default function CheckoutPage() {
                 return (
                   <tr key={item.id} className="border-b ">
                     <td className="p-2 flex items-center gap-2 ">
+                      <p>{JSON.stringify(item)}</p>
                       {item.Product?.image && (
                         <Image
-                          src={item.Product.image}
+                          src={item.Product.imagePreview?.[0]?.imageUrl}
                           alt={item.Product.name}
                           width={60}
                           height={60}
@@ -470,10 +474,11 @@ export default function CheckoutPage() {
                       />
                       <div>
                         <p className="font-semibold">{address.recipient}</p>
-                        <p>{address.Address.address}</p>
+                        <p>{address.Address?.[0]?.address}</p>
                         <p>
-                          {address.Address.city}, {address.Address.province},{" "}
-                          {address.Address.postalCode}
+                          {address.Address?.[0]?.city},{" "}
+                          {address.Address?.[0]?.province},{" "}
+                          {address.Address?.[0]?.postalCode}
                         </p>
                         <p className="text-sm">
                           {address.isPrimary
