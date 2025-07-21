@@ -202,16 +202,6 @@ export default function ProfileSection() {
           </div>
 
           <div>
-            <p className="text-sm text-gray-500">Full Name</p>
-            <p className="text-lg font-medium">
-              {user.firstname} {user.lastname} {user.name}
-            </p>
-          </div>
-          <div>
-            <p className="text-sm text-gray-500">Username</p>
-            <p className="text-lg font-medium">{user.username}</p>
-          </div>
-          <div>
             <p className="text-sm text-gray-500">Email</p>
             <p className="text-lg font-medium">{user.email}</p>
           </div>

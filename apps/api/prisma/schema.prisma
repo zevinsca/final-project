@@ -60,12 +60,11 @@ model User {
 model UserAddress {
   id        String  @id @default(uuid())
   userId    String
-  addressId String
   recipient String
   isPrimary Boolean @default(false)
 
-  User    User    @relation(fields: [userId], references: [id])
-  Address Address @relation(fields: [addressId], references: [id])
+  User    User      @relation(fields: [userId], references: [id])
+  Address Address[]
 }
 
 model Address {
@@ -97,10 +96,10 @@ model StoreUser {
 }
 
 model StoreAddress {
-  id         String @id @default(uuid())
-  storeId    String
-  latitude   Float
-  longtitude Float
+  id        String @id @default(uuid())
+  storeId   String
+  latitude  Float
+  longitude Float
 
   createdAt DateTime @default(now())
 
