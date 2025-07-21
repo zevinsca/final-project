@@ -332,8 +332,7 @@ export default function CheckoutPage() {
                 return (
                   <tr key={item.id} className="border-b ">
                     <td className="p-2 flex items-center gap-2 ">
-                      <p>{JSON.stringify(item)}</p>
-                      {item.Product?.image && (
+                      {item.Product.imagePreview?.[0]?.imageUrl && (
                         <Image
                           src={item.Product.imagePreview?.[0]?.imageUrl}
                           alt={item.Product.name}
