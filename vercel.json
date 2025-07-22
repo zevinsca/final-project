@@ -3,11 +3,5 @@
     "env": {
       "NODE_ENV": "production"
     }
-  },
-  "rewrites": [
-    {
-      "source": "/(.*)",
-      "destination": "/apps/web/$1"
-    }
-  ]
+  }
 }
