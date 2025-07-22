@@ -1,7 +1,7 @@
 {
   "$schema": "https://turborepo.com/schema.json",
   "ui": "tui",
-  "globalEnv": ["MIDTRANS_SANDBOX_CLIENT_KEY"],
+  "globalEnv": ["NODE_ENV", "MIDTRANS_SANDBOX_CLIENT_KEY"],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
