@@ -56,9 +56,12 @@ export default function AddressPage() {
 
   const fetchAddresses = async () => {
     try {
-      const res = await fetch("http://localhost:8000/api/v1/addresses", {
-        credentials: "include",
-      });
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_DOMAIN}/api/v1/addresses`,
+        {
+          credentials: "include",
+        }
+      );
       const data = await res.json();
       if (res.ok) {
         setAddresses(data);

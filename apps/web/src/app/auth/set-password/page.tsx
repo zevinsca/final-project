@@ -36,7 +36,7 @@ export default function SetPasswordForm() {
 
     try {
       const res = await fetch(
-        "http://localhost:8000/api/v1/auth/set-password",
+        `${process.env.NEXT_PUBLIC_DOMAIN}/api/v1/auth/set-password`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
