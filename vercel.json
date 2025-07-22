@@ -3,5 +3,10 @@
     "env": {
       "NODE_ENV": "production"
     }
+  },
+  "projects": {
+    "web": {
+      "source": "apps/web"
+    }
   }
 }
