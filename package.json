@@ -7,7 +7,8 @@
     "check-types": "npx turbo run check-types",
     "dev": "npx turbo run dev",
     "lint": "npx turbo run lint",
-    "start": "npx turbo run start"
+    "start": "npx turbo run start",
+    "preinstall": "npx --yes cross-env"
   },
   "repository": {
     "type": "git",
