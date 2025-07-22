@@ -12,6 +12,7 @@ const snap = new MidtransClient.Snap({
 export const handleManualCheckout = async (req: Request, res: Response) => {
   try {
     //const userId = req.user.id;
+    const baseUrl = process.env.NEXT_PUBLIC_DOMAIN;
     const user = req.user;
 
     console.log(JSON.stringify(user));
@@ -61,7 +62,7 @@ export const handleManualCheckout = async (req: Request, res: Response) => {
     console.log(JSON.stringify(queryParams));
 
     const response = await fetch(
-      `http://localhost:8000/api/v1/rajaongkir/calculate?${queryParams}`
+      `${baseUrl}/api/v1/rajaongkir/calculate?${queryParams}`
     );
     const result = await response.json();
 

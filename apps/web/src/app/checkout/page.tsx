@@ -95,8 +95,8 @@ export default function CheckoutPage() {
       item_value: subtotal.toString(),
       cod: "false",
     });
-
-    fetch(`http://localhost:8000/api/v1/rajaongkir/calculate?${queryParams}`)
+    const baseUrl = process.env.NEXT_PUBLIC_DOMAIN;
+    fetch(`${baseUrl}/api/v1/rajaongkir/calculate?${queryParams}`)
       .then((res) => {
         if (!res.ok) {
           throw new Error(`Response status: ${res.status}`);
@@ -118,9 +118,12 @@ export default function CheckoutPage() {
   useEffect(() => {
     (async () => {
       try {
-        const res = await fetch("http://localhost:8000/api/v1/cart/index", {
-          credentials: "include",
-        });
+        const res = await fetch(
+          `${process.env.NEXT_PUBLIC_DOMAIN}/api/v1/cart/index`,
+          {
+            credentials: "include",
+          }
+        );
 
         if (res.status === 401 || res.status === 403) {
           router.push("/auth/login");
@@ -139,9 +142,12 @@ export default function CheckoutPage() {
   useEffect(() => {
     (async () => {
       try {
-        const res = await fetch("http://localhost:8000/api/v1/addresses", {
-          credentials: "include",
-        });
+        const res = await fetch(
+          `${process.env.NEXT_PUBLIC_DOMAIN}/api/v1/addresses`,
+          {
+            credentials: "include",
+          }
+        );
         const json = await res.json();
         if (res.ok) {
           setUserAddresses(json);
@@ -262,14 +268,17 @@ export default function CheckoutPage() {
     formData.append("paymentMethod", paymentMethod);
 
     try {
-      const res = await fetch("http://localhost:8000/api/v1/checkout/manual", {
-        method: "POST",
-        credentials: "include",
-        headers: {
-          // "Content-Type": "application/json",
-        },
-        body: formData,
-      });
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_DOMAIN}/api/v1/checkout/manual`,
+        {
+          method: "POST",
+          credentials: "include",
+          headers: {
+            // "Content-Type": "application/json",
+          },
+          body: formData,
+        }
+      );
 
       const json = await res.json();
       if (res.ok) {
@@ -278,7 +287,7 @@ export default function CheckoutPage() {
           console.log(window);
           console.log(JSON.stringify(json));
           window.snap.pay(json.data.midtransTransaction?.token, {
-            selectedPaymentType: "gopay",
+            selectedPaymentType: "bca_va",
             onSuccess: function (result) {
               console.log("success");
               console.log(result);
@@ -419,7 +428,7 @@ export default function CheckoutPage() {
                 });
 
                 fetch(
-                  `http://localhost:8000/api/v1/rajaongkir/calculate?${queryParams}`
+                  `${baseUrl}/api/v1/rajaongkir/calculate?${queryParams}`
                 )
                   .then((res) => res.json())
                   .then((body) => {
@@ -569,7 +578,7 @@ export default function CheckoutPage() {
                     checked={paymentMethod === "epayment"}
                     onChange={() => setPaymentMethod("epayment")}
                   />
-                  GoPay / E-Payment (Midtrans)
+                  BCA Virtual Account
                 </label>
                 <label className="flex items-center gap-2">
                   <input

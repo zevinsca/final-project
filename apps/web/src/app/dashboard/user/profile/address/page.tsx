@@ -75,8 +75,9 @@ export default function AddressPage() {
 
   const fetchDestinationSuggestions = async (keyword: string) => {
     try {
+      const baseUrl = process.env.NEXT_PUBLIC_DOMAIN;
       const res = await fetch(
-        `http://localhost:8000/api/v1/rajaongkir/search?keyword=${encodeURIComponent(keyword)}`
+        `${baseUrl}/api/v1/rajaongkir/search?keyword=${encodeURIComponent(keyword)}`
       );
       const data = await res.json();
 
@@ -92,8 +93,9 @@ export default function AddressPage() {
 
   const setAsPrimary = async (userAddressId: string) => {
     try {
+      const baseUrl = process.env.NEXT_PUBLIC_DOMAIN;
       const res = await fetch(
-        `http://localhost:8000/api/v1/addresses/${userAddressId}/set-primary`,
+        `${baseUrl}/api/v1/addresses/${userAddressId}/set-primary`,
         {
           method: "PUT",
           credentials: "include",
@@ -113,7 +115,8 @@ export default function AddressPage() {
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure you want to delete this address?")) return;
     try {
-      const res = await fetch(`http://localhost:8000/api/v1/addresses/${id}`, {
+      const baseUrl = process.env.NEXT_PUBLIC_DOMAIN;
+      const res = await fetch(`${baseUrl}/api/v1/addresses/${id}`, {
         method: "DELETE",
         credentials: "include",
       });
@@ -129,10 +132,11 @@ export default function AddressPage() {
   };
 
   const handleSave = async () => {
+    const baseUrl = process.env.NEXT_PUBLIC_DOMAIN;
     const endpoint =
       isEditing && selectedAddress
-        ? `http://localhost:8000/api/v1/addresses/${selectedAddress.Address[0].id}`
-        : "http://localhost:8000/api/v1/addresses";
+        ? `${baseUrl}/api/v1/addresses/${selectedAddress.Address[0].id}`
+        : `${baseUrl}/api/v1/addresses`;
     const method = isEditing ? "PUT" : "POST";
     console.log(formData);
     try {
